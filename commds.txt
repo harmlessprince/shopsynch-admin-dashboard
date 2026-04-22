@@ -1,0 +1,2 @@
+ sudo lsof -i :PORT #list app runnung on PORT
+ kill -9 PID kill app run with the processed id 

@@ -1,0 +1,119 @@
+
+
+This api's has been integrated in @stores/stats.store.js below is the response, now ensure this data is represent in the UI with approriate labels and arranged in chronolocoal order   
+
+for this api "/v1/dashboard/inventory/performance" here is the 
+{
+    "status": true,
+    "message": "Inventory performance retrieved",
+    "data": {
+        "stockTurnoverRatio": 0.06,
+        "stockTurnoverTrend": "-25.0%",
+        "outOfStockRate": 5.0,
+        "outOfStockTrend": "+0.0%",
+        "totalInventoryValue": 60209000.00,
+        "inventoryValueTrend": "+0.0%",
+        "lowStockCriticalCount": 4,
+        "lowStockItems": [
+            {
+                "productId": "ffafa629-ccc5-41aa-bac0-7ae34f252c33",
+                "productName": "Samsung Galaxy S24",
+                "skuId": null,
+                "warehouseName": "Warehouse B",
+                "onHandQty": 0,
+                "reorderLevel": 8,
+                "maxStock": null,
+                "productImage": "https://via.placeholder.com/400x300?text=Samsung+Galaxy+S24",
+                "severity": "critical"
+            },
+            {
+                "productId": "16c956d2-9eb6-4aa0-a2da-ebf21f44bb60",
+                "productName": "iPhone 15 Pro",
+                "skuId": null,
+                "warehouseName": "Warehouse B",
+                "onHandQty": 3,
+                "reorderLevel": 8,
+                "maxStock": null,
+                "productImage": "https://via.placeholder.com/400x300?text=iPhone+15+Pro",
+                "severity": "warning"
+            },
+            {
+                "productId": "f699d6f5-1c83-40e0-93e3-fd656677440a",
+                "productName": "LG 43-inch Smart TV",
+                "skuId": null,
+                "warehouseName": "Warehouse B",
+                "onHandQty": 3,
+                "reorderLevel": 8,
+                "maxStock": null,
+                "productImage": "https://via.placeholder.com/400x300?text=LG+43-inch+Smart+TV",
+                "severity": "warning"
+            },
+            {
+                "productId": "c8c4c9e8-443f-4d0a-a8d9-c4a23657b0eb",
+                "productName": "Sony WH-1000XM5 Headphones",
+                "skuId": null,
+                "warehouseName": "Warehouse B",
+                "onHandQty": 5,
+                "reorderLevel": 8,
+                "maxStock": null,
+                "productImage": "https://via.placeholder.com/400x300?text=Sony+WH-1000XM5+Headphones",
+                "severity": "warning"
+            }
+        ],
+        "topSellers": [
+            {
+                "productId": "2d6dc06a-f179-4881-bc5a-2ead735d9c79",
+                "name": "Nike Air Max 270",
+                "totalQuantitySold": 8
+            },
+            {
+                "productId": "ffafa629-ccc5-41aa-bac0-7ae34f252c33",
+                "name": "Samsung Galaxy S24",
+                "totalQuantitySold": 7
+            },
+            {
+                "productId": "d4e78134-4381-46cf-95e3-da4aaec2a0ef",
+                "name": "JBL Flip 6 Bluetooth Speaker",
+                "totalQuantitySold": 7
+            },
+            {
+                "productId": "f699d6f5-1c83-40e0-93e3-fd656677440a",
+                "name": "LG 43-inch Smart TV",
+                "totalQuantitySold": 6
+            },
+            {
+                "productId": "3f98c9a6-f0a7-43df-956a-e4c47f247d51",
+                "name": "Reebok Classic Leather",
+                "totalQuantitySold": 5
+            }
+        ],
+        "slowMovers": [
+            {
+                "productId": "e3327ef4-dcf2-4620-829d-70790ce1ecde",
+                "name": "Hisense 1.5HP Split AC",
+                "totalQuantitySold": 2
+            },
+            {
+                "productId": "16c956d2-9eb6-4aa0-a2da-ebf21f44bb60",
+                "name": "iPhone 15 Pro",
+                "totalQuantitySold": 3
+            },
+            {
+                "productId": "71f26417-372f-4856-864a-42a3c9b8fa44",
+                "name": "HP Pavilion Laptop 15",
+                "totalQuantitySold": 4
+            },
+            {
+                "productId": "c8c4c9e8-443f-4d0a-a8d9-c4a23657b0eb",
+                "name": "Sony WH-1000XM5 Headphones",
+                "totalQuantitySold": 5
+            },
+            {
+                "productId": "3f98c9a6-f0a7-43df-956a-e4c47f247d51",
+                "name": "Reebok Classic Leather",
+                "totalQuantitySold": 5
+            }
+        ],
+        "periodLabel": "Mar 16 — Apr 16, 2026"
+    }
+}
