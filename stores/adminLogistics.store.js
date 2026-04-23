@@ -50,9 +50,6 @@ export const useAdminLogisticsStore = defineStore("adminLogisticsStore", () => {
                     to: Math.min((currentPage + 1) * limit, data.total),
                 });
             }
-        } catch (err) {
-            error.value = "Unable to load shipments.";
-            throw err;
         } finally {
             loading.value = false;
         }
@@ -64,9 +61,6 @@ export const useAdminLogisticsStore = defineStore("adminLogisticsStore", () => {
         try {
             const response = await get(endpoints.admin.logistics.usage, params, { forceMode: "live" });
             usageStats.value = response?.data || [];
-        } catch (err) {
-            error.value = "Unable to load usage stats.";
-            throw err;
         } finally {
             loading.value = false;
         }
@@ -92,9 +86,6 @@ export const useAdminLogisticsStore = defineStore("adminLogisticsStore", () => {
                     to: Math.min((currentPage + 1) * limit, data.total),
                 });
             }
-        } catch (err) {
-            error.value = "Unable to load waybill failures.";
-            throw err;
         } finally {
             loading.value = false;
         }
@@ -120,9 +111,6 @@ export const useAdminLogisticsStore = defineStore("adminLogisticsStore", () => {
                     to: Math.min((currentPage + 1) * limit, data.total),
                 });
             }
-        } catch (err) {
-            error.value = "Unable to load weight adjustments.";
-            throw err;
         } finally {
             loading.value = false;
         }
@@ -137,8 +125,6 @@ export const useAdminLogisticsStore = defineStore("adminLogisticsStore", () => {
                 toastStore.success("Adjustment resolved successfully", "");
             }
             return response;
-        } catch (err) {
-            throw err;
         } finally {
             resolving.value = false;
         }
