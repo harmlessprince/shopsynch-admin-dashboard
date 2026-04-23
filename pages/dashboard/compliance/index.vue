@@ -1,12 +1,12 @@
 <script setup>
 import { logger } from "~/utils/helpers.js";
-
 definePageMeta({
   layout: "dashboard",
   middleware: "auth-middleware",
   name: "dashboard-compliance",
 });
 
+const router = useRouter();
 const adminComplianceStore = useAdminComplianceStore();
 
 async function fetchQueue() {
@@ -23,11 +23,18 @@ async function fetchQueue() {
 
 async function reviewCompliance(tenantId, status) {
   try {
-    await adminComplianceStore.reviewCompliance(tenantId, { status });
+    const reviewNote = status === "APPROVE"
+      ? "All submitted documents are valid."
+      : "Review started by compliance team.";
+    await adminComplianceStore.reviewCompliance(tenantId, { action: status, reviewNote });
     await fetchQueue();
   } catch (err) {
     logger.error("Failed to review compliance", err);
   }
+}
+
+function openAudit(tenantId) {
+  router.push({ name: "dashboard-compliance-detail", params: { tenantId } });
 }
 
 onMounted(fetchQueue);
@@ -58,7 +65,12 @@ onMounted(fetchQueue);
           <tr v-if="adminComplianceStore.loading">
             <td colspan="4" class="px-[1.6rem] py-[2rem]">Loading queue...</td>
           </tr>
-          <tr v-for="merchant in adminComplianceStore.queue" :key="merchant.id" class="border-t border-slate-100">
+          <tr
+            v-for="merchant in adminComplianceStore.queue"
+            :key="merchant.id"
+            class="cursor-pointer border-t border-slate-100 hover:bg-slate-50"
+            @click="openAudit(merchant.id)"
+          >
             <td class="px-[1.6rem] py-[1.4rem]">
               <p class="font-[700] text-[#000]">{{ merchant.businessTradingName || "Untitled merchant" }}</p>
               <p class="text-[1.2rem]">{{ merchant.businessSupportEmailAddress || "-" }}</p>
@@ -66,11 +78,11 @@ onMounted(fetchQueue);
             <td class="px-[1.6rem] py-[1.4rem]">{{ merchant.ownerFullName || merchant.ownerEmail || "-" }}</td>
             <td class="px-[1.6rem] py-[1.4rem]">{{ merchant.complianceReviewStatus || "-" }}</td>
             <td class="px-[1.6rem] py-[1.4rem]">
-              <div class="flex justify-end gap-[0.8rem]">
+              <div class="flex justify-end gap-[0.8rem]" @click.stop>
                 <button class="font-[700] text-primary" @click="reviewCompliance(merchant.id, 'UNDER_REVIEW')">
                   Review
                 </button>
-                <button class="font-[700] text-green-700" @click="reviewCompliance(merchant.id, 'APPROVED')">
+                <button class="font-[700] text-green-700" @click="reviewCompliance(merchant.id, 'APPROVE')">
                   Approve
                 </button>
               </div>

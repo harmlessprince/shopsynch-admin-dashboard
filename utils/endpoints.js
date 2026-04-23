@@ -25,6 +25,7 @@ export const endpoints = {
         compliance: {
             tenantDetail: "/v1/admin/compliance/tenants/:tenantId",
             review: "/v1/admin/compliance/tenants/:tenantId/review",
+            rejectionTemplates: "/v1/admin/compliance/rejection-templates",
             override: "/v1/admin/compliance/tenants/:tenantId/override",
         },
         users: {
@@ -43,6 +44,13 @@ export const endpoints = {
             clearAll: "/v1/admin/cache",
             clearByName: "/v1/admin/cache/:cacheName",
             clearTenant: "/v1/admin/cache/tenant/:tenantId",
+        },
+        logistics: {
+            shipments: "/v1/admin/logistics/shipments",
+            usage: "/v1/admin/logistics/shipments/usage",
+            waybillFailures: "/v1/admin/logistics/shipments/waybill-failures",
+            weightAdjustments: "/v1/admin/logistics/weight-adjustments",
+            resolveAdjustment: "/v1/admin/logistics/weight-adjustments/:adjustmentId/resolve",
         },
     },
 }

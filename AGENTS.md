@@ -11,6 +11,8 @@ npm run generate   # Static site generation
 npm run preview    # Preview production build
 ```
 
+Do not run build command except you are explicitly told to do so
+
 There is no test suite in this project.
 
 ## Environment Variables

@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { endpoints } from "~/utils/endpoints.js";
 import { useApiService } from "~/services/apiService.js";
 import { useToastStore } from "~/stores/toast.store.js";
+import { getPaginatedData } from "~/utils/helpers.js";
 
 export const useAdminMerchantsStore = defineStore("adminMerchantsStore", () => {
     const { get, patch } = useApiService();
@@ -13,6 +14,7 @@ export const useAdminMerchantsStore = defineStore("adminMerchantsStore", () => {
     const loading = ref(false);
     const detailLoading = ref(false);
     const total = ref(0);
+    const paginatedData = ref(undefined);
     const error = ref("");
 
     async function fetchMerchants(params = {}) {
@@ -21,8 +23,23 @@ export const useAdminMerchantsStore = defineStore("adminMerchantsStore", () => {
 
         try {
             const response = await get(endpoints.admin.merchants.list, params, { forceMode: "live" });
-            merchants.value = response?.data?.content || [];
-            total.value = response?.data?.totalElements || merchants.value.length;
+            const data = response?.data;
+
+            merchants.value = data?.items || data?.content || [];
+            total.value = data?.total ?? data?.totalElements ?? merchants.value.length;
+
+            if (data?.total !== undefined) {
+                const limit = Number(params.limit || params.size || merchants.value.length || 1);
+                const currentPage = Number(data.currentPage ?? params.page ?? 0);
+
+                paginatedData.value = getPaginatedData({
+                    current_page: currentPage + 1,
+                    per_page: limit,
+                    total: data.total,
+                    from: currentPage * limit + 1,
+                    to: Math.min((currentPage + 1) * limit, data.total),
+                });
+            }
         } catch (err) {
             error.value = "Unable to load merchants.";
             throw err;
@@ -71,6 +88,7 @@ export const useAdminMerchantsStore = defineStore("adminMerchantsStore", () => {
         loading,
         detailLoading,
         total,
+        paginatedData,
         error,
         fetchMerchants,
         fetchMerchantDetail,

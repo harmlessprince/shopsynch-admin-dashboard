@@ -1,6 +1,6 @@
 <script setup>
 import { logger } from "~/utils/helpers.js";
-
+import DataTable from "~/components/table/DataTable.vue";
 definePageMeta({
   layout: "dashboard",
   middleware: "auth-middleware",
@@ -11,21 +11,47 @@ const adminMerchantsStore = useAdminMerchantsStore();
 const router = useRouter();
 const search = ref("");
 const complianceReviewStatus = ref("");
+const currentMode = ref("");
+const status = ref("");
+const page = ref(1);
+const limit = ref(50);
+
+const tableHeader = [
+  { title: "Merchant", accessor: "businessTradingName" },
+  { title: "Owner", accessor: "ownerFullName" },
+  { title: "Mode", accessor: "currentMode" },
+  { title: "Compliance", accessor: "complianceReviewStatus" },
+  { title: "Status", accessor: "status" },
+  { title: "Created", accessor: "createdAt", type: "date" },
+];
 
 const params = computed(() => ({
   search: search.value || undefined,
   complianceReviewStatus: complianceReviewStatus.value || undefined,
-  page: 0,
-  size: 20,
-  sort: "createdAt,desc",
+  currentMode: currentMode.value || undefined,
+  status: status.value || undefined,
+  page: page.value - 1,
+  limit: limit.value,
+  sortFieldParam: "CREATED_AT",
+  sortDirectionParam: "DESC",
 }));
 
-async function fetchMerchants() {
+async function fetchMerchants(nextPage = page.value) {
   try {
+    page.value = nextPage;
     await adminMerchantsStore.fetchMerchants(params.value);
   } catch (err) {
     logger.error("Failed to load merchants", err);
   }
+}
+
+function applyFilters() {
+  fetchMerchants(1);
+}
+
+function changeLimit(nextLimit) {
+  limit.value = nextLimit;
+  fetchMerchants(1);
 }
 
 async function updateMerchantStatus(merchant) {
@@ -35,6 +61,10 @@ async function updateMerchantStatus(merchant) {
   } catch (err) {
     logger.error("Failed to update merchant status", err);
   }
+}
+
+function formatMerchantName(merchant) {
+  return merchant.businessTradingName || "Untitled merchant";
 }
 
 onMounted(fetchMerchants);
@@ -48,27 +78,46 @@ onMounted(fetchMerchants);
           <h1 class="text-[2rem] font-[700] text-[#000]">Merchants</h1>
           <p class="mt-[0.4rem]">All platform merchants: {{ adminMerchantsStore.total }}</p>
         </div>
-        <div class="flex flex-col gap-[1rem] sm:flex-row">
+        <div class="flex flex-col gap-[1rem] sm:flex-row sm:flex-wrap sm:justify-end">
           <input
             v-model="search"
             type="search"
             class="rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem]"
             placeholder="Search merchants"
-            @keyup.enter="fetchMerchants"
+            @keyup.enter="applyFilters"
           />
           <select
             v-model="complianceReviewStatus"
             class="rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem]"
-            @change="fetchMerchants"
+            @change="applyFilters"
           >
             <option value="">All compliance statuses</option>
+            <option value="NOT_SUBMITTED">Not submitted</option>
             <option value="AWAITING_APPROVAL">Awaiting approval</option>
             <option value="UNDER_REVIEW">Under review</option>
             <option value="APPROVED">Approved</option>
             <option value="REJECTED">Rejected</option>
             <option value="SUSPENDED">Suspended</option>
           </select>
-          <button class="rounded-[8px] bg-primary px-[1.4rem] py-[0.9rem] font-[700] text-white" @click="fetchMerchants">
+          <select
+            v-model="currentMode"
+            class="rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem]"
+            @change="applyFilters"
+          >
+            <option value="">All modes</option>
+            <option value="TEST_MODE">Test mode</option>
+            <option value="LIVE_MODE">Live mode</option>
+          </select>
+          <select
+            v-model="status"
+            class="rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem]"
+            @change="applyFilters"
+          >
+            <option value="">All statuses</option>
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+          </select>
+          <button class="rounded-[8px] bg-primary px-[1.4rem] py-[0.9rem] font-[700] text-white" @click="applyFilters">
             Filter
           </button>
         </div>
@@ -80,53 +129,49 @@ onMounted(fetchMerchants);
     </div>
 
     <section class="overflow-hidden rounded-[8px] bg-white shadow-sm">
-      <table class="w-full min-w-[92rem] text-left">
-        <thead class="bg-slate-50 text-[1.2rem] uppercase text-[#616161]">
-          <tr>
-            <th class="px-[1.6rem] py-[1.2rem]">Merchant</th>
-            <th class="px-[1.6rem] py-[1.2rem]">Owner</th>
-            <th class="px-[1.6rem] py-[1.2rem]">Mode</th>
-            <th class="px-[1.6rem] py-[1.2rem]">Compliance</th>
-            <th class="px-[1.6rem] py-[1.2rem]">Status</th>
-            <th class="px-[1.6rem] py-[1.2rem]"></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="adminMerchantsStore.loading">
-            <td colspan="6" class="px-[1.6rem] py-[2rem]">Loading merchants...</td>
-          </tr>
-          <tr
-            v-for="merchant in adminMerchantsStore.merchants"
-            :key="merchant.id"
-            class="border-t border-slate-100"
+      <DataTable
+        :table-header="tableHeader"
+        :table-data="adminMerchantsStore.merchants"
+        :pagination="adminMerchantsStore.paginatedData"
+        :loading="adminMerchantsStore.loading"
+        has-action
+        has-show
+        @show="router.push(`/dashboard/merchants/${$event}`)"
+        @fetch-page="fetchMerchants"
+        @change-limit="changeLimit"
+      >
+        <template #cell(businessTradingName)="{ row }">
+          <div>
+            <p class="font-[700] text-[#000]">{{ formatMerchantName(row) }}</p>
+            <p class="text-[1.2rem] text-dashboard_text_color">{{ row.code || row.slug || "N/A" }}</p>
+          </div>
+        </template>
+
+        <template #cell(ownerFullName)="{ row }">
+          <div>
+            <p class="text-[#000]">{{ row.ownerFullName || "N/A" }}</p>
+            <p class="text-[1.2rem] text-dashboard_text_color">{{ row.ownerEmail || "N/A" }}</p>
+          </div>
+        </template>
+
+        <template #cell(status)="{ row }">
+          <span
+            :class="row.status ? 'bg-[#B5F9B4] text-[#3CA745]' : 'bg-[#FFBFBF] text-[#FF3131]'"
+            class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium"
           >
-            <td class="px-[1.6rem] py-[1.4rem]">
-              <p class="font-[700] text-[#000]">{{ merchant.businessTradingName || "Untitled merchant" }}</p>
-              <p class="text-[1.2rem]">{{ merchant.code || merchant.slug }}</p>
-            </td>
-            <td class="px-[1.6rem] py-[1.4rem]">
-              <p>{{ merchant.ownerFullName || "-" }}</p>
-              <p class="text-[1.2rem]">{{ merchant.ownerEmail || "-" }}</p>
-            </td>
-            <td class="px-[1.6rem] py-[1.4rem]">{{ merchant.currentMode || "-" }}</td>
-            <td class="px-[1.6rem] py-[1.4rem]">{{ merchant.complianceReviewStatus || "-" }}</td>
-            <td class="px-[1.6rem] py-[1.4rem]">{{ merchant.status ? "Active" : "Inactive" }}</td>
-            <td class="px-[1.6rem] py-[1.4rem]">
-              <div class="flex items-center justify-end gap-[0.8rem]">
-                <button class="font-[700] text-primary" @click="router.push(`/dashboard/merchants/${merchant.id}`)">
-                  View
-                </button>
-                <button class="font-[700] text-primary" @click="updateMerchantStatus(merchant)">
-                  {{ merchant.status ? "Deactivate" : "Activate" }}
-                </button>
-              </div>
-            </td>
-          </tr>
-          <tr v-if="!adminMerchantsStore.loading && adminMerchantsStore.merchants.length === 0">
-            <td colspan="6" class="px-[1.6rem] py-[2rem]">No merchants found.</td>
-          </tr>
-        </tbody>
-      </table>
+            {{ row.status ? "Active" : "Inactive" }}
+          </span>
+        </template>
+
+        <template #more-actions="{ data }">
+          <div class="dt-action-item" @click="updateMerchantStatus(data)">
+            <span class="material-symbols-outlined">
+              {{ data.status ? "toggle_off" : "toggle_on" }}
+            </span>
+            <p>{{ data.status ? "Deactivate" : "Activate" }}</p>
+          </div>
+        </template>
+      </DataTable>
     </section>
   </div>
 </template>

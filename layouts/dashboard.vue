@@ -33,6 +33,8 @@ watch(
       currentPageTitle.value = "Settings";
     } else if (newPath.includes("/dashboard/cache")) {
       currentPageTitle.value = "Cache";
+    } else if (newPath.includes("/dashboard/logistics")) {
+      currentPageTitle.value = "Logistics";
     }
   },
   { immediate: true },
@@ -85,6 +87,14 @@ const dashboardSidebarMenu = [
     icon: "cached",
     activeIcon: "cached",
     link: "/dashboard/cache",
+    comingSoon: false,
+  },
+  {
+    key: "logistics",
+    name: "Logistics",
+    icon: "local_shipping",
+    activeIcon: "local_shipping",
+    link: "/dashboard/logistics",
     comingSoon: false,
   },
 ];

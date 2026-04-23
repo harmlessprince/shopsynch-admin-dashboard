@@ -1,6 +1,6 @@
 <script setup>
 import { logger } from "~/utils/helpers.js";
-
+import DataTable from "~/components/table/DataTable.vue";
 definePageMeta({
   layout: "dashboard",
   middleware: "auth-middleware",
@@ -10,19 +10,45 @@ definePageMeta({
 const adminUsersStore = useAdminUsersStore();
 const search = ref("");
 const status = ref("");
+const role = ref("");
+const page = ref(1);
+const limit = ref(50);
 
-async function fetchUsers() {
+const tableHeader = [
+  { title: "User", accessor: "fullName" },
+  { title: "Status", accessor: "status", type: "status" },
+  { title: "Email", accessor: "email" },
+  { title: "Stores", accessor: "tenantMemberships" },
+  { title: "Email verified", accessor: "emailVerified", type: "boolean", booleanLabels: { true: "Yes", false: "No" } },
+  { title: "Created", accessor: "createdAt", type: "date" },
+];
+
+const params = computed(() => ({
+  search: search.value || undefined,
+  status: status.value || undefined,
+  role: role.value || undefined,
+  page: page.value - 1,
+  limit: limit.value,
+  sortFieldParam: "CREATED_AT",
+  sortDirectionParam: "DESC",
+}));
+
+async function fetchUsers(nextPage = page.value) {
   try {
-    await adminUsersStore.fetchUsers({
-      search: search.value || undefined,
-      status: status.value || undefined,
-      page: 0,
-      size: 20,
-      sort: "createdAt,desc",
-    });
+    page.value = nextPage;
+    await adminUsersStore.fetchUsers(params.value);
   } catch (err) {
     logger.error("Failed to load admin users", err);
   }
+}
+
+function applyFilters() {
+  fetchUsers(1);
+}
+
+function changeLimit(nextLimit) {
+  limit.value = nextLimit;
+  fetchUsers(1);
 }
 
 async function updateUserStatus(user, nextStatus) {
@@ -34,6 +60,15 @@ async function updateUserStatus(user, nextStatus) {
   }
 }
 
+function formatMemberships(memberships = []) {
+  if (!memberships?.length) return "0";
+
+  return memberships
+    .map((membership) => membership.tenantName)
+    .filter(Boolean)
+    .join(", ") || String(memberships.length);
+}
+
 onMounted(fetchUsers);
 </script>
 
@@ -43,27 +78,34 @@ onMounted(fetchUsers);
       <div class="flex flex-col gap-[1.2rem] md:flex-row md:items-center md:justify-between">
         <div>
           <h1 class="text-[2rem] font-[700] text-[#000]">Users</h1>
-          <p class="mt-[0.4rem]">Platform-wide user accounts.</p>
+          <p class="mt-[0.4rem]">Platform-wide user accounts: {{ adminUsersStore.total }}</p>
         </div>
-        <div class="flex flex-col gap-[1rem] sm:flex-row">
+        <div class="flex flex-col gap-[1rem] sm:flex-row sm:flex-wrap sm:justify-end">
           <input
             v-model="search"
             type="search"
             class="rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem]"
             placeholder="Search users"
-            @keyup.enter="fetchUsers"
+            @keyup.enter="applyFilters"
           />
           <select
             v-model="status"
             class="rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem]"
-            @change="fetchUsers"
+            @change="applyFilters"
           >
             <option value="">All statuses</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
             <option value="suspended">Suspended</option>
           </select>
-          <button class="rounded-[8px] bg-primary px-[1.4rem] py-[0.9rem] font-[700] text-white" @click="fetchUsers">
+          <input
+            v-model="role"
+            type="search"
+            class="rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem]"
+            placeholder="Role slug"
+            @keyup.enter="applyFilters"
+          />
+          <button class="rounded-[8px] bg-primary px-[1.4rem] py-[0.9rem] font-[700] text-white" @click="applyFilters">
             Filter
           </button>
         </div>
@@ -75,40 +117,37 @@ onMounted(fetchUsers);
     </div>
 
     <section class="overflow-hidden rounded-[8px] bg-white shadow-sm">
-      <table class="w-full min-w-[78rem] text-left">
-        <thead class="bg-slate-50 text-[1.2rem] uppercase text-[#616161]">
-          <tr>
-            <th class="px-[1.6rem] py-[1.2rem]">User</th>
-            <th class="px-[1.6rem] py-[1.2rem]">Status</th>
-            <th class="px-[1.6rem] py-[1.2rem]">Email</th>
-            <th class="px-[1.6rem] py-[1.2rem]">Stores</th>
-            <th class="px-[1.6rem] py-[1.2rem]"></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="adminUsersStore.loading">
-            <td colspan="5" class="px-[1.6rem] py-[2rem]">Loading users...</td>
-          </tr>
-          <tr v-for="user in adminUsersStore.users" :key="user.id" class="border-t border-slate-100">
-            <td class="px-[1.6rem] py-[1.4rem]">
-              <p class="font-[700] text-[#000]">{{ user.fullName || "Unnamed user" }}</p>
-              <p class="text-[1.2rem]">{{ user.phoneNumber || "-" }}</p>
-            </td>
-            <td class="px-[1.6rem] py-[1.4rem]">{{ user.status || "-" }}</td>
-            <td class="px-[1.6rem] py-[1.4rem]">{{ user.email || "-" }}</td>
-            <td class="px-[1.6rem] py-[1.4rem]">{{ user.tenantMemberships?.length || 0 }}</td>
-            <td class="px-[1.6rem] py-[1.4rem]">
-              <div class="flex justify-end gap-[0.8rem]">
-                <button class="font-[700] text-primary" @click="updateUserStatus(user, 'active')">Activate</button>
-                <button class="font-[700] text-red-700" @click="updateUserStatus(user, 'suspended')">Suspend</button>
-              </div>
-            </td>
-          </tr>
-          <tr v-if="!adminUsersStore.loading && adminUsersStore.users.length === 0">
-            <td colspan="5" class="px-[1.6rem] py-[2rem]">No users found.</td>
-          </tr>
-        </tbody>
-      </table>
+      <DataTable
+        :table-header="tableHeader"
+        :table-data="adminUsersStore.users"
+        :pagination="adminUsersStore.paginatedData"
+        :loading="adminUsersStore.loading"
+        has-action
+        @fetch-page="fetchUsers"
+        @change-limit="changeLimit"
+      >
+        <template #cell(fullName)="{ row }">
+          <div>
+            <p class="font-[700] text-[#000]">{{ row.fullName || "Unnamed user" }}</p>
+            <p class="text-[1.2rem] text-dashboard_text_color">{{ row.phoneNumber || "N/A" }}</p>
+          </div>
+        </template>
+
+        <template #cell(tenantMemberships)="{ row }">
+          {{ formatMemberships(row.tenantMemberships) }}
+        </template>
+
+        <template #more-actions="{ data }">
+          <div class="dt-action-item" @click="updateUserStatus(data, 'active')">
+            <span class="material-symbols-outlined">check_circle</span>
+            <p>Activate</p>
+          </div>
+          <div class="dt-action-item text-red-600" @click="updateUserStatus(data, 'suspended')">
+            <span class="material-symbols-outlined text-red-600">block</span>
+            <p>Suspend</p>
+          </div>
+        </template>
+      </DataTable>
     </section>
   </div>
 </template>

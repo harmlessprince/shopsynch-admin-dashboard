@@ -127,7 +127,7 @@ const props = defineProps({
 
 const emit = defineEmits(["setPage", "fetchPage", "changeLimit", "prev", "next"]);
 
-const LIMIT_OPTIONS = [5, 10, 15, 20];
+const LIMIT_OPTIONS = [5, 10, 15, 20, 50];
 const selectedLimit = ref(props.paginationProps?.pageSize ?? 10);
 
 watch(() => props.paginationProps?.pageSize, (val) => {
