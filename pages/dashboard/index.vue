@@ -4,7 +4,7 @@ import { logger } from "~/utils/helpers.js";
 definePageMeta({
   layout: "dashboard",
   middleware: "auth-middleware",
-  name: "dashboard-overview",
+  name: "dashboard-overview"
 });
 
 const adminDashboardStore = useAdminDashboardStore();

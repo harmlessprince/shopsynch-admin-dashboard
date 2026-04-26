@@ -72,6 +72,17 @@ export const useAdminComplianceStore = defineStore("adminComplianceStore", () =>
         return response;
     }
 
+    async function reviewDocumentFile(tenantId, payload) {
+        const url = endpoints.admin.compliance.filesReview.replace(":tenantId", tenantId);
+        const response = await patch(url, payload, { forceMode: "live" });
+        if (response) {
+            const label = payload.action === "APPROVE" ? "approved" : "rejected";
+            toastStore.success(`Document ${label} successfully.`, "");
+            detail.value = response?.data || detail.value;
+        }
+        return response;
+    }
+
     async function grantOverride(tenantId, payload) {
         const url = endpoints.admin.compliance.override.replace(":tenantId", tenantId);
         return await post(url, payload, { forceMode: "live" });
@@ -94,6 +105,7 @@ export const useAdminComplianceStore = defineStore("adminComplianceStore", () =>
         fetchTenantDetail,
         fetchRejectionTemplates,
         reviewCompliance,
+        reviewDocumentFile,
         grantOverride,
         revokeOverride,
     };

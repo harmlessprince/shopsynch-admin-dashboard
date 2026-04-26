@@ -35,6 +35,11 @@ const overrideForm = ref({ reason: "", expiresAt: "" });
 // Action loading (separate from detail loading)
 const actionLoading = ref(false);
 
+// Per-document review state (keyed by documentType)
+const docReviewLoading = ref({});
+const docRejectNote = ref({});
+const showDocRejectInput = ref({});
+
 const detail = computed(() => store.detail);
 
 const hasFlaggedFields = computed(() => Object.values(flags.value).some((f) => f.flagged));
@@ -81,7 +86,7 @@ const auditSections = computed(() => [
       { key: "staffSize", label: "Staff Size", value: detail.value?.businessProfile?.staffSize },
       { key: "storefrontUrl", field: "businessStorefrontUrl", label: "Storefront URL", value: detail.value?.businessProfile?.storefrontUrl },
       { key: "description", field: "businessDescription", label: "Business Description", value: detail.value?.businessProfile?.description, full: true },
-      { key: "cacDocumentUrl", label: "CAC Document", value: detail.value?.businessProfile?.cacDocumentUrl, isDoc: true, docTitle: "CAC Document" },
+      { key: "cacDocumentUrl", label: "CAC Document", value: detail.value?.businessProfile?.cacDocumentUrl, isDoc: true, docTitle: "CAC Document", documentType: "CAC_DOCUMENT", verified: detail.value?.businessProfile?.cacDocumentVerified },
     ],
   },
   {
@@ -97,8 +102,8 @@ const auditSections = computed(() => [
       { key: "idType", label: "ID Type", value: detail.value?.owner?.idType },
       { key: "idNumber", label: "ID Number", value: detail.value?.owner?.idNumber },
       { key: "address", label: "Address", value: detail.value?.owner?.address, full: true },
-      { key: "idDocumentUrl", label: "ID Document", value: detail.value?.owner?.idDocumentUrl, isDoc: true, docTitle: "ID Document" },
-      { key: "proofOfAddressUrl", field: "proofOfAddress", label: "Proof of Address", value: detail.value?.owner?.proofOfAddressUrl, isDoc: true, docTitle: "Proof of Address" },
+      { key: "idDocumentUrl", label: "ID Document", value: detail.value?.owner?.idDocumentUrl, isDoc: true, docTitle: "ID Document", documentType: "ID_DOCUMENT", verified: detail.value?.owner?.idDocumentVerified },
+      { key: "proofOfAddressUrl", field: "proofOfAddress", label: "Proof of Address", value: detail.value?.owner?.proofOfAddressUrl, isDoc: true, docTitle: "Proof of Address", documentType: "PROOF_OF_ADDRESS", verified: detail.value?.owner?.proofOfAddressVerified },
     ],
   },
   {
@@ -146,6 +151,8 @@ const timelineEventColors = {
   SUSPEND: "bg-orange-400",
   OVERRIDE_ENABLED: "bg-purple-500",
   OVERRIDE_DISABLED: "bg-slate-400",
+  DOCUMENT_APPROVED: "bg-green-400",
+  DOCUMENT_REJECTED: "bg-red-400",
 };
 
 function statusCfg(status) {
@@ -165,6 +172,8 @@ function timelineLabel(entry) {
   if (entry.event === "SUSPEND") return `${who} suspended the merchant`;
   if (entry.event === "OVERRIDE_ENABLED") return `${who} granted live mode override`;
   if (entry.event === "OVERRIDE_DISABLED") return `${who} revoked live mode override`;
+  if (entry.event === "DOCUMENT_APPROVED") return `${who} approved the ${entry.documentType || "document"}`;
+  if (entry.event === "DOCUMENT_REJECTED") return `${who} rejected the ${entry.documentType || "document"}`;
   return `${who} moved status to ${entry.toStatus}`;
 }
 
@@ -311,6 +320,35 @@ async function handleRevokeOverride() {
   }
 }
 
+async function handleDocApprove(documentType) {
+  docReviewLoading.value[documentType] = true;
+  try {
+    await store.reviewDocumentFile(tenantId, { documentType, action: "APPROVE" });
+    showDocRejectInput.value[documentType] = false;
+  } catch (err) {
+    logger.error("Failed to approve document", err);
+  } finally {
+    docReviewLoading.value[documentType] = false;
+  }
+}
+
+async function handleDocReject(documentType) {
+  docReviewLoading.value[documentType] = true;
+  try {
+    await store.reviewDocumentFile(tenantId, {
+      documentType,
+      action: "REJECT",
+      note: docRejectNote.value[documentType] || "",
+    });
+    showDocRejectInput.value[documentType] = false;
+    docRejectNote.value[documentType] = "";
+  } catch (err) {
+    logger.error("Failed to reject document", err);
+  } finally {
+    docReviewLoading.value[documentType] = false;
+  }
+}
+
 onMounted(async () => {
   await Promise.all([
     store.fetchTenantDetail(tenantId),
@@ -439,15 +477,76 @@ watch(
                     </p>
                     <!-- Document link -->
                     <div v-if="field.isDoc">
-                      <button
-                        v-if="field.value"
-                        class="flex items-center gap-[0.4rem] text-[1.3rem] font-[600] text-primary underline hover:no-underline"
-                        @click="viewDoc(field.value, field.docTitle)"
+                      <!-- Verification badge -->
+                      <span
+                        v-if="field.verified === true"
+                        class="mb-[0.6rem] inline-flex items-center gap-[0.3rem] rounded-full bg-green-100 px-[0.8rem] py-[0.2rem] text-[1.1rem] font-[600] text-green-700"
                       >
-                        <span class="material-symbols-outlined text-[1.6rem]">visibility</span>
-                        View {{ field.docTitle }}
-                      </button>
-                      <span v-else class="italic text-[1.3rem] text-slate-400">Not uploaded</span>
+                        <span class="material-symbols-outlined text-[1.4rem]">verified</span> Verified
+                      </span>
+                      <span
+                        v-else-if="field.verified === false"
+                        class="mb-[0.6rem] inline-flex items-center gap-[0.3rem] rounded-full bg-red-100 px-[0.8rem] py-[0.2rem] text-[1.1rem] font-[600] text-red-700"
+                      >
+                        <span class="material-symbols-outlined text-[1.4rem]">cancel</span> Rejected
+                      </span>
+                      <span
+                        v-else
+                        class="mb-[0.6rem] inline-flex items-center gap-[0.3rem] rounded-full bg-slate-100 px-[0.8rem] py-[0.2rem] text-[1.1rem] font-[600] text-slate-500"
+                      >
+                        <span class="material-symbols-outlined text-[1.4rem]">hourglass_empty</span> Pending
+                      </span>
+
+                      <!-- View link -->
+                      <div class="mt-[0.4rem] mb-[0.8rem]">
+                        <button
+                          v-if="field.value"
+                          class="flex items-center gap-[0.4rem] text-[1.3rem] font-[600] text-primary underline hover:no-underline"
+                          @click="viewDoc(field.value, field.docTitle)"
+                        >
+                          <span class="material-symbols-outlined text-[1.6rem]">visibility</span>
+                          View {{ field.docTitle }}
+                        </button>
+                        <span v-else class="italic text-[1.3rem] text-slate-400">Not uploaded</span>
+                      </div>
+
+                      <!-- Per-document actions -->
+                      <div v-if="field.value && field.documentType" class="flex items-center gap-[0.6rem]">
+                        <button
+                          :disabled="docReviewLoading[field.documentType]"
+                          class="flex items-center gap-[0.3rem] rounded-[6px] border border-green-400 px-[0.8rem] py-[0.4rem] text-[1.2rem] font-[600] text-green-700 transition-colors hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+                          @click="handleDocApprove(field.documentType)"
+                        >
+                          <span v-if="docReviewLoading[field.documentType]" class="animate-spin material-symbols-outlined text-[1.4rem]">progress_activity</span>
+                          <span v-else class="material-symbols-outlined text-[1.4rem]">check_circle</span>
+                          Approve
+                        </button>
+                        <button
+                          :disabled="docReviewLoading[field.documentType]"
+                          class="flex items-center gap-[0.3rem] rounded-[6px] border border-red-400 px-[0.8rem] py-[0.4rem] text-[1.2rem] font-[600] text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                          @click="showDocRejectInput[field.documentType] = !showDocRejectInput[field.documentType]"
+                        >
+                          <span class="material-symbols-outlined text-[1.4rem]">cancel</span>
+                          Reject
+                        </button>
+                      </div>
+
+                      <!-- Reject note input -->
+                      <div v-if="field.documentType && showDocRejectInput[field.documentType]" class="mt-[0.8rem] flex gap-[0.6rem]">
+                        <input
+                          v-model="docRejectNote[field.documentType]"
+                          placeholder="Optional rejection note..."
+                          class="flex-1 rounded-[6px] border border-red-200 bg-white px-[1rem] py-[0.6rem] text-[1.3rem] focus:outline-none focus:ring-1 focus:ring-red-400"
+                        />
+                        <button
+                          :disabled="docReviewLoading[field.documentType]"
+                          class="flex-shrink-0 rounded-[6px] bg-red-600 px-[1rem] py-[0.6rem] text-[1.2rem] font-[700] text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                          @click="handleDocReject(field.documentType)"
+                        >
+                          <span v-if="docReviewLoading[field.documentType]" class="animate-spin material-symbols-outlined text-[1.4rem]">progress_activity</span>
+                          <span v-else>Confirm</span>
+                        </button>
+                      </div>
                     </div>
                     <!-- Regular value -->
                     <p v-else class="break-words text-[1.4rem] font-[500] text-[#000]">
