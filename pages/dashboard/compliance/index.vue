@@ -21,17 +21,7 @@ async function fetchQueue() {
   }
 }
 
-async function reviewCompliance(tenantId, status) {
-  try {
-    const reviewNote = status === "APPROVE"
-      ? "All submitted documents are valid."
-      : "Review started by compliance team.";
-    await adminComplianceStore.reviewCompliance(tenantId, { action: status, reviewNote });
-    await fetchQueue();
-  } catch (err) {
-    logger.error("Failed to review compliance", err);
-  }
-}
+
 
 function openAudit(tenantId) {
   router.push({ name: "dashboard-compliance-detail", params: { tenantId } });
@@ -79,11 +69,8 @@ onMounted(fetchQueue);
             <td class="px-[1.6rem] py-[1.4rem]">{{ merchant.complianceReviewStatus || "-" }}</td>
             <td class="px-[1.6rem] py-[1.4rem]">
               <div class="flex justify-end gap-[0.8rem]" @click.stop>
-                <button class="font-[700] text-primary" @click="reviewCompliance(merchant.id, 'UNDER_REVIEW')">
+                <button class="font-[700] text-primary" @click="navigateTo({ name: 'dashboard-compliance-detail', params: { tenantId: merchant.id } })">
                   Review
-                </button>
-                <button class="font-[700] text-green-700" @click="reviewCompliance(merchant.id, 'APPROVE')">
-                  Approve
                 </button>
               </div>
             </td>

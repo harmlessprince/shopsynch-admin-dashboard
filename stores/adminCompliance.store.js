@@ -21,7 +21,8 @@ export const useAdminComplianceStore = defineStore("adminComplianceStore", () =>
 
         try {
             const response = await get(endpoints.admin.merchants.complianceQueue, params, { forceMode: "live" });
-            queue.value = response?.data?.content || [];
+            queue.value = response?.data?.items || [];
+            console.log("Compliance queue data:", queue.value); // Debug log to check the data structure
         } catch (err) {
             error.value = "Unable to load compliance queue.";
             throw err;

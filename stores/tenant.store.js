@@ -40,7 +40,7 @@ export const useTenantStore = defineStore("tenantStore", () => {
             const response = await post(endpoints.switchStore, { tenantId }, { forceMode: 'live' });
             if (response?.data?.token) {
                 // Update JWT token
-                useCookie('auth_token').value = response.data.token;
+                useCookie('shopsynch_admin_auth_token').value = response.data.token;
                 authStore.setAuthToken(response.data.token);
                 
                 toastStore.success('Switched store successfully!');

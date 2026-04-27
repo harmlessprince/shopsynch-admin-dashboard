@@ -3,7 +3,7 @@ import {logger} from "~/utils/helpers";
 
 export default defineNuxtPlugin(async (nuxtApp) => {
     const authStore = useAuthStore()
-    const authToken = useCookie('auth_token');
+    const authToken = useCookie('shopsynch_admin_auth_token');
 
     if (authToken.value) {
         authStore.setAuthToken(authToken.value)

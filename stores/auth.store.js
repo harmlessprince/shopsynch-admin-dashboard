@@ -53,7 +53,7 @@ export const useAuthStore = defineStore("authStore", () => {
 
     const clearAuthToken = () => {
         authToken.value = null;
-        useCookie('auth_token').value = null;
+        useCookie('shopsynch_admin_auth_token').value = null;
     };
 
     const setAuthUser = (newUser) => {
@@ -110,7 +110,7 @@ export const useAuthStore = defineStore("authStore", () => {
     async function login(email, password, returnUrl) {
         const response = await post(endpoints.login, {email, password}, {forceMode: 'live'});
         if (response) {
-            useCookie('auth_token').value = response.token;
+            useCookie('shopsynch_admin_auth_token').value = response.token;
             setAuthToken(response.token);
             await fetchUserProfile()
             
@@ -172,7 +172,7 @@ export const useAuthStore = defineStore("authStore", () => {
     async function verifyEmail(email, token) {
         const response = await post(endpoints.verifyMerchantEmail, {email, token}, {forceMode: 'live'});
         if (response) {
-            useCookie('auth_token').value = response.data.token;
+            useCookie('shopsynch_admin_auth_token').value = response.data.token;
             setAuthToken(response.data.token);
             emailToVerify.value = null;
             emailVerificationTokenSent.value = false;
@@ -208,7 +208,7 @@ export const useAuthStore = defineStore("authStore", () => {
 
 
     async function loginWithGoogle(token, refreshToken, expiresIn) {
-        useCookie('auth_token').value = token;
+        useCookie('shopsynch_admin_auth_token').value = token;
         setAuthToken(token);
         await fetchUserProfile();
         toastStore.success('Logged in with Google successfully!', '')
