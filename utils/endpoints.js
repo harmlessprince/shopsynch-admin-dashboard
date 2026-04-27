@@ -25,6 +25,7 @@ export const endpoints = {
         compliance: {
             tenantDetail: "/v1/admin/compliance/tenants/:tenantId",
             review: "/v1/admin/compliance/tenants/:tenantId/review",
+            filesReview: "/v1/admin/compliance/tenants/:tenantId/files/review",
             rejectionTemplates: "/v1/admin/compliance/rejection-templates",
             override: "/v1/admin/compliance/tenants/:tenantId/override",
         },
