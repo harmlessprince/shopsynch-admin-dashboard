@@ -65,7 +65,7 @@ onMounted(fetchCaches);
           class="flex items-center justify-between rounded-[8px] border border-slate-100 p-[1.4rem]"
         >
           <span class="font-[700] text-[#000]">{{ cache }}</span>
-          <button class="font-[700] text-red-700" @click="clearCache(cache)">Clear</button>
+          <button class="font-[700] text-red-700" @click="clearCache(cache.name)">Clear</button>
         </div>
         <p v-if="adminCacheStore.caches.length === 0">No named caches returned.</p>
       </div>

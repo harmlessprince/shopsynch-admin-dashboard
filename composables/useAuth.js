@@ -1,5 +1,5 @@
 export const useAuth = () => {
-    const token = useCookie('auth_token'); // Persists token in cookies
+    const token = useCookie('shopsynch_admin_auth_token'); // Persists token in cookies
 
     const setToken = (newToken) => {
         token.value = newToken;

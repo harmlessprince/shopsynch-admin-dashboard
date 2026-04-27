@@ -1,6 +1,8 @@
 <script setup>
 import { logger } from "~/utils/helpers.js";
+import { useVfm } from "vue-final-modal";
 import DataTable from "~/components/table/DataTable.vue";
+import UserStatusModal from "~/components/Modals/UserStatusModal.vue";
 definePageMeta({
   layout: "dashboard",
   middleware: "auth-middleware",
@@ -8,11 +10,16 @@ definePageMeta({
 });
 
 const adminUsersStore = useAdminUsersStore();
+const router = useRouter();
+const vfm = useVfm();
 const search = ref("");
 const status = ref("");
 const role = ref("");
 const page = ref(1);
 const limit = ref(50);
+
+const selectedUser = ref(null);
+const pendingStatus = ref("active");
 
 const tableHeader = [
   { title: "User", accessor: "fullName" },
@@ -51,13 +58,14 @@ function changeLimit(nextLimit) {
   fetchUsers(1);
 }
 
-async function updateUserStatus(user, nextStatus) {
-  try {
-    await adminUsersStore.updateUserStatus(user.id, nextStatus);
-    await fetchUsers();
-  } catch (err) {
-    logger.error("Failed to update user status", err);
-  }
+function openStatusConfirm(user, nextStatus) {
+  selectedUser.value = user;
+  pendingStatus.value = nextStatus;
+  vfm.open("userStatusModal");
+}
+
+async function onStatusDone() {
+  await fetchUsers();
 }
 
 function formatMemberships(memberships = []) {
@@ -138,16 +146,26 @@ onMounted(fetchUsers);
         </template>
 
         <template #more-actions="{ data }">
-          <div class="dt-action-item" @click="updateUserStatus(data, 'active')">
+           <div class="dt-action-item text-green-600" @click="router.push({ name: 'dashboard-admin-user-detail', params: { userId: data.id } })">
+            <span class="material-symbols-outlined text-green-600">visibility</span>
+            <p>View</p>
+          </div>
+          <div class="dt-action-item" @click="openStatusConfirm(data, 'active')">
             <span class="material-symbols-outlined">check_circle</span>
             <p>Activate</p>
           </div>
-          <div class="dt-action-item text-red-600" @click="updateUserStatus(data, 'suspended')">
+          <div class="dt-action-item text-red-600" @click="openStatusConfirm(data, 'suspended')">
             <span class="material-symbols-outlined text-red-600">block</span>
             <p>Suspend</p>
           </div>
         </template>
       </DataTable>
     </section>
+
+    <UserStatusModal
+      :user="selectedUser"
+      :next-status="pendingStatus"
+      @done="onStatusDone"
+    />
   </div>
 </template>

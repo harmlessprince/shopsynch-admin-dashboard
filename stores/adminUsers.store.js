@@ -9,6 +9,7 @@ export const useAdminUsersStore = defineStore("adminUsersStore", () => {
     const toastStore = useToastStore();
 
     const users = ref([]);
+    const user = ref(null);
     const total = ref(0);
     const paginatedData = ref(undefined);
     const loading = ref(false);
@@ -45,6 +46,19 @@ export const useAdminUsersStore = defineStore("adminUsersStore", () => {
         }
     }
 
+    async function fetchUserDetails(userId) {
+         loading.value = true;
+        try {
+            const url = endpoints.admin.users.detail.replace(":userId", userId);
+            const res = await get(url, {}, { forceMode: "live" });
+            user.value = res.data;
+        } catch (err) {
+            logger.error("Failed to load admin user detail", err);
+        } finally {
+            loading.value = false;
+        }
+    }
+
     async function updateUserStatus(userId, status) {
         const url = endpoints.admin.users.updateStatus.replace(":userId", userId);
         const response = await patch(url, { status }, { forceMode: "live" });
@@ -64,5 +78,7 @@ export const useAdminUsersStore = defineStore("adminUsersStore", () => {
         error,
         fetchUsers,
         updateUserStatus,
+        fetchUserDetails,
+        user
     };
 });

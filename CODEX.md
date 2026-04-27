@@ -36,7 +36,7 @@ Every merchant operates in either **test** or **live** mode. This is the most im
 
 ### Auth Flow
 
-- JWT stored in the `auth_token` cookie. `init-auth.client.ts` bootstraps auth on load by reading the cookie and fetching the user profile.
+- JWT stored in the `shopsynch_admin_auth_token` cookie. `init-auth.client.ts` bootstraps auth on load by reading the cookie and fetching the user profile.
 - `middleware/auth.global.ts` guards all `/dashboard/**` routes and redirects logged-out users to `/login`.
 - `useAuthStore` (`stores/auth.store.js`) holds the user, token, and all auth actions (login, register, password reset, email verify, Google OAuth).
 

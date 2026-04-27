@@ -15,18 +15,30 @@ const toastStore = useToastStore();
 
 const tenantId = route.params.tenantId;
 
-// Flagged fields: key = "sectionId.fieldKey", value = { flagged, field, label, note }
+// Flagged fields: key = "sectionId.fieldKey", value = { flagged, field, label, note, templateCode }
 const flags = ref({});
+
+// Which flagged field note input is currently focused (for right-panel apply)
+const activeFlagKey = ref(null);
+
+// Toggle right-panel template browser visibility
+const showTemplatePanel = ref(true);
 
 // Document viewer
 const activeDoc = ref(null);
 const activeDocTitle = ref("");
 const docZoom = ref(1);
 const docRotation = ref(0);
+const isImageDoc = computed(() => {
+  if (!activeDoc.value) return false;
+  console.log("Checking if document is image with URL:", activeDoc.value);
+  return /\.(png|jpe?g|gif|webp|svg|bmp|ico)(\?.*)?$/i.test(activeDoc.value);
+});
 
 // Modals
 const showRejectModal = ref(false);
 const showOverrideModal = ref(false);
+const showFullscreenDoc = ref(false);
 
 // Forms
 const rejectForm = ref({ rejectionCode: "", globalNote: "" });
@@ -39,6 +51,8 @@ const actionLoading = ref(false);
 const docReviewLoading = ref({});
 const docRejectNote = ref({});
 const showDocRejectInput = ref({});
+const showDocApproveConfirm = ref({});
+const docConfirmText = ref({});
 
 const detail = computed(() => store.detail);
 
@@ -65,6 +79,10 @@ const flagCount = computed(() => Object.values(flags.value).filter((f) => f.flag
 
 const activeRejectionTemplates = computed(() =>
   store.rejectionTemplates.filter((template) => template.active !== false)
+);
+
+const rejectionTemplateOptions = computed(() =>
+  activeRejectionTemplates.value.map((t) => ({ label: t.label, value: t.code }))
 );
 
 const selectedRejectionTemplate = computed(() =>
@@ -104,6 +122,7 @@ const auditSections = computed(() => [
       { key: "address", label: "Address", value: detail.value?.owner?.address, full: true },
       { key: "idDocumentUrl", label: "ID Document", value: detail.value?.owner?.idDocumentUrl, isDoc: true, docTitle: "ID Document", documentType: "ID_DOCUMENT", verified: detail.value?.owner?.idDocumentVerified },
       { key: "proofOfAddressUrl", field: "proofOfAddress", label: "Proof of Address", value: detail.value?.owner?.proofOfAddressUrl, isDoc: true, docTitle: "Proof of Address", documentType: "PROOF_OF_ADDRESS", verified: detail.value?.owner?.proofOfAddressVerified },
+      { key: "profileUrl", field: "profileUrl", label: "Profile Photo", value: detail.value?.owner?.profileUrl, isDoc: true, docTitle: "Profile Photo", documentType: "PROFILE_IMAGE", verified: detail.value?.owner?.profileImageVerified },
     ],
   },
   {
@@ -164,7 +183,10 @@ function timelineDotColor(event) {
 }
 
 function timelineLabel(entry) {
-  const who = entry.adminId ? `Admin ${entry.adminId}` : `Merchant`;
+  let who = entry.adminId ? `Admin ${entry.adminId}` : `Merchant`;
+  if (entry.admin){
+    who = entry.admin?.fullName ? `Admin ${entry.admin?.fullName}` : `Admin ${entry.admin?.email || entry.admin?.id}`;
+  }
   if (entry.event === "SUBMIT") return `${who} submitted for review`;
   if (entry.event === "START_REVIEW") return `${who} moved status to UNDER_REVIEW`;
   if (entry.event === "APPROVE") return `${who} approved the merchant`;
@@ -190,14 +212,38 @@ function toggleFlag(section, field) {
       field: field.field || field.key,
       label: field.label,
       note: "",
+      templateCode: "",
     };
+    activeFlagKey.value = fieldKey;
   } else {
-    flags.value[fieldKey] = { ...flags.value[fieldKey], flagged: !flags.value[fieldKey].flagged };
+    const nowFlagged = !flags.value[fieldKey].flagged;
+    flags.value[fieldKey] = { ...flags.value[fieldKey], flagged: nowFlagged };
+    if (nowFlagged) activeFlagKey.value = fieldKey;
+    else if (activeFlagKey.value === fieldKey) activeFlagKey.value = null;
   }
 }
 
 function isFlagged(fieldKey) {
   return !!flags.value[fieldKey]?.flagged;
+}
+
+function setActiveFlagKey(flagKey) {
+  activeFlagKey.value = flagKey;
+}
+
+function applyTemplateToFlag(flagKey, template) {
+  if (!flags.value[flagKey]) return;
+  flags.value[flagKey].templateCode = template.code;
+  flags.value[flagKey].note = template.message || "";
+}
+
+function handleInlineTemplateSelect(flagKey, code) {
+  const template = store.rejectionTemplates.find((t) => t.code === code);
+  if (!template) {
+    flags.value[flagKey].note = "";
+    return;
+  }
+  flags.value[flagKey].note = template.message || "";
 }
 
 function viewDoc(url, title) {
@@ -325,6 +371,8 @@ async function handleDocApprove(documentType) {
   try {
     await store.reviewDocumentFile(tenantId, { documentType, action: "APPROVE" });
     showDocRejectInput.value[documentType] = false;
+    showDocApproveConfirm.value[documentType] = false;
+    docConfirmText.value[documentType] = "";
   } catch (err) {
     logger.error("Failed to approve document", err);
   } finally {
@@ -342,6 +390,7 @@ async function handleDocReject(documentType) {
     });
     showDocRejectInput.value[documentType] = false;
     docRejectNote.value[documentType] = "";
+    docConfirmText.value[documentType] = "";
   } catch (err) {
     logger.error("Failed to reject document", err);
   } finally {
@@ -515,7 +564,7 @@ watch(
                         <button
                           :disabled="docReviewLoading[field.documentType]"
                           class="flex items-center gap-[0.3rem] rounded-[6px] border border-green-400 px-[0.8rem] py-[0.4rem] text-[1.2rem] font-[600] text-green-700 transition-colors hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
-                          @click="handleDocApprove(field.documentType)"
+                          @click="showDocApproveConfirm[field.documentType] = !showDocApproveConfirm[field.documentType]; showDocRejectInput[field.documentType] = false; docConfirmText[field.documentType] = ''"
                         >
                           <span v-if="docReviewLoading[field.documentType]" class="animate-spin material-symbols-outlined text-[1.4rem]">progress_activity</span>
                           <span v-else class="material-symbols-outlined text-[1.4rem]">check_circle</span>
@@ -524,28 +573,60 @@ watch(
                         <button
                           :disabled="docReviewLoading[field.documentType]"
                           class="flex items-center gap-[0.3rem] rounded-[6px] border border-red-400 px-[0.8rem] py-[0.4rem] text-[1.2rem] font-[600] text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
-                          @click="showDocRejectInput[field.documentType] = !showDocRejectInput[field.documentType]"
+                          @click="showDocRejectInput[field.documentType] = !showDocRejectInput[field.documentType]; showDocApproveConfirm[field.documentType] = false; docConfirmText[field.documentType] = ''"
                         >
                           <span class="material-symbols-outlined text-[1.4rem]">cancel</span>
                           Reject
                         </button>
                       </div>
 
-                      <!-- Reject note input -->
-                      <div v-if="field.documentType && showDocRejectInput[field.documentType]" class="mt-[0.8rem] flex gap-[0.6rem]">
+                      <!-- Approve confirmation input -->
+                      <div v-if="field.documentType && showDocApproveConfirm[field.documentType]" class="mt-[0.8rem] space-y-[0.4rem]">
+                        <p class="text-[1.2rem] text-slate-500">
+                          Type <span class="font-[700] text-[#000]">{{ field.docTitle }}</span> to confirm approval
+                        </p>
+                        <div class="flex gap-[0.6rem]">
+                          <input
+                            v-model="docConfirmText[field.documentType]"
+                            :placeholder="field.docTitle"
+                            class="flex-1 rounded-[6px] border border-green-200 bg-white px-[1rem] py-[0.6rem] text-[1.3rem] focus:outline-none focus:ring-1 focus:ring-green-400"
+                          >
+                          <button
+                            :disabled="docReviewLoading[field.documentType] || docConfirmText[field.documentType] !== field.docTitle"
+                            class="flex-shrink-0 rounded-[6px] bg-green-600 px-[1rem] py-[0.6rem] text-[1.2rem] font-[700] text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            @click="handleDocApprove(field.documentType)"
+                          >
+                            <span v-if="docReviewLoading[field.documentType]" class="animate-spin material-symbols-outlined text-[1.4rem]">progress_activity</span>
+                            <span v-else>Confirm</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <!-- Reject note + confirmation input -->
+                      <div v-if="field.documentType && showDocRejectInput[field.documentType]" class="mt-[0.8rem] space-y-[0.4rem]">
                         <input
                           v-model="docRejectNote[field.documentType]"
                           placeholder="Optional rejection note..."
-                          class="flex-1 rounded-[6px] border border-red-200 bg-white px-[1rem] py-[0.6rem] text-[1.3rem] focus:outline-none focus:ring-1 focus:ring-red-400"
+                          class="w-full rounded-[6px] border border-red-200 bg-white px-[1rem] py-[0.6rem] text-[1.3rem] focus:outline-none focus:ring-1 focus:ring-red-400"
                         />
-                        <button
-                          :disabled="docReviewLoading[field.documentType]"
-                          class="flex-shrink-0 rounded-[6px] bg-red-600 px-[1rem] py-[0.6rem] text-[1.2rem] font-[700] text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-                          @click="handleDocReject(field.documentType)"
-                        >
-                          <span v-if="docReviewLoading[field.documentType]" class="animate-spin material-symbols-outlined text-[1.4rem]">progress_activity</span>
-                          <span v-else>Confirm</span>
-                        </button>
+                        <p class="text-[1.2rem] text-slate-500">
+                          Type <span class="font-[700] text-[#000]">{{ field.docTitle }}</span> to confirm rejection
+                        </p>
+                        <div class="flex gap-[0.6rem]">
+                          <input
+                            v-model="docConfirmText[field.documentType]"
+                            :placeholder="field.docTitle"
+                            class="flex-1 rounded-[6px] border border-red-200 bg-white px-[1rem] py-[0.6rem] text-[1.3rem] focus:outline-none focus:ring-1 focus:ring-red-400"
+                          >
+                          <button
+                            :disabled="docReviewLoading[field.documentType] || docConfirmText[field.documentType] !== field.docTitle"
+                            class="flex-shrink-0 rounded-[6px] bg-red-600 px-[1rem] py-[0.6rem] text-[1.2rem] font-[700] text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            @click="handleDocReject(field.documentType)"
+                          >
+                            <span v-if="docReviewLoading[field.documentType]" class="animate-spin material-symbols-outlined text-[1.4rem]">progress_activity</span>
+                            <span v-else>Confirm</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                     <!-- Regular value -->
@@ -567,11 +648,19 @@ watch(
                   </button>
                 </div>
                 <!-- Correction note input -->
-                <div v-if="isFlagged(getFlagKey(section.id, field.key))" class="mt-[1rem]">
+                <div v-if="isFlagged(getFlagKey(section.id, field.key))" class="mt-[1rem] space-y-[0.6rem]">
+                  <SearchableSelectInput
+                    v-model="flags[getFlagKey(section.id, field.key)].templateCode"
+                    :options="rejectionTemplateOptions"
+                    placeholder="Pick a template to pre-fill note…"
+                    hint="Optional — or write your own note below"
+                    @update:model-value="handleInlineTemplateSelect(getFlagKey(section.id, field.key), $event)"
+                  />
                   <input
                     v-model="flags[getFlagKey(section.id, field.key)].note"
                     placeholder="Add correction note..."
                     class="w-full rounded-[6px] border border-red-200 bg-white px-[1rem] py-[0.7rem] text-[1.3rem] focus:outline-none focus:ring-1 focus:ring-red-400"
+                    @focus="setActiveFlagKey(getFlagKey(section.id, field.key))"
                   />
                 </div>
               </div>
@@ -621,6 +710,54 @@ watch(
           </div>
         </div>
 
+        <!-- Message Templates Panel -->
+        <div class="overflow-hidden rounded-[10px] border border-slate-200 bg-white">
+          <div class="flex items-center justify-between border-b border-slate-100 px-[1.6rem] py-[1rem]">
+            <p class="text-[1.4rem] font-[700] text-[#000]">Rejection Templates</p>
+            <button
+              class="rounded p-[0.4rem] text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+              :title="showTemplatePanel ? 'Collapse' : 'Expand'"
+              @click="showTemplatePanel = !showTemplatePanel"
+            >
+              <span class="material-symbols-outlined text-[2rem]">{{ showTemplatePanel ? 'expand_less' : 'expand_more' }}</span>
+            </button>
+          </div>
+          <div v-if="showTemplatePanel" class="p-[1.2rem]">
+            <!-- Active flag target indicator -->
+            <div
+              class="mb-[1rem] rounded-[6px] px-[1rem] py-[0.6rem] text-[1.2rem]"
+              :class="activeFlagKey && flags[activeFlagKey] ? 'border border-red-200 bg-red-50 text-red-700' : 'bg-slate-50 text-slate-400'"
+            >
+              <span v-if="activeFlagKey && flags[activeFlagKey]">
+                <span class="material-symbols-outlined align-middle text-[1.4rem]">flag</span>
+                Applying to: <span class="font-[700]">{{ flags[activeFlagKey].label }}</span>
+              </span>
+              <span v-else>Click a flagged field's note input to target it here.</span>
+            </div>
+            <!-- Template list -->
+            <div v-if="activeRejectionTemplates.length" class="space-y-[0.8rem]">
+              <div
+                v-for="template in activeRejectionTemplates"
+                :key="template.code"
+                class="rounded-[8px] border border-slate-100 bg-slate-50 p-[1rem]"
+              >
+                <p class="text-[1.3rem] font-[700] text-[#000]">{{ template.label }}</p>
+                <p class="mt-[0.3rem] text-[1.2rem] text-slate-600">{{ template.message }}</p>
+                <p v-if="template.nextSteps" class="mt-[0.2rem] text-[1.1rem] text-slate-400">{{ template.nextSteps }}</p>
+                <button
+                  :disabled="!activeFlagKey || !flags[activeFlagKey]"
+                  class="mt-[0.8rem] flex items-center gap-[0.3rem] rounded-[6px] border border-red-300 px-[0.8rem] py-[0.4rem] text-[1.2rem] font-[600] text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  @click="applyTemplateToFlag(activeFlagKey, template)"
+                >
+                  <span class="material-symbols-outlined text-[1.4rem]">arrow_upward</span>
+                  Apply to field
+                </button>
+              </div>
+            </div>
+            <p v-else class="text-[1.2rem] text-slate-400">No templates available.</p>
+          </div>
+        </div>
+
         <!-- Document Viewer -->
         <div class="overflow-hidden rounded-[10px] border border-slate-200 bg-white">
           <div class="flex items-center justify-between border-b border-slate-100 px-[1.6rem] py-[1rem]">
@@ -649,14 +786,30 @@ watch(
               >
                 <span class="material-symbols-outlined text-[2rem]">rotate_right</span>
               </button>
+              <button
+                v-if="activeDoc"
+                title="Fullscreen"
+                class="rounded p-[0.4rem] text-slate-400 transition-colors hover:bg-slate-100 hover:text-primary"
+                @click="showFullscreenDoc = true"
+              >
+                <span class="material-symbols-outlined text-[2rem]">open_in_full</span>
+              </button>
             </div>
           </div>
           <div class="flex h-[40rem] items-center justify-center overflow-auto bg-slate-100">
             <div
               v-if="activeDoc"
+              class="flex h-full w-full items-center justify-center"
               :style="{ transform: `scale(${docZoom}) rotate(${docRotation}deg)`, transformOrigin: 'center', transition: 'transform 0.2s ease' }"
             >
+              <img
+                v-if="isImageDoc"
+                :src="activeDoc"
+                class="max-h-[38rem] max-w-full object-contain"
+                alt="Document preview"
+              >
               <iframe
+                v-else
                 :src="activeDoc"
                 class="h-[38rem] w-[28rem] border-0 bg-white"
                 title="Document preview"
@@ -708,7 +861,7 @@ watch(
       <div class="flex items-center gap-[1.2rem]">
         <button
           class="flex items-center gap-[0.6rem] rounded-[8px] border border-red-400 px-[2rem] py-[1rem] text-[1.4rem] font-[700] text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
-          :disabled="actionLoading"
+          :disabled="actionLoading || detail?.currentStatus == 'REJECTED'"
           @click="openRejectModal"
         >
           <span class="material-symbols-outlined text-[1.8rem]">cancel</span>
@@ -723,7 +876,7 @@ watch(
           Suspend
         </button>
         <button
-          :disabled="hasFlaggedFields || actionLoading"
+          :disabled="hasFlaggedFields || actionLoading || detail?.currentStatus == 'APPROVED' || detail?.currentStatus == 'SUSPENDED' || detail?.currentStatus == 'REJECTED'"
           class="flex items-center gap-[0.6rem] rounded-[8px] bg-green-600 px-[2.4rem] py-[1rem] text-[1.4rem] font-[700] text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40"
           @click="handleApprove"
         >
@@ -757,24 +910,15 @@ watch(
             <pre class="whitespace-pre-wrap text-[1.2rem] text-red-600">{{ flaggedNotes }}</pre>
           </div>
 
-          <!-- Rejection code -->
+          <!-- Quick templates -->
           <div>
-            <label class="mb-[0.6rem] block text-[1.3rem] font-[500] text-[#000]">Rejection Code</label>
-            <select
+            <SearchableSelectInput
               v-model="rejectForm.rejectionCode"
-              class="h-14 w-full rounded-xl border border-[#F0F0F0] bg-[#FAFAFA] px-4 text-[1.4rem] outline-none focus:border-transparent focus:ring-2 focus:ring-primary"
-            >
-              <option value="">
-                {{ store.rejectionTemplatesLoading ? "Loading templates..." : "Select a code..." }}
-              </option>
-              <option
-                v-for="template in activeRejectionTemplates"
-                :key="template.id || template.code"
-                :value="template.code"
-              >
-                {{ template.label || template.code }}
-              </option>
-            </select>
+              label="Quick Templates"
+              :options="rejectionTemplateOptions"
+              placeholder="Search and select a template to auto-fill the note…"
+              hint="Optional — selecting a template pre-fills the message below."
+            />
             <p v-if="selectedRejectionTemplate?.nextSteps" class="mt-[0.6rem] text-[1.2rem] text-slate-500">
               {{ selectedRejectionTemplate.nextSteps }}
             </p>
@@ -786,7 +930,7 @@ watch(
             <textarea
               v-model="rejectForm.globalNote"
               rows="3"
-              placeholder="Merchant-facing summary. Overrides the template message when provided."
+              placeholder="Write the rejection message for the merchant, or select a template above to auto-fill…"
               class="w-full resize-none rounded-xl border border-[#F0F0F0] bg-[#FAFAFA] px-4 py-3 text-[1.4rem] outline-none focus:border-transparent focus:ring-2 focus:ring-primary"
             />
           </div>
@@ -883,6 +1027,42 @@ watch(
             Grant Override
           </button>
         </div>
+      </div>
+    </div>
+  </Teleport>
+
+  <!-- ===== FULLSCREEN DOCUMENT VIEWER ===== -->
+  <Teleport to="body">
+    <div
+      v-if="showFullscreenDoc && activeDoc"
+      class="fixed inset-0 z-[200] flex flex-col bg-black"
+      @keydown.esc="showFullscreenDoc = false"
+    >
+      <!-- Header -->
+      <div class="flex flex-shrink-0 items-center justify-between bg-black/80 px-[2rem] py-[1.2rem]">
+        <p class="text-[1.6rem] font-[700] text-white">{{ activeDocTitle }}</p>
+        <button
+          class="flex items-center gap-[0.4rem] rounded-[6px] px-[1.2rem] py-[0.6rem] text-[1.4rem] font-[600] text-white transition-colors hover:bg-white/20"
+          @click="showFullscreenDoc = false"
+        >
+          <span class="material-symbols-outlined text-[2rem]">close_fullscreen</span>
+          Close
+        </button>
+      </div>
+      <!-- Content -->
+      <div class="flex flex-1 items-center justify-center overflow-auto">
+        <img
+          v-if="isImageDoc"
+          :src="activeDoc"
+          class="max-h-full max-w-full object-contain"
+          alt="Document preview"
+        >
+        <iframe
+          v-else
+          :src="activeDoc"
+          class="h-full w-full border-0 bg-white"
+          title="Document preview"
+        />
       </div>
     </div>
   </Teleport>
