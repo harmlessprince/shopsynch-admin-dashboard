@@ -116,6 +116,40 @@ export const useAdminLogisticsStore = defineStore("adminLogisticsStore", () => {
         }
     }
 
+    // Provider capabilities
+    const providerCapabilities = ref([]);
+    const capabilitiesLoading = ref(false);
+    const capabilitySaving = ref(false);
+
+    async function fetchProviderCapabilities() {
+        capabilitiesLoading.value = true;
+        try {
+            const response = await get(endpoints.admin.logistics.providerCapabilities, {}, { forceMode: "live" });
+            providerCapabilities.value = response?.data || [];
+        } finally {
+            capabilitiesLoading.value = false;
+        }
+    }
+
+    async function updateProviderCapability(provider, payload) {
+        capabilitySaving.value = true;
+        try {
+            const url = endpoints.admin.logistics.providerCapability.replace(":provider", provider);
+            const response = await put(url, payload, { forceMode: "live" });
+            if (response) {
+                toastStore.success("Provider capability updated", "");
+                const updated = response?.data;
+                if (updated) {
+                    const idx = providerCapabilities.value.findIndex((c) => c.provider === provider);
+                    if (idx !== -1) providerCapabilities.value[idx] = updated;
+                }
+            }
+            return response;
+        } finally {
+            capabilitySaving.value = false;
+        }
+    }
+
     async function resolveWeightAdjustment(adjustmentId, payload) {
         resolving.value = true;
         try {
@@ -149,5 +183,10 @@ export const useAdminLogisticsStore = defineStore("adminLogisticsStore", () => {
         fetchWaybillFailures,
         fetchWeightAdjustments,
         resolveWeightAdjustment,
+        providerCapabilities,
+        capabilitiesLoading,
+        capabilitySaving,
+        fetchProviderCapabilities,
+        updateProviderCapability,
     };
 });

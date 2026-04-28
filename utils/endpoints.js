@@ -52,6 +52,8 @@ export const endpoints = {
             waybillFailures: "/v1/admin/logistics/shipments/waybill-failures",
             weightAdjustments: "/v1/admin/logistics/weight-adjustments",
             resolveAdjustment: "/v1/admin/logistics/weight-adjustments/:adjustmentId/resolve",
+            providerCapabilities: "/v1/admin/logistics/providers/capabilities",
+            providerCapability: "/v1/admin/logistics/providers/capabilities/:provider",
         },
     },
 }
