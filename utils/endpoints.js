@@ -8,6 +8,14 @@ export const endpoints = {
     changePassword: "/v1/change/password/merchant",
     googleMerchantLoginInitiate: "/v1/auth/social/google/merchant/initiate",
     userProfile: "/v1/admin/auth/profile",
+    productTemplates: {
+        list: "/v2/product-templates",
+        byCategory: "/v2/product-templates/by-category/:categoryId",
+        detail: "/v2/product-templates/:id",
+        create: "/v2/product-templates",
+        update: "/v2/product-templates/:id",
+        delete: "/v2/product-templates/:id",
+    },
 
     admin: {
         dashboard: {
@@ -54,6 +62,31 @@ export const endpoints = {
             resolveAdjustment: "/v1/admin/logistics/weight-adjustments/:adjustmentId/resolve",
             providerCapabilities: "/v1/admin/logistics/providers/capabilities",
             providerCapability: "/v1/admin/logistics/providers/capabilities/:provider",
+        },
+        featureFlags: {
+            list: "/v1/admin/feature-flags",
+            detail: "/v1/admin/feature-flags/:code",
+            create: "/v1/admin/feature-flags",
+            update: "/v1/admin/feature-flags/:code",
+            tenantOverride: "/v1/admin/feature-flags/:code/tenant-overrides",
+        },
+        categories: {
+            list: "/v1/admin/categories",
+            create: "/v1/admin/categories",
+            update: "/v1/admin/categories/:id",
+            delete: "/v1/admin/categories/:id",
+            review: "/v1/admin/categories/custom-review",
+            promote: "/v1/admin/categories/custom-review/:id/promote",
+        },
+        billing: {
+            plans: {
+                list: "/v1/admin/billing/plans",
+                create: "/v1/admin/billing/plans",
+                update: "/v1/admin/billing/plans/:id",
+                archive: "/v1/admin/billing/plans/:id/archive",
+                prices: "/v1/admin/billing/plans/:id/prices",
+                updatePrice: "/v1/admin/billing/plan-prices/:priceId",
+            },
         },
     },
 }

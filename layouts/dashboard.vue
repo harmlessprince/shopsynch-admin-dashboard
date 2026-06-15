@@ -35,6 +35,14 @@ watch(
       currentPageTitle.value = "Cache";
     } else if (newPath.includes("/dashboard/logistics")) {
       currentPageTitle.value = "Logistics";
+    } else if (newPath.includes("/dashboard/feature-flags")) {
+      currentPageTitle.value = "Feature Flags";
+    } else if (newPath.includes("/dashboard/billing")) {
+      currentPageTitle.value = "Billing";
+    } else if (newPath.includes("/dashboard/categories")) {
+      currentPageTitle.value = "Categories";
+    } else if (newPath.includes("/dashboard/product-templates")) {
+      currentPageTitle.value = "Product Templates";
     }
   },
   { immediate: true },
@@ -95,6 +103,38 @@ const dashboardSidebarMenu = [
     icon: "local_shipping",
     activeIcon: "local_shipping",
     link: "/dashboard/logistics",
+    comingSoon: false,
+  },
+  {
+    key: "feature-flags",
+    name: "Feature Flags",
+    icon: "flag",
+    activeIcon: "flag",
+    link: "/dashboard/feature-flags",
+    comingSoon: false,
+  },
+  {
+    key: "billing",
+    name: "Billing",
+    icon: "payments",
+    activeIcon: "payments",
+    link: "/dashboard/billing/plans",
+    comingSoon: false,
+  },
+  {
+    key: "product-templates",
+    name: "Templates",
+    icon: "dashboard_customize",
+    activeIcon: "dashboard_customize",
+    link: "/dashboard/product-templates",
+    comingSoon: false,
+  },
+  {
+    key: "categories",
+    name: "Categories",
+    icon: "category",
+    activeIcon: "category",
+    link: "/dashboard/categories",
     comingSoon: false,
   },
 ];

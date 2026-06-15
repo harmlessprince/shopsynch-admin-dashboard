@@ -1,9 +1,7 @@
 <script setup>
-import { computed, reactive, watch } from 'vue'
-import { useAuthStore } from '~/stores/auth.store.js'
-import { useCategoryStore } from '~/stores/category.store.js'
+import { computed, reactive, ref, watch } from 'vue'
+import { useAdminCategoriesStore } from '~/stores/adminCategories.store.js'
 import { useProductTemplateStore } from '~/stores/productTemplate.store.js'
-import { useTenantStore } from '~/stores/tenant.store.js'
 import { useToastStore } from '~/stores/toast.store.js'
 import { logger } from '~/utils/helpers.js'
 
@@ -20,47 +18,39 @@ const props = defineProps({
     type: String,
     default: '',
   },
-  cloneSystemTemplate: {
-    type: Boolean,
-    default: false,
-  },
 })
 
 const emit = defineEmits(['update:open', 'success'])
 
-const authStore = useAuthStore()
-const categoryStore = useCategoryStore()
+const categoryStore = useAdminCategoriesStore()
 const productTemplateStore = useProductTemplateStore()
-const tenantStore = useTenantStore()
 const toastStore = useToastStore()
 
 const PRODUCT_TYPES = ['SIMPLE', 'VARIABLE', 'DIGITAL', 'BUNDLE']
 const ATTRIBUTE_TYPES = ['STRING', 'NUMBER', 'BOOLEAN', 'ENUM', 'MULTI_ENUM', 'COLOR']
 const DISPLAY_AS_OPTIONS = ['TEXT', 'BADGE', 'COLOR_SWATCH', 'SIZE_CHART', 'SPEC_TABLE_ROW', 'HIDDEN']
+const TEMPLATE_STATUSES = [
+  { label: 'Active', value: 'ACTIVE' },
+  { label: 'Draft', value: 'DRAFT' },
+  { label: 'Disabled', value: 'DISABLED' },
+]
 
 const isSubmitting = ref(false)
 
 const form = reactive({
   name: '',
   categoryId: '',
+  status: 'ACTIVE',
   productTypes: [],
   attributeDefinitions: [],
 })
 
-const isEditing = computed(() => !!props.template?.id && !!props.template?.tenantId && !props.cloneSystemTemplate)
-const title = computed(() => {
-  if (isEditing.value) return 'Edit Product Template'
-  if (props.cloneSystemTemplate) return 'Create Store Override'
-  return 'Create Product Template'
-})
+const isEditing = computed(() => !!props.template?.id)
+const title = computed(() => isEditing.value ? 'Edit Product Template' : 'Create Product Template')
 
 const categoryOptions = computed(() =>
   categoryStore.categories.map(category => ({ label: category.name, value: category.id }))
 )
-
-function activeTenantId() {
-  return tenantStore.activeStore?.tenantId || authStore.user?.tenantId || authStore.user?.tenant?.id || ''
-}
 
 function emptyAttribute(order = form.attributeDefinitions.length + 1) {
   return {
@@ -99,6 +89,7 @@ function normalizeAttribute(attribute, index) {
 function resetForm() {
   form.name = ''
   form.categoryId = props.categoryId || ''
+  form.status = 'ACTIVE'
   form.productTypes = []
   form.attributeDefinitions = [emptyAttribute(1)]
 }
@@ -111,6 +102,7 @@ function hydrateForm() {
 
   form.name = props.template.name || ''
   form.categoryId = props.template.categoryId || props.categoryId || ''
+  form.status = props.template.status || 'ACTIVE'
   form.productTypes = [...(props.template.productTypes || [])]
   form.attributeDefinitions = (props.template.attributeDefinitions || []).map(normalizeAttribute)
   if (!form.attributeDefinitions.length) {
@@ -163,11 +155,6 @@ function validateForm() {
     return false
   }
 
-  if (!activeTenantId()) {
-    toastStore.error('Could not resolve the active store')
-    return false
-  }
-
   if (!form.attributeDefinitions.length) {
     toastStore.error('Add at least one attribute')
     return false
@@ -203,7 +190,8 @@ function buildPayload() {
   return {
     name: form.name.trim(),
     categoryId: form.categoryId,
-    tenantId: activeTenantId(),
+    tenantId: null,
+    status: form.status,
     productTypes: form.productTypes,
     attributeDefinitions: form.attributeDefinitions.map(attribute => ({
       key: attribute.key,
@@ -283,6 +271,12 @@ watch(
             placeholder="Select category"
             :disabled="isEditing"
           />
+          <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-2">Status</label>
+            <select v-model="form.status" class="w-full h-14 rounded-xl border border-slate-200 bg-white px-4 text-sm outline-none focus:ring-2 focus:ring-primary">
+              <option v-for="status in TEMPLATE_STATUSES" :key="status.value" :value="status.value">{{ status.label }}</option>
+            </select>
+          </div>
         </div>
 
         <div class="space-y-3">

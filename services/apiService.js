@@ -9,10 +9,12 @@ export const useApiService = () => {
 
     const request = async (method, route, data = null, params = {}, headers = {}, options = {}) => {
         try {
+            const { headers: optionHeaders = {}, ...fetchOptions } = options;
             const finalHeaders = { 
                 ...headers, 
-                ...options.headers,
-                'X-Auth-Mode': 'jwt'
+                ...optionHeaders,
+                'X-Auth-Mode': 'jwt',
+                'X-ShopSynch-Client': 'admin-dashboard',
             };
             
             // Auto-set Content-Type if not provided and not FormData
@@ -29,12 +31,12 @@ export const useApiService = () => {
 
             // headers['X-Auth-Mode'] = 'jwt';
 
-            const mode = options?.forceMode || switchModeStore.currentMode; // 'test' | 'live'
+            const mode = fetchOptions?.forceMode || switchModeStore.currentMode; // 'test' | 'live'
             let baseURL = mode === 'live' ? config.public.liveBaseUrl : config.public.testBaseUrl;
 
             logger.log('baseURL', baseURL);
             logger.log('mode', mode);
-            logger.log('options', options);
+            logger.log('options', fetchOptions);
             // if (config.public.appEnv === "development") {
             //     baseURL = config.public.apiBase;
             // }
@@ -45,7 +47,7 @@ export const useApiService = () => {
                 headers: finalHeaders,
                 body: method !== 'GET' ? data : undefined,
                 params: method === 'GET' ? params : undefined,
-                ...options
+                ...fetchOptions
             });
         } catch (error) {
             logger.error(`API ${method} Error:`, error);
