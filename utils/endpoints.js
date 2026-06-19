@@ -87,6 +87,26 @@ export const endpoints = {
                 prices: "/v1/admin/billing/plans/:id/prices",
                 updatePrice: "/v1/admin/billing/plan-prices/:priceId",
             },
+            subscriptions: {
+                list: "/v1/admin/billing/subscriptions",
+                tenantSnapshot: "/v1/admin/billing/subscriptions/tenants/:tenantId",
+                tenantAuditLogs: "/v1/admin/billing/subscriptions/tenants/:tenantId/audit-logs",
+            },
+            overrides: {
+                apply: "/v1/admin/billing/overrides",
+                revoke: "/v1/admin/billing/overrides/:overrideId/revoke",
+            },
+            extensionCodes: {
+                generate: "/v1/admin/billing/extension-codes",
+                apply: "/v1/admin/billing/extension-codes/apply",
+            },
+            extensions: {
+                direct: "/v1/admin/billing/extensions/direct",
+            },
+            invoices: {
+                tenant: "/v1/admin/billing/tenants/:tenantId/invoices",
+                confirm: "/v1/admin/billing/invoices/:invoiceId/confirm",
+            },
         },
     },
 }

@@ -59,7 +59,8 @@ const emptyPlanForm = () => ({
   publicVisible: true,
   adminOnly: false,
   sortOrder: "",
-  featureEntitlementsJson: "{}",
+  featureEntitlementsJson: "[]",
+  featureAccessRulesJson: "{}",
   usageLimitsJson: "{}",
   checkoutFeePolicyJson: "{}",
   apiUsagePolicyJson: "{}",
@@ -108,6 +109,24 @@ function parseJsonField(value, label) {
   }
 }
 
+function parseJsonArrayField(value, label) {
+  const parsed = parseJsonField(value, label);
+  if (parsed == null) return [];
+  if (!Array.isArray(parsed)) {
+    throw new Error(`${label} must be a JSON array.`);
+  }
+  return parsed;
+}
+
+function parseJsonObjectField(value, label) {
+  const parsed = parseJsonField(value, label);
+  if (parsed == null) return {};
+  if (Array.isArray(parsed) || typeof parsed !== "object") {
+    throw new Error(`${label} must be a JSON object.`);
+  }
+  return parsed;
+}
+
 function normalizeOptionalInteger(value) {
   if (value === "" || value === null || value === undefined) return undefined;
   return Number(value);
@@ -127,7 +146,8 @@ function mapPlanToForm(plan) {
     publicVisible: plan.publicVisible !== false,
     adminOnly: plan.adminOnly === true,
     sortOrder: plan.sortOrder ?? "",
-    featureEntitlementsJson: JSON.stringify(plan.featureEntitlements || {}, null, 2),
+    featureEntitlementsJson: JSON.stringify(plan.featureEntitlements || [], null, 2),
+    featureAccessRulesJson: JSON.stringify(plan.featureAccessRules || {}, null, 2),
     usageLimitsJson: JSON.stringify(plan.usageLimits || {}, null, 2),
     checkoutFeePolicyJson: JSON.stringify(plan.checkoutFeePolicy || {}, null, 2),
     apiUsagePolicyJson: JSON.stringify(plan.apiUsagePolicy || {}, null, 2),
@@ -155,12 +175,13 @@ function buildPlanPayload() {
     publicVisible: planForm.value.publicVisible,
     adminOnly: planForm.value.adminOnly,
     sortOrder: normalizeOptionalInteger(planForm.value.sortOrder),
-    featureEntitlements: parseJsonField(planForm.value.featureEntitlementsJson, "Feature entitlements"),
-    usageLimits: parseJsonField(planForm.value.usageLimitsJson, "Usage limits"),
-    checkoutFeePolicy: parseJsonField(planForm.value.checkoutFeePolicyJson, "Checkout fee policy"),
-    apiUsagePolicy: parseJsonField(planForm.value.apiUsagePolicyJson, "API usage policy"),
-    trialPolicy: parseJsonField(planForm.value.trialPolicyJson, "Trial policy"),
-    renewalPolicy: parseJsonField(planForm.value.renewalPolicyJson, "Renewal policy"),
+    featureEntitlements: parseJsonArrayField(planForm.value.featureEntitlementsJson, "Feature entitlements"),
+    featureAccessRules: parseJsonObjectField(planForm.value.featureAccessRulesJson, "Feature access rules"),
+    usageLimits: parseJsonObjectField(planForm.value.usageLimitsJson, "Usage limits"),
+    checkoutFeePolicy: parseJsonObjectField(planForm.value.checkoutFeePolicyJson, "Checkout fee policy"),
+    apiUsagePolicy: parseJsonObjectField(planForm.value.apiUsagePolicyJson, "API usage policy"),
+    trialPolicy: parseJsonObjectField(planForm.value.trialPolicyJson, "Trial policy"),
+    renewalPolicy: parseJsonObjectField(planForm.value.renewalPolicyJson, "Renewal policy"),
   };
 }
 
@@ -309,6 +330,11 @@ onMounted(async () => {
             :options="statusFilterOptions"
             input-class="min-w-[18rem]"
           />
+          <NuxtLink to="/dashboard/billing/operations">
+            <BaseButton radius="8px" variant="outline">
+              Overrides & extensions
+            </BaseButton>
+          </NuxtLink>
           <BaseButton radius="8px" bold @click="openCreatePlan">
             New Plan
           </BaseButton>
@@ -681,7 +707,8 @@ onMounted(async () => {
           </div>
 
           <div class="grid grid-cols-1 gap-[1.2rem] lg:grid-cols-2">
-            <BaseTextArea v-model="planForm.featureEntitlementsJson" label="Feature entitlements JSON" :rows="5" />
+            <BaseTextArea v-model="planForm.featureEntitlementsJson" label="Feature entitlements JSON array" :rows="5" />
+            <BaseTextArea v-model="planForm.featureAccessRulesJson" label="Feature access rules JSON" :rows="5" />
             <BaseTextArea v-model="planForm.usageLimitsJson" label="Usage limits JSON" :rows="5" />
             <BaseTextArea v-model="planForm.checkoutFeePolicyJson" label="Checkout fee policy JSON" :rows="5" />
             <BaseTextArea v-model="planForm.apiUsagePolicyJson" label="API usage policy JSON" :rows="5" />
