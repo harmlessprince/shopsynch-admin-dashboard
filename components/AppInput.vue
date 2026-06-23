@@ -97,11 +97,11 @@ function handleKeydown(event) {
 
 <template>
   <div class="w-full">
-    <label v-if="label" :for="name" class="block text-md font-normal text-black mb-1">
+    <label v-if="label" :for="name" class="mb-[0.8rem] block text-[1.8rem] font-[400] leading-[2.4rem] text-[#1B1B19]">
       {{ label }}
     </label>
     <div class="relative">
-      <span v-if="prefix" class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold pointer-events-none">
+      <span v-if="prefix" class="material-symbols-outlined absolute left-[1.8rem] top-1/2 -translate-y-1/2 text-[1.8rem] font-bold text-[#1B1B19] pointer-events-none">
         {{ prefix }}
       </span>
       <Field
@@ -121,9 +121,9 @@ function handleKeydown(event) {
           :minlength="minlength"
           :name="name"
           :id="name"
-          class="w-full h-14 rounded-xl border border-[#F0F0F0] bg-[#FAFAFA] focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+          class="h-[5.6rem] w-full rounded-[10px] border border-[#D9D9D9] bg-white text-[1.6rem] text-[#1B1B19] outline-none transition placeholder:text-[#BDBDBD] focus:border-primary focus:ring-2 focus:ring-primary/10"
           :class="[
-            prefix ? 'pl-12 pr-4' : 'px-4',
+            prefix ? 'pl-[4.6rem] pr-[1.8rem]' : 'px-[1.8rem]',
             (error || (errors && errors.length)) ? 'border-rose-500 focus:ring-rose-500' : '',
             inputClass
           ]"

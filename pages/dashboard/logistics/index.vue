@@ -43,6 +43,7 @@ const quickLinks = [
   { label: "Provider Usage", icon: "bar_chart", to: "/dashboard/logistics/shipments/usage" },
   { label: "Waybill Failures", icon: "error", to: "/dashboard/logistics/waybill-failures" },
   { label: "Weight Adjustments", icon: "scale", to: "/dashboard/logistics/weight-adjustments" },
+  { label: "Provider Capabilities", icon: "tune", to: "/dashboard/logistics/provider-capabilities" },
 ];
 
 onMounted(async () => {

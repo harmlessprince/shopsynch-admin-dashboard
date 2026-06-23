@@ -94,7 +94,7 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
         type="button"
         @click="isOpen ? closeDropdown() : openDropdown()"
         :disabled="disabled"
-        class="w-full h-14 rounded-xl border bg-white outline-none transition-all text-left flex items-center pr-10"
+        class="w-full h-14 rounded-xl border bg-white outline-none transition-all text-left text-[1.4rem] flex items-center pr-10"
         :class="[
           prefix ? 'pl-10' : 'px-4',
           error
@@ -168,21 +168,21 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
                 v-model="searchQuery"
                 :placeholder="searchPlaceholder"
                 type="text"
-                class="w-full h-9 pl-9 pr-3 rounded-lg bg-slate-50 border border-slate-200 text-sm text-slate-700 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                class="w-full h-10 pl-9 pr-3 rounded-lg bg-slate-50 border border-slate-200 text-[1.3rem] text-slate-700 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
               />
             </div>
           </div>
 
           <!-- Options list -->
-          <ul class="max-h-52 overflow-y-auto py-1">
-            <li v-if="filteredOptions.length === 0" class="px-4 py-3 text-sm text-slate-400 text-center">
+          <ul class="max-h-80 overflow-y-auto py-1">
+            <li v-if="filteredOptions.length === 0" class="px-4 py-3 text-[1.3rem] text-slate-400 text-center">
               No results for "{{ searchQuery }}"
             </li>
             <li
               v-for="option in filteredOptions"
               :key="option.value"
               @click="selectOption(option)"
-              class="flex items-center justify-between px-4 py-2.5 text-sm cursor-pointer transition-colors"
+              class="flex items-center justify-between px-4 py-3 text-[1.4rem] cursor-pointer transition-colors"
               :class="
                 option.value === modelValue
                   ? 'bg-primary/10 text-primary font-semibold'
