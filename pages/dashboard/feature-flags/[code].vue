@@ -61,14 +61,13 @@ function populateEditForm(flag) {
 
 async function load() {
   try {
-    const flag = await featureFlagsStore.fetchFlag(code.value);
-    if (flag) populateEditForm(flag);
+    await featureFlagsStore.fetchFlag(code.value);
   } catch (err) {
     logger.error("Failed to load feature flag", err);
   }
 }
 
-async function submitUpdate() {
+async function submitUpdate(payload) {
   try {
     const payload = { ...editForm.value };
     if (!payload.displayOrder) delete payload.displayOrder;
@@ -81,7 +80,7 @@ async function submitUpdate() {
     const res = await featureFlagsStore.updateFlag(code.value, payload);
     if (res) {
       editMode.value = false;
-      if (featureFlagsStore.selectedFlag) populateEditForm(featureFlagsStore.selectedFlag);
+      await load();
     }
   } catch (err) {
     logger.error("Failed to update feature flag", err);
@@ -95,15 +94,10 @@ function resetOverrideForm() {
 async function submitOverride() {
   if (!overrideForm.value.tenantId || !overrideForm.value.status) return;
   try {
-    const payload = { ...overrideForm.value };
-    if (!payload.expiresAt) delete payload.expiresAt;
-    if (!payload.adminNotes) delete payload.adminNotes;
-    if (!payload.reason) delete payload.reason;
-
     const res = await featureFlagsStore.addTenantOverride(code.value, payload);
     if (res) {
       showOverrideModal.value = false;
-      resetOverrideForm();
+      await load();
     }
   } catch (err) {
     logger.error("Failed to apply tenant override", err);
@@ -125,7 +119,7 @@ onMounted(load);
       <div class="mb-[0.8rem]">
         <NuxtLink
           to="/dashboard/feature-flags"
-          class="flex items-center gap-[0.4rem] text-[1.2rem] text-gray-500 hover:text-primary"
+          class="flex items-center gap-[0.4rem] text-[1.2rem] text-gray-500 hover:text-primary font-[500]"
         >
           <span class="material-symbols-outlined text-[1.6rem]">arrow_back</span>
           Feature Flags
@@ -134,11 +128,11 @@ onMounted(load);
 
       <div v-if="featureFlagsStore.loading" class="h-[60px] animate-pulse rounded-[8px] bg-gray-100" />
 
-      <div v-else-if="featureFlagsStore.selectedFlag" class="flex items-start justify-between gap-[1.6rem]">
+      <div v-else-if="featureFlagsStore.selectedFlag" class="flex flex-col gap-[1.2rem] md:flex-row md:items-center md:justify-between">
         <div>
-          <div class="flex items-center gap-[1.2rem]">
+          <div class="flex flex-wrap items-center gap-[1.2rem]">
             <h1 class="text-[2rem] font-[700] text-[#000]">{{ featureFlagsStore.selectedFlag.name }}</h1>
-            <span class="font-mono text-[1.4rem] text-gray-400">{{ featureFlagsStore.selectedFlag.code }}</span>
+            <span class="font-mono text-[1.4rem] text-gray-400 font-[600]">{{ featureFlagsStore.selectedFlag.code }}</span>
             <span
               :class="statusBadgeClass[featureFlagsStore.selectedFlag.defaultStatus] || 'bg-gray-100 text-gray-600'"
               class="inline-flex items-center rounded-full px-[1rem] py-[0.3rem] text-[1.2rem] font-[500]"
@@ -151,6 +145,12 @@ onMounted(load);
             >
               {{ featureFlagsStore.selectedFlag.enabled ? "Enabled" : "Disabled" }}
             </span>
+            <span
+              v-if="featureFlagsStore.selectedFlag.isExperimental"
+              class="inline-flex items-center rounded-full bg-purple-100 text-purple-700 px-[1rem] py-[0.3rem] text-[1.2rem] font-[500]"
+            >
+              Experimental
+            </span>
           </div>
           <p v-if="featureFlagsStore.selectedFlag.description" class="mt-[0.4rem] text-gray-500">
             {{ featureFlagsStore.selectedFlag.description }}
@@ -158,13 +158,13 @@ onMounted(load);
         </div>
         <div class="flex shrink-0 gap-[1rem]">
           <button
-            class="rounded-[8px] border border-slate-200 px-[1.4rem] py-[0.9rem]"
-            @click="editMode = !editMode; if (!editMode && featureFlagsStore.selectedFlag) populateEditForm(featureFlagsStore.selectedFlag)"
+            class="rounded-[8px] border border-slate-200 px-[1.4rem] py-[0.9rem] font-[600] text-gray-600 bg-white hover:bg-gray-50 cursor-pointer"
+            @click="editMode = !editMode"
           >
-            {{ editMode ? "Cancel" : "Edit" }}
+            {{ editMode ? "Cancel" : "Edit Flag" }}
           </button>
           <button
-            class="rounded-[8px] bg-primary px-[1.4rem] py-[0.9rem] font-[700] text-white"
+            class="rounded-[8px] bg-primary px-[1.4rem] py-[0.9rem] font-[700] text-white hover:opacity-90 cursor-pointer"
             @click="showOverrideModal = true"
           >
             + Tenant Override
@@ -178,79 +178,58 @@ onMounted(load);
       <div class="space-y-[1.6rem]">
         <!-- Edit form -->
         <section v-if="editMode" class="rounded-[8px] bg-white p-[2rem] shadow-sm">
-          <h2 class="mb-[1.6rem] text-[1.6rem] font-[700] text-[#000]">Edit Flag</h2>
-          <form class="space-y-[1.4rem]" @submit.prevent="submitUpdate">
-            <div class="grid grid-cols-2 gap-[1.2rem]">
-              <div>
-                <label class="mb-[0.4rem] block font-[600]">Name <span class="text-red-500">*</span></label>
-                <input
-                  v-model="editForm.name"
-                  type="text"
-                  class="w-full rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem]"
-                  required
-                />
-              </div>
-              <div>
-                <label class="mb-[0.4rem] block font-[600]">Owner Team</label>
-                <input
-                  v-model="editForm.ownerTeam"
-                  type="text"
-                  class="w-full rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem]"
-                  placeholder="e.g. Platform"
-                />
-              </div>
-            </div>
+          <h2 class="mb-[1.6rem] text-[1.6rem] font-[700] text-[#000] border-b border-slate-100 pb-[0.8rem]">Edit Flag</h2>
+          <DashboardFeatureFlagsFeatureFlagForm
+            :is-edit="true"
+            :initial-data="featureFlagsStore.selectedFlag"
+            :loading="featureFlagsStore.saving"
+            @submit="submitUpdate"
+            @cancel="editMode = false"
+          />
+        </section>
 
+        <!-- Metadata view -->
+        <div v-else class="space-y-[1.6rem]">
+          <!-- Metadata Panels -->
+          <section class="rounded-[8px] bg-white p-[2rem] shadow-sm space-y-[2rem]">
+            <!-- General Info -->
             <div>
-              <label class="mb-[0.4rem] block font-[600]">Description</label>
-              <textarea
-                v-model="editForm.description"
-                rows="2"
-                class="w-full rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem]"
-              />
+              <h3 class="mb-[1.2rem] text-[1.5rem] font-[700] text-[#000] border-b border-slate-100 pb-[0.4rem]">General Metadata</h3>
+              <dl class="grid grid-cols-2 gap-x-[2rem] gap-y-[1.2rem]">
+                <div>
+                  <dt class="text-[1.2rem] text-gray-500">Category</dt>
+                  <dd class="font-[600]">{{ featureFlagsStore.selectedFlag.category || "—" }}</dd>
+                </div>
+                <div>
+                  <dt class="text-[1.2rem] text-gray-500">Owner Team</dt>
+                  <dd class="font-[600]">{{ featureFlagsStore.selectedFlag.ownerTeam || "—" }}</dd>
+                </div>
+                <div>
+                  <dt class="text-[1.2rem] text-gray-500">Display Order</dt>
+                  <dd class="font-[600]">{{ featureFlagsStore.selectedFlag.displayOrder ?? "—" }}</dd>
+                </div>
+                <div>
+                  <dt class="text-[1.2rem] text-gray-500">Experimental Feature</dt>
+                  <dd class="font-[600]">{{ featureFlagsStore.selectedFlag.isExperimental ? "Yes" : "No" }}</dd>
+                </div>
+                <div v-if="featureFlagsStore.selectedFlag.documentation" class="col-span-2">
+                  <dt class="text-[1.2rem] text-gray-500">Documentation</dt>
+                  <dd class="mt-[0.2rem]">
+                    <a
+                      :href="featureFlagsStore.selectedFlag.documentation"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-primary underline font-[500] break-all inline-flex items-center gap-[0.4rem]"
+                    >
+                      <span>{{ featureFlagsStore.selectedFlag.documentation }}</span>
+                      <span class="material-symbols-outlined text-[1.4rem]">open_in_new</span>
+                    </a>
+                  </dd>
+                </div>
+              </dl>
             </div>
 
-            <div class="grid grid-cols-2 gap-[1.2rem]">
-              <div>
-                <label class="mb-[0.4rem] block font-[600]">Default Status</label>
-                <select
-                  v-model="editForm.defaultStatus"
-                  class="w-full rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem]"
-                >
-                  <option v-for="s in defaultStatuses" :key="s" :value="s">{{ s.replace(/_/g, " ") }}</option>
-                </select>
-              </div>
-              <div>
-                <label class="mb-[0.4rem] block font-[600]">Category</label>
-                <select
-                  v-model="editForm.category"
-                  class="w-full rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem]"
-                >
-                  <option value="">— None —</option>
-                  <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-[1.2rem]">
-              <div>
-                <label class="mb-[0.4rem] block font-[600]">Target Release Date</label>
-                <input
-                  v-model="editForm.targetReleaseDate"
-                  type="date"
-                  class="w-full rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem]"
-                />
-              </div>
-              <div>
-                <label class="mb-[0.4rem] block font-[600]">Display Order</label>
-                <input
-                  v-model.number="editForm.displayOrder"
-                  type="number"
-                  class="w-full rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem]"
-                />
-              </div>
-            </div>
-
+            <!-- Access Control rules -->
             <div>
               <label class="mb-[0.4rem] block font-[600]">Documentation URL</label>
               <input
@@ -261,56 +240,39 @@ onMounted(load);
               />
             </div>
 
+            <!-- Lifecycle Dates -->
             <div>
-              <label class="mb-[0.4rem] block font-[600]">Release Notes</label>
-              <textarea
-                v-model="editForm.releaseNotes"
-                rows="3"
-                class="w-full rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem]"
-              />
+              <h3 class="mb-[1.2rem] text-[1.5rem] font-[700] text-[#000] border-b border-slate-100 pb-[0.4rem]">Lifecycle Timeline</h3>
+              <dl class="grid grid-cols-2 gap-x-[2rem] gap-y-[1.2rem]">
+                <div>
+                  <dt class="text-[1.2rem] text-gray-500">Created At</dt>
+                  <dd class="font-[600]">{{ featureFlagsStore.selectedFlag.createdAt ? formatDate(featureFlagsStore.selectedFlag.createdAt) : "—" }}</dd>
+                </div>
+                <div>
+                  <dt class="text-[1.2rem] text-gray-500">Updated At</dt>
+                  <dd class="font-[600]">{{ featureFlagsStore.selectedFlag.updatedAt ? formatDate(featureFlagsStore.selectedFlag.updatedAt) : "—" }}</dd>
+                </div>
+                <div>
+                  <dt class="text-[1.2rem] text-gray-500">Released At</dt>
+                  <dd class="font-[600]">{{ featureFlagsStore.selectedFlag.releasedAt ? formatDate(featureFlagsStore.selectedFlag.releasedAt) : "—" }}</dd>
+                </div>
+                <div>
+                  <dt class="text-[1.2rem] text-gray-500">Deprecated At</dt>
+                  <dd class="font-[600]">{{ featureFlagsStore.selectedFlag.deprecatedAt ? formatDate(featureFlagsStore.selectedFlag.deprecatedAt) : "—" }}</dd>
+                </div>
+                <div v-if="featureFlagsStore.selectedFlag.targetReleaseDate">
+                  <dt class="text-[1.2rem] text-gray-500">Target Release Date</dt>
+                  <dd class="font-[600]">{{ formatDate(featureFlagsStore.selectedFlag.targetReleaseDate) }}</dd>
+                </div>
+              </dl>
             </div>
 
-            <div class="flex items-center gap-[1rem]">
-              <label class="font-[600]">Enabled</label>
-              <button
-                type="button"
-                :class="editForm.enabled ? 'bg-primary' : 'bg-gray-300'"
-                class="relative inline-flex h-[24px] w-[44px] items-center rounded-full transition-colors"
-                @click="editForm.enabled = !editForm.enabled"
-              >
-                <span
-                  :class="editForm.enabled ? 'translate-x-[22px]' : 'translate-x-[2px]'"
-                  class="inline-block h-[20px] w-[20px] transform rounded-full bg-white shadow transition-transform"
-                />
-              </button>
-            </div>
-
-            <div class="flex justify-end gap-[1.2rem] pt-[0.4rem]">
-              <button
-                type="button"
-                class="rounded-[8px] border border-slate-200 px-[1.6rem] py-[0.9rem]"
-                @click="editMode = false; populateEditForm(featureFlagsStore.selectedFlag)"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                :disabled="featureFlagsStore.saving"
-                class="rounded-[8px] bg-primary px-[1.6rem] py-[0.9rem] font-[700] text-white disabled:opacity-50"
-              >
-                {{ featureFlagsStore.saving ? "Saving..." : "Save Changes" }}
-              </button>
-            </div>
-          </form>
-        </section>
-
-        <!-- Metadata -->
-        <section v-else class="rounded-[8px] bg-white p-[2rem] shadow-sm">
-          <h2 class="mb-[1.6rem] text-[1.6rem] font-[700] text-[#000]">Release Metadata</h2>
-          <dl class="grid grid-cols-2 gap-x-[2rem] gap-y-[1.2rem]">
-            <div>
-              <dt class="text-[1.2rem] text-gray-500">Category</dt>
-              <dd class="font-[600]">{{ featureFlagsStore.selectedFlag.category || "—" }}</dd>
+            <!-- Release Notes -->
+            <div v-if="featureFlagsStore.selectedFlag.releaseNotes">
+              <h3 class="mb-[1rem] text-[1.5rem] font-[700] text-[#000] border-b border-slate-100 pb-[0.4rem]">Release Notes</h3>
+              <p class="whitespace-pre-line text-gray-600 bg-slate-50 p-[1.2rem] rounded-[8px] leading-[1.6]">
+                {{ featureFlagsStore.selectedFlag.releaseNotes }}
+              </p>
             </div>
             <div>
               <dt class="text-[1.2rem] text-gray-500">Owner Team</dt>
@@ -361,25 +323,45 @@ onMounted(load);
               <p class="text-[1.2rem] text-gray-500">{{ key }}</p>
               <p class="text-[1.8rem] font-[700] text-[#000]">{{ value }}</p>
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
       </div>
 
       <!-- Sidebar: Tenant Overrides -->
       <div class="space-y-[1.6rem]">
+        <!-- Tenant Overrides Sidebar List -->
         <section class="rounded-[8px] bg-white p-[2rem] shadow-sm">
-          <div class="mb-[1.2rem] flex items-center justify-between">
+          <div class="mb-[1.2rem] flex items-center justify-between border-b border-slate-100 pb-[0.8rem]">
             <h2 class="text-[1.6rem] font-[700] text-[#000]">Tenant Overrides</h2>
-            <span class="text-[1.2rem] text-gray-400">
+            <span class="text-[1.2rem] font-[600] text-gray-400">
               {{ (featureFlagsStore.selectedFlag.tenantOverrides || []).length }} total
             </span>
           </div>
 
+          <!-- Current Tenant Status Context from details response (if applicable) -->
+          <div v-if="featureFlagsStore.selectedFlag.tenantOverrideStatus" class="mb-[1.6rem] p-[1.2rem] rounded-[8px] bg-primary/5 border border-primary/10">
+            <h4 class="text-[1.2rem] font-[700] text-primary uppercase tracking-wide">Active Override Context</h4>
+            <div class="mt-[0.6rem] flex items-center justify-between">
+              <span class="text-[1.2rem] text-gray-500 font-[500]">Status:</span>
+              <span :class="overrideBadgeClass[featureFlagsStore.selectedFlag.tenantOverrideStatus]" class="px-[0.8rem] py-[0.2rem] rounded-full text-[1.1rem] font-[600]">
+                {{ featureFlagsStore.selectedFlag.tenantOverrideStatus }}
+              </span>
+            </div>
+            <div v-if="featureFlagsStore.selectedFlag.overrideGrantedAt" class="mt-[0.4rem] flex items-center justify-between text-[1.1rem]">
+              <span class="text-gray-400">Granted:</span>
+              <span class="font-[600] text-gray-600">{{ formatDate(featureFlagsStore.selectedFlag.overrideGrantedAt) }}</span>
+            </div>
+            <div v-if="featureFlagsStore.selectedFlag.overrideExpiresAt" class="mt-[0.4rem] flex items-center justify-between text-[1.1rem]">
+              <span class="text-gray-400">Expires:</span>
+              <span class="font-[600] text-gray-600">{{ formatDate(featureFlagsStore.selectedFlag.overrideExpiresAt) }}</span>
+            </div>
+          </div>
+
           <div
             v-if="!(featureFlagsStore.selectedFlag.tenantOverrides || []).length"
-            class="py-[2rem] text-center text-gray-400"
+            class="py-[2rem] text-center text-gray-400 font-[500]"
           >
-            No overrides yet
+            No overrides configured
           </div>
 
           <div v-else class="space-y-[1rem]">
@@ -406,14 +388,14 @@ onMounted(load);
                   </span>
                 </div>
               </div>
-              <div v-if="override.reason" class="mt-[0.6rem] text-[1.2rem] text-gray-500">
+              <div v-if="override.reason" class="mt-[0.6rem] text-[1.2rem] text-gray-500 font-[500]">
                 {{ override.reason }}
               </div>
-              <div v-if="override.expiresAt" class="mt-[0.4rem] text-[1.2rem] text-gray-400">
+              <div v-if="override.expiresAt" class="mt-[0.4rem] text-[1.2rem] text-gray-400 font-[500]">
                 Expires: {{ formatDate(override.expiresAt) }}
               </div>
-              <div v-if="override.adminNotes" class="mt-[0.4rem] text-[1.2rem] italic text-gray-400">
-                {{ override.adminNotes }}
+              <div v-if="override.adminNotes" class="mt-[0.4rem] text-[1.2rem] italic text-gray-400 font-[500]">
+                Note: {{ override.adminNotes }}
               </div>
             </div>
           </div>
@@ -424,96 +406,17 @@ onMounted(load);
           v-if="featureFlagsStore.selectedFlag.adminNotes"
           class="rounded-[8px] bg-white p-[2rem] shadow-sm"
         >
-          <h2 class="mb-[0.8rem] text-[1.6rem] font-[700] text-[#000]">Admin Notes</h2>
-          <p class="whitespace-pre-line text-gray-600">{{ featureFlagsStore.selectedFlag.adminNotes }}</p>
+          <h2 class="mb-[0.8rem] text-[1.6rem] font-[700] text-[#000] border-b border-slate-100 pb-[0.4rem]">Admin Notes</h2>
+          <p class="whitespace-pre-line text-gray-600 leading-[1.6] italic">{{ featureFlagsStore.selectedFlag.adminNotes }}</p>
         </section>
       </div>
     </div>
 
     <!-- Tenant Override Modal -->
-    <div
-      v-if="showOverrideModal"
-      class="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 p-[1.6rem]"
-      @click.self="showOverrideModal = false"
-    >
-      <div class="w-full max-w-[480px] rounded-[12px] bg-white p-[2.4rem] shadow-xl">
-        <div class="mb-[2rem] flex items-center justify-between">
-          <h2 class="text-[1.8rem] font-[700] text-[#000]">Add Tenant Override</h2>
-          <button class="text-gray-400 hover:text-gray-600" @click="showOverrideModal = false">
-            <span class="material-symbols-outlined">close</span>
-          </button>
-        </div>
-
-        <form class="space-y-[1.4rem]" @submit.prevent="submitOverride">
-          <div>
-            <label class="mb-[0.4rem] block font-[600]">Tenant ID <span class="text-red-500">*</span></label>
-            <input
-              v-model="overrideForm.tenantId"
-              type="text"
-              class="w-full rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem] font-mono"
-              placeholder="Tenant UUID or ID"
-              required
-            />
-          </div>
-
-          <div>
-            <label class="mb-[0.4rem] block font-[600]">Override Status <span class="text-red-500">*</span></label>
-            <select
-              v-model="overrideForm.status"
-              class="w-full rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem]"
-              required
-            >
-              <option v-for="s in overrideStatuses" :key="s" :value="s">{{ s.replace(/_/g, " ") }}</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="mb-[0.4rem] block font-[600]">Reason</label>
-            <input
-              v-model="overrideForm.reason"
-              type="text"
-              class="w-full rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem]"
-              placeholder="Why this override is being applied"
-            />
-          </div>
-
-          <div>
-            <label class="mb-[0.4rem] block font-[600]">Expires At</label>
-            <input
-              v-model="overrideForm.expiresAt"
-              type="datetime-local"
-              class="w-full rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem]"
-            />
-          </div>
-
-          <div>
-            <label class="mb-[0.4rem] block font-[600]">Admin Notes</label>
-            <textarea
-              v-model="overrideForm.adminNotes"
-              rows="2"
-              class="w-full rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem]"
-              placeholder="Internal notes for other admins"
-            />
-          </div>
-
-          <div class="flex justify-end gap-[1.2rem] pt-[0.4rem]">
-            <button
-              type="button"
-              class="rounded-[8px] border border-slate-200 px-[1.6rem] py-[0.9rem]"
-              @click="showOverrideModal = false; resetOverrideForm()"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              :disabled="featureFlagsStore.overriding || !overrideForm.tenantId"
-              class="rounded-[8px] bg-primary px-[1.6rem] py-[0.9rem] font-[700] text-white disabled:opacity-50"
-            >
-              {{ featureFlagsStore.overriding ? "Applying..." : "Apply Override" }}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <DashboardFeatureFlagsTenantOverrideModal
+      v-model:open="showOverrideModal"
+      :loading="featureFlagsStore.overriding"
+      @submit="submitOverride"
+    />
   </div>
 </template>

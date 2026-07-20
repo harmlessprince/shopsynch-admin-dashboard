@@ -124,7 +124,6 @@ async function submitCreate() {
     const res = await featureFlagsStore.createFlag(payload);
     if (res) {
       showCreateModal.value = false;
-      resetNewFlag();
       await fetchFlags(1);
     }
   } catch (err) {
@@ -144,19 +143,19 @@ onMounted(fetchFlags);
       <div class="flex flex-col gap-[1.2rem] md:flex-row md:items-center md:justify-between">
         <div>
           <h1 class="text-[2rem] font-[700] text-[#000]">Feature Flags</h1>
-          <p class="mt-[0.4rem]">Total: {{ featureFlagsStore.flagsTotal }}</p>
+          <p class="mt-[0.4rem] text-gray-500">Total: {{ featureFlagsStore.flagsTotal }}</p>
         </div>
         <div class="flex flex-col gap-[1rem] sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
           <input
             v-model="search"
             type="text"
-            class="rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem]"
+            class="rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem] bg-white"
             placeholder="Search code or name"
             @keyup.enter="applyFilters"
-          />
+          >
           <select
             v-model="category"
-            class="rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem]"
+            class="rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem] bg-white text-gray-700 font-[500]"
             @change="applyFilters"
           >
             <option value="">All categories</option>
@@ -164,20 +163,20 @@ onMounted(fetchFlags);
           </select>
           <select
             v-model="defaultStatus"
-            class="rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem]"
+            class="rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem] bg-white text-gray-700 font-[500]"
             @change="applyFilters"
           >
             <option value="">All statuses</option>
             <option v-for="s in defaultStatuses" :key="s" :value="s">{{ s.replace(/_/g, " ") }}</option>
           </select>
           <button
-            class="rounded-[8px] border border-slate-200 px-[1.4rem] py-[0.9rem]"
+            class="rounded-[8px] border border-slate-200 px-[1.4rem] py-[0.9rem] font-[600] text-gray-600 bg-white hover:bg-gray-50 cursor-pointer"
             @click="applyFilters"
           >
             Filter
           </button>
           <button
-            class="rounded-[8px] bg-primary px-[1.4rem] py-[0.9rem] font-[700] text-white"
+            class="rounded-[8px] bg-primary px-[1.4rem] py-[0.9rem] font-[700] text-white hover:opacity-90 cursor-pointer"
             @click="showCreateModal = true"
           >
             + New Flag
@@ -237,9 +236,9 @@ onMounted(fetchFlags);
       @click.self="showCreateModal = false"
     >
       <div class="w-full max-w-[560px] max-h-[90vh] overflow-y-auto rounded-[12px] bg-white p-[2.4rem] shadow-xl">
-        <div class="mb-[2rem] flex items-center justify-between">
+        <div class="mb-[2rem] flex items-center justify-between border-b border-slate-100 pb-[1.2rem]">
           <h2 class="text-[1.8rem] font-[700] text-[#000]">Create Feature Flag</h2>
-          <button class="text-gray-400 hover:text-gray-600" @click="showCreateModal = false">
+          <button class="text-gray-400 hover:text-gray-600 cursor-pointer" @click="showCreateModal = false">
             <span class="material-symbols-outlined">close</span>
           </button>
         </div>
