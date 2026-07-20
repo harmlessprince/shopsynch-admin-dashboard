@@ -166,7 +166,7 @@ const dashboardSidebarMenu = [
 
     <!-- Sidebar -->
     <div
-      class="z-[100] fixed h-screen w-[var(--sidebar-width)] bg-primary p-[40px] box-border transition-transform duration-300 transform"
+      class="z-[100] fixed h-screen w-[var(--sidebar-width)] overflow-y-auto overflow-x-hidden overscroll-contain bg-primary p-[40px] box-border transition-transform duration-300 transform"
       :class="
         isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       "

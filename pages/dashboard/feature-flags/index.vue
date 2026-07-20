@@ -20,28 +20,29 @@ const limit = ref(50);
 const showCreateModal = ref(false);
 const creating = ref(false);
 
-const defaultStatuses = ["ACTIVE", "BETA", "COMING_SOON", "DISABLED"];
+const defaultStatuses = ["ENABLED", "BETA", "COMING_SOON", "HIDDEN", "DEPRECATED"];
 const categories = ["INSIGHTS", "PAYMENTS", "LOGISTICS", "COMPLIANCE", "GENERAL"];
 
 const newFlag = ref({
   code: "",
   name: "",
   description: "",
-  defaultStatus: "ACTIVE",
+  defaultStatus: "ENABLED",
   category: "",
   displayOrder: null,
   releaseNotes: "",
   targetReleaseDate: "",
-  documentationUrl: "",
+  documentation: "",
   ownerTeam: "",
   enabled: true,
 });
 
 const statusBadgeClass = {
-  ACTIVE: "bg-[#B5F9B4] text-[#3CA745]",
+  ENABLED: "bg-[#B5F9B4] text-[#3CA745]",
   BETA: "bg-[#D0E8FF] text-[#0066CC]",
   COMING_SOON: "bg-[#FFF9C5] text-[#E79640]",
-  DISABLED: "bg-[#F3F4F6] text-[#6B7280]",
+  HIDDEN: "bg-[#F3F4F6] text-[#6B7280]",
+  DEPRECATED: "bg-[#FFE1C2] text-[#B45309]",
 };
 
 const tableHeader = [
@@ -89,15 +90,23 @@ function resetNewFlag() {
     code: "",
     name: "",
     description: "",
-    defaultStatus: "ACTIVE",
+    defaultStatus: "ENABLED",
     category: "",
     displayOrder: null,
     releaseNotes: "",
     targetReleaseDate: "",
-    documentationUrl: "",
+    documentation: "",
     ownerTeam: "",
     enabled: true,
   };
+}
+
+async function toggleEnabled(row) {
+  try {
+    await featureFlagsStore.toggleFlagEnabled(row);
+  } catch (err) {
+    logger.error("Failed to toggle feature flag", err);
+  }
 }
 
 async function submitCreate() {
@@ -108,7 +117,7 @@ async function submitCreate() {
     if (!payload.displayOrder) delete payload.displayOrder;
     if (!payload.releaseNotes) delete payload.releaseNotes;
     if (!payload.targetReleaseDate) delete payload.targetReleaseDate;
-    if (!payload.documentationUrl) delete payload.documentationUrl;
+    if (!payload.documentation) delete payload.documentation;
     if (!payload.ownerTeam) delete payload.ownerTeam;
     if (!payload.category) delete payload.category;
 
@@ -200,12 +209,20 @@ onMounted(fetchFlags);
           </span>
         </template>
         <template #cell(enabled)="{ row }">
-          <span
-            :class="row.enabled ? 'bg-[#B5F9B4] text-[#3CA745]' : 'bg-[#F3F4F6] text-[#6B7280]'"
-            class="inline-flex items-center rounded-full px-[1rem] py-[0.3rem] text-[1.2rem] font-[500]"
+          <button
+            type="button"
+            :class="row.enabled ? 'bg-primary' : 'bg-gray-300'"
+            :aria-pressed="row.enabled"
+            :aria-label="row.enabled ? `Disable ${row.name}` : `Enable ${row.name}`"
+            class="relative inline-flex h-[24px] w-[44px] items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+            :disabled="featureFlagsStore.saving"
+            @click.stop="toggleEnabled(row)"
           >
-            {{ row.enabled ? "Yes" : "No" }}
-          </span>
+            <span
+              :class="row.enabled ? 'translate-x-[22px]' : 'translate-x-[2px]'"
+              class="inline-block h-[20px] w-[20px] transform rounded-full bg-white shadow transition-transform"
+            />
+          </button>
         </template>
         <template #cell(ownerTeam)="{ row }">
           {{ row.ownerTeam || "—" }}
@@ -316,7 +333,7 @@ onMounted(fetchFlags);
             <div>
               <label class="mb-[0.4rem] block font-[600]">Documentation URL</label>
               <input
-                v-model="newFlag.documentationUrl"
+                v-model="newFlag.documentation"
                 type="url"
                 class="w-full rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem]"
                 placeholder="https://..."

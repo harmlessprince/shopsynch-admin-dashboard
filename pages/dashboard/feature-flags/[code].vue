@@ -15,28 +15,30 @@ const code = computed(() => route.params.code);
 const editMode = ref(false);
 const showOverrideModal = ref(false);
 
-const defaultStatuses = ["ACTIVE", "BETA", "COMING_SOON", "DISABLED"];
-const overrideStatuses = ["ACTIVE", "BETA", "COMING_SOON", "DISABLED"];
+const defaultStatuses = ["ENABLED", "BETA", "COMING_SOON", "HIDDEN", "DEPRECATED"];
+const overrideStatuses = ["ENABLED", "BETA", "COMING_SOON", "HIDDEN", "DEPRECATED"];
 const categories = ["INSIGHTS", "PAYMENTS", "LOGISTICS", "COMPLIANCE", "GENERAL"];
 
 const statusBadgeClass = {
-  ACTIVE: "bg-[#B5F9B4] text-[#3CA745]",
+  ENABLED: "bg-[#B5F9B4] text-[#3CA745]",
   BETA: "bg-[#D0E8FF] text-[#0066CC]",
   COMING_SOON: "bg-[#FFF9C5] text-[#E79640]",
-  DISABLED: "bg-[#F3F4F6] text-[#6B7280]",
+  HIDDEN: "bg-[#F3F4F6] text-[#6B7280]",
+  DEPRECATED: "bg-[#FFE1C2] text-[#B45309]",
 };
 
 const overrideBadgeClass = {
-  ACTIVE: "bg-[#B5F9B4] text-[#3CA745]",
+  ENABLED: "bg-[#B5F9B4] text-[#3CA745]",
   BETA: "bg-[#D0E8FF] text-[#0066CC]",
   COMING_SOON: "bg-[#FFF9C5] text-[#E79640]",
-  DISABLED: "bg-[#F3F4F6] text-[#6B7280]",
+  HIDDEN: "bg-[#F3F4F6] text-[#6B7280]",
+  DEPRECATED: "bg-[#FFE1C2] text-[#B45309]",
 };
 
 const editForm = ref({});
 const overrideForm = ref({
   tenantId: "",
-  status: "ACTIVE",
+  status: "ENABLED",
   reason: "",
   expiresAt: "",
   adminNotes: "",
@@ -46,12 +48,12 @@ function populateEditForm(flag) {
   editForm.value = {
     name: flag.name || "",
     description: flag.description || "",
-    defaultStatus: flag.defaultStatus || "ACTIVE",
+    defaultStatus: flag.defaultStatus || flag.status || "ENABLED",
     category: flag.category || "",
     displayOrder: flag.displayOrder ?? null,
     releaseNotes: flag.releaseNotes || "",
     targetReleaseDate: flag.targetReleaseDate ? flag.targetReleaseDate.substring(0, 10) : "",
-    documentationUrl: flag.documentationUrl || "",
+    documentation: flag.documentation || "",
     ownerTeam: flag.ownerTeam || "",
     enabled: flag.enabled ?? true,
   };
@@ -72,7 +74,7 @@ async function submitUpdate() {
     if (!payload.displayOrder) delete payload.displayOrder;
     if (!payload.releaseNotes) delete payload.releaseNotes;
     if (!payload.targetReleaseDate) delete payload.targetReleaseDate;
-    if (!payload.documentationUrl) delete payload.documentationUrl;
+    if (!payload.documentation) delete payload.documentation;
     if (!payload.ownerTeam) delete payload.ownerTeam;
     if (!payload.category) delete payload.category;
 
@@ -87,7 +89,7 @@ async function submitUpdate() {
 }
 
 function resetOverrideForm() {
-  overrideForm.value = { tenantId: "", status: "ACTIVE", reason: "", expiresAt: "", adminNotes: "" };
+  overrideForm.value = { tenantId: "", status: "ENABLED", reason: "", expiresAt: "", adminNotes: "" };
 }
 
 async function submitOverride() {
@@ -252,7 +254,7 @@ onMounted(load);
             <div>
               <label class="mb-[0.4rem] block font-[600]">Documentation URL</label>
               <input
-                v-model="editForm.documentationUrl"
+                v-model="editForm.documentation"
                 type="url"
                 class="w-full rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem]"
                 placeholder="https://..."
@@ -324,16 +326,16 @@ onMounted(load);
                 {{ featureFlagsStore.selectedFlag.targetReleaseDate ? formatDate(featureFlagsStore.selectedFlag.targetReleaseDate) : "—" }}
               </dd>
             </div>
-            <div v-if="featureFlagsStore.selectedFlag.documentationUrl" class="col-span-2">
+            <div v-if="featureFlagsStore.selectedFlag.documentation" class="col-span-2">
               <dt class="text-[1.2rem] text-gray-500">Documentation</dt>
               <dd>
                 <a
-                  :href="featureFlagsStore.selectedFlag.documentationUrl"
+                  :href="featureFlagsStore.selectedFlag.documentation"
                   target="_blank"
                   rel="noopener noreferrer"
                   class="text-primary underline"
                 >
-                  {{ featureFlagsStore.selectedFlag.documentationUrl }}
+                  {{ featureFlagsStore.selectedFlag.documentation }}
                 </a>
               </dd>
             </div>
