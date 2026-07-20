@@ -12,6 +12,11 @@ const props  =defineProps({
 });
 const isHidden = ref(true)
 const toastStore = useToastStore()
+
+watch(() => props.value, () => {
+  isHidden.value = true
+})
+
 const toggleHidden = () => {
   isHidden.value = !isHidden.value
 }
@@ -22,7 +27,7 @@ const copyKey = async () => {
   try {
     await navigator.clipboard.writeText(props.value)
     toastStore.success(`${props.title} copied to clipboard!`, "Copied")
-  } catch (err) {
+  } catch {
     toastStore.success(`${props.title} failed to copy to clipboard!`, "Not Copied")
   }
 }

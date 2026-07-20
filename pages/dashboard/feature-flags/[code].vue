@@ -15,21 +15,49 @@ const code = computed(() => route.params.code);
 const editMode = ref(false);
 const showOverrideModal = ref(false);
 
+const defaultStatuses = ["ENABLED", "BETA", "COMING_SOON", "HIDDEN", "DEPRECATED"];
+const overrideStatuses = ["ENABLED", "BETA", "COMING_SOON", "HIDDEN", "DEPRECATED"];
+const categories = ["INSIGHTS", "PAYMENTS", "LOGISTICS", "COMPLIANCE", "GENERAL"];
+
 const statusBadgeClass = {
-  HIDDEN: "bg-gray-100 text-gray-600",
-  COMING_SOON: "bg-[#FFF9C5] text-[#E79640]",
-  BETA: "bg-[#D0E8FF] text-[#0066CC]",
   ENABLED: "bg-[#B5F9B4] text-[#3CA745]",
-  DEPRECATED: "bg-[#FFBFBF] text-[#FF3131]",
+  BETA: "bg-[#D0E8FF] text-[#0066CC]",
+  COMING_SOON: "bg-[#FFF9C5] text-[#E79640]",
+  HIDDEN: "bg-[#F3F4F6] text-[#6B7280]",
+  DEPRECATED: "bg-[#FFE1C2] text-[#B45309]",
 };
 
 const overrideBadgeClass = {
-  HIDDEN: "bg-gray-100 text-gray-600",
-  COMING_SOON: "bg-[#FFF9C5] text-[#E79640]",
-  BETA: "bg-[#D0E8FF] text-[#0066CC]",
   ENABLED: "bg-[#B5F9B4] text-[#3CA745]",
-  DEPRECATED: "bg-[#FFBFBF] text-[#FF3131]",
+  BETA: "bg-[#D0E8FF] text-[#0066CC]",
+  COMING_SOON: "bg-[#FFF9C5] text-[#E79640]",
+  HIDDEN: "bg-[#F3F4F6] text-[#6B7280]",
+  DEPRECATED: "bg-[#FFE1C2] text-[#B45309]",
 };
+
+const editForm = ref({});
+const overrideForm = ref({
+  tenantId: "",
+  status: "ENABLED",
+  reason: "",
+  expiresAt: "",
+  adminNotes: "",
+});
+
+function populateEditForm(flag) {
+  editForm.value = {
+    name: flag.name || "",
+    description: flag.description || "",
+    defaultStatus: flag.defaultStatus || flag.status || "ENABLED",
+    category: flag.category || "",
+    displayOrder: flag.displayOrder ?? null,
+    releaseNotes: flag.releaseNotes || "",
+    targetReleaseDate: flag.targetReleaseDate ? flag.targetReleaseDate.substring(0, 10) : "",
+    documentation: flag.documentation || "",
+    ownerTeam: flag.ownerTeam || "",
+    enabled: flag.enabled ?? true,
+  };
+}
 
 async function load() {
   try {
@@ -41,6 +69,14 @@ async function load() {
 
 async function submitUpdate(payload) {
   try {
+    const payload = { ...editForm.value };
+    if (!payload.displayOrder) delete payload.displayOrder;
+    if (!payload.releaseNotes) delete payload.releaseNotes;
+    if (!payload.targetReleaseDate) delete payload.targetReleaseDate;
+    if (!payload.documentation) delete payload.documentation;
+    if (!payload.ownerTeam) delete payload.ownerTeam;
+    if (!payload.category) delete payload.category;
+
     const res = await featureFlagsStore.updateFlag(code.value, payload);
     if (res) {
       editMode.value = false;
@@ -51,7 +87,12 @@ async function submitUpdate(payload) {
   }
 }
 
-async function submitOverride(payload) {
+function resetOverrideForm() {
+  overrideForm.value = { tenantId: "", status: "ENABLED", reason: "", expiresAt: "", adminNotes: "" };
+}
+
+async function submitOverride() {
+  if (!overrideForm.value.tenantId || !overrideForm.value.status) return;
   try {
     const res = await featureFlagsStore.addTenantOverride(code.value, payload);
     if (res) {
@@ -190,39 +231,13 @@ onMounted(load);
 
             <!-- Access Control rules -->
             <div>
-              <h3 class="mb-[1.2rem] text-[1.5rem] font-[700] text-[#000] border-b border-slate-100 pb-[0.4rem]">Access Rules</h3>
-              <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-[2rem] gap-y-[1.2rem]">
-                <div>
-                  <dt class="text-[1.2rem] text-gray-500 mb-[0.4rem]">Required Plan Tiers</dt>
-                  <dd class="flex flex-wrap gap-[0.6rem]">
-                    <template v-if="featureFlagsStore.selectedFlag.requiredPlanTiers?.length">
-                      <span
-                        v-for="tier in featureFlagsStore.selectedFlag.requiredPlanTiers"
-                        :key="tier"
-                        class="rounded-full bg-blue-50 text-blue-700 font-mono text-[1.2rem] px-[1rem] py-[0.2rem] font-[600]"
-                      >
-                        {{ tier }}
-                      </span>
-                    </template>
-                    <span v-else class="text-gray-500 font-[500]">All Tiers</span>
-                  </dd>
-                </div>
-                <div>
-                  <dt class="text-[1.2rem] text-gray-500 mb-[0.4rem]">Required Countries</dt>
-                  <dd class="flex flex-wrap gap-[0.6rem]">
-                    <template v-if="featureFlagsStore.selectedFlag.requiredCountries?.length">
-                      <span
-                        v-for="country in featureFlagsStore.selectedFlag.requiredCountries"
-                        :key="country"
-                        class="rounded-full bg-slate-100 text-slate-700 font-mono text-[1.2rem] px-[1rem] py-[0.2rem] font-[600]"
-                      >
-                        {{ country }}
-                      </span>
-                    </template>
-                    <span v-else class="text-gray-500 font-[500]">All Countries</span>
-                  </dd>
-                </div>
-              </dl>
+              <label class="mb-[0.4rem] block font-[600]">Documentation URL</label>
+              <input
+                v-model="editForm.documentation"
+                type="url"
+                class="w-full rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem]"
+                placeholder="https://..."
+              />
             </div>
 
             <!-- Lifecycle Dates -->
@@ -259,30 +274,54 @@ onMounted(load);
                 {{ featureFlagsStore.selectedFlag.releaseNotes }}
               </p>
             </div>
-          </section>
+            <div>
+              <dt class="text-[1.2rem] text-gray-500">Owner Team</dt>
+              <dd class="font-[600]">{{ featureFlagsStore.selectedFlag.ownerTeam || "—" }}</dd>
+            </div>
+            <div>
+              <dt class="text-[1.2rem] text-gray-500">Display Order</dt>
+              <dd class="font-[600]">{{ featureFlagsStore.selectedFlag.displayOrder ?? "—" }}</dd>
+            </div>
+            <div>
+              <dt class="text-[1.2rem] text-gray-500">Target Release Date</dt>
+              <dd class="font-[600]">
+                {{ featureFlagsStore.selectedFlag.targetReleaseDate ? formatDate(featureFlagsStore.selectedFlag.targetReleaseDate) : "—" }}
+              </dd>
+            </div>
+            <div v-if="featureFlagsStore.selectedFlag.documentation" class="col-span-2">
+              <dt class="text-[1.2rem] text-gray-500">Documentation</dt>
+              <dd>
+                <a
+                  :href="featureFlagsStore.selectedFlag.documentation"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-primary underline"
+                >
+                  {{ featureFlagsStore.selectedFlag.documentation }}
+                </a>
+              </dd>
+            </div>
+            <div v-if="featureFlagsStore.selectedFlag.releaseNotes" class="col-span-2">
+              <dt class="text-[1.2rem] text-gray-500">Release Notes</dt>
+              <dd class="whitespace-pre-line">{{ featureFlagsStore.selectedFlag.releaseNotes }}</dd>
+            </div>
+          </dl>
+        </section>
 
-          <!-- Adoption Metrics Panel -->
-          <section class="rounded-[8px] bg-white p-[2rem] shadow-sm">
-            <h2 class="mb-[1.6rem] text-[1.6rem] font-[700] text-[#000] border-b border-slate-100 pb-[0.8rem]">Adoption Metrics</h2>
-            <div class="grid grid-cols-1 gap-[1.6rem] sm:grid-cols-3">
-              <div class="rounded-[8px] border border-slate-100 p-[1.4rem] bg-slate-50/50">
-                <p class="text-[1.2rem] text-gray-500 font-[600]">Eligible Tenants</p>
-                <p class="text-[2.2rem] font-[800] text-[#000] mt-[0.4rem]">
-                  {{ featureFlagsStore.selectedFlag.totalTenantsCanAccess ?? 0 }}
-                </p>
-              </div>
-              <div class="rounded-[8px] border border-slate-100 p-[1.4rem] bg-slate-50/50">
-                <p class="text-[1.2rem] text-gray-500 font-[600]">Active Users</p>
-                <p class="text-[2.2rem] font-[800] text-[#000] mt-[0.4rem]">
-                  {{ featureFlagsStore.selectedFlag.tenantsUsingFeature ?? 0 }}
-                </p>
-              </div>
-              <div class="rounded-[8px] border border-slate-100 p-[1.4rem] bg-slate-50/50">
-                <p class="text-[1.2rem] text-gray-500 font-[600]">Adoption Rate</p>
-                <p class="text-[2.2rem] font-[800] text-primary mt-[0.4rem]">
-                  {{ featureFlagsStore.selectedFlag.adoptionRate != null ? (featureFlagsStore.selectedFlag.adoptionRate * 100).toFixed(1) + '%' : '0.0%' }}
-                </p>
-              </div>
+        <!-- Adoption Metrics -->
+        <section
+          v-if="featureFlagsStore.selectedFlag.adoptionMetrics"
+          class="rounded-[8px] bg-white p-[2rem] shadow-sm"
+        >
+          <h2 class="mb-[1.6rem] text-[1.6rem] font-[700] text-[#000]">Adoption Metrics</h2>
+          <div class="grid grid-cols-2 gap-[1.6rem] sm:grid-cols-3">
+            <div
+              v-for="(value, key) in featureFlagsStore.selectedFlag.adoptionMetrics"
+              :key="key"
+              class="rounded-[8px] border border-slate-100 p-[1.2rem]"
+            >
+              <p class="text-[1.2rem] text-gray-500">{{ key }}</p>
+              <p class="text-[1.8rem] font-[700] text-[#000]">{{ value }}</p>
             </div>
           </section>
         </div>

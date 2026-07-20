@@ -13,11 +13,15 @@ const props = defineProps({
   domains: {
     type: Array,
     default: () => []
+  },
+  isGenerating: {
+    type: Boolean,
+    default: false,
   }
 });
 const typeLabel = computed(() => props.type === 'live' ? 'Live' : 'Test');
 
-const emit = defineEmits(['toggleModal', 'toggleLearnMoreModal'])
+defineEmits(['toggleModal', 'toggleLearnMoreModal', 'generateKey'])
 </script>
 
 <template>
@@ -36,9 +40,14 @@ const emit = defineEmits(['toggleModal', 'toggleLearnMoreModal'])
       <div>
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-[1.2rem] gap-y-[0.8rem] sm:gap-y-0">
           <label class="text-[#000] font-[500]">{{ typeLabel }} Public Key</label>
-          <span class="font-[600] text-[#003366] cursor-pointer text-[1.4rem]" @click="$emit('generateKey')">
-            Generate new key
-          </span>
+          <button
+              type="button"
+              class="font-[600] text-[#003366] cursor-pointer text-[1.4rem] disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="isGenerating"
+              @click="$emit('generateKey')"
+          >
+            {{ isGenerating ? 'Generating...' : 'Generate new key' }}
+          </button>
         </div>
         <ApiKey :value="apiKey" :title="`${typeLabel} public key`"/>
       </div>

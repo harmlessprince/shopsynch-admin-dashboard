@@ -75,11 +75,23 @@ export const useAdminFeatureFlagsStore = defineStore("adminFeatureFlagsStore", (
             if (response) {
                 toastStore.success("Feature flag updated", "");
                 selectedFlag.value = response?.data || selectedFlag.value;
+                if (response?.data) {
+                    flags.value = flags.value.map((flag) => flag.code === code ? response.data : flag);
+                }
             }
             return response;
         } finally {
             saving.value = false;
         }
+    }
+
+    async function toggleFlagEnabled(flag) {
+        const payload = {
+            ...flag,
+            defaultStatus: flag.defaultStatus || flag.status,
+            enabled: !flag.enabled,
+        };
+        return await updateFlag(flag.code, payload);
     }
 
     async function addTenantOverride(code, payload) {
@@ -111,6 +123,7 @@ export const useAdminFeatureFlagsStore = defineStore("adminFeatureFlagsStore", (
         fetchFlag,
         createFlag,
         updateFlag,
+        toggleFlagEnabled,
         addTenantOverride,
     };
 });
