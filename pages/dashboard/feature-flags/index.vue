@@ -19,6 +19,9 @@ const limit = ref(50);
 
 const showCreateModal = ref(false);
 const creating = ref(false);
+const showEditModal = ref(false);
+const showOverrideModal = ref(false);
+const selectedFlag = ref(null);
 
 const defaultStatuses = ["ENABLED", "BETA", "COMING_SOON", "HIDDEN", "DEPRECATED"];
 const categories = ["INSIGHTS", "PAYMENTS", "LOGISTICS", "COMPLIANCE", "GENERAL"];
@@ -99,6 +102,40 @@ function resetNewFlag() {
     ownerTeam: "",
     enabled: true,
   };
+}
+
+function openEdit(row) {
+  selectedFlag.value = { ...row };
+  showEditModal.value = true;
+}
+
+function openOverride(row) {
+  selectedFlag.value = { ...row };
+  showOverrideModal.value = true;
+}
+
+async function submitUpdate(payload) {
+  try {
+    const res = await featureFlagsStore.updateFlag(selectedFlag.value.code, payload);
+    if (res) {
+      showEditModal.value = false;
+      await fetchFlags(page.value);
+    }
+  } catch (err) {
+    logger.error("Failed to update feature flag", err);
+  }
+}
+
+async function submitOverride(payload) {
+  try {
+    const res = await featureFlagsStore.addTenantOverride(selectedFlag.value.code, payload);
+    if (res) {
+      showOverrideModal.value = false;
+      await fetchFlags(page.value);
+    }
+  } catch (err) {
+    logger.error("Failed to apply tenant override", err);
+  }
 }
 
 async function toggleEnabled(row) {
@@ -192,6 +229,7 @@ onMounted(fetchFlags);
         :table-data="featureFlagsStore.flags"
         :pagination="featureFlagsStore.flagsPaginatedData"
         :loading="featureFlagsStore.loading"
+        has-action
         @fetch-page="fetchFlags"
         @change-limit="changeLimit"
         @row-click="openDetail"
@@ -225,6 +263,20 @@ onMounted(fetchFlags);
         </template>
         <template #cell(ownerTeam)="{ row }">
           {{ row.ownerTeam || "—" }}
+        </template>
+        <template #more-actions="{ data }">
+          <div class="dt-action-item text-green-600" @click="router.push(`/dashboard/feature-flags/${data.code}`)">
+            <span class="material-symbols-outlined text-green-600">visibility</span>
+            <p>View Details</p>
+          </div>
+          <div class="dt-action-item" @click="openEdit(data)">
+            <span class="material-symbols-outlined">edit</span>
+            <p>Edit Flag</p>
+          </div>
+          <div class="dt-action-item" @click="openOverride(data)">
+            <span class="material-symbols-outlined">settings_suggest</span>
+            <p>Tenant Override</p>
+          </div>
         </template>
       </DataTable>
     </section>
@@ -384,5 +436,35 @@ onMounted(fetchFlags);
         </form>
       </div>
     </div>
+
+    <!-- Edit Modal -->
+    <div
+      v-if="showEditModal"
+      class="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 p-[1.6rem]"
+      @click.self="showEditModal = false"
+    >
+      <div class="w-full max-w-[560px] max-h-[90vh] overflow-y-auto rounded-[12px] bg-white p-[2.4rem] shadow-xl">
+        <div class="mb-[2rem] flex items-center justify-between border-b border-slate-100 pb-[1.2rem]">
+          <h2 class="text-[1.8rem] font-[700] text-[#000]">Edit Feature Flag</h2>
+          <button class="text-gray-400 hover:text-gray-600 cursor-pointer" @click="showEditModal = false">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <DashboardFeatureFlagsFeatureFlagForm
+          :is-edit="true"
+          :initial-data="selectedFlag"
+          :loading="featureFlagsStore.saving"
+          @submit="submitUpdate"
+          @cancel="showEditModal = false"
+        />
+      </div>
+    </div>
+
+    <!-- Tenant Override Modal -->
+    <DashboardFeatureFlagsTenantOverrideModal
+      v-model:open="showOverrideModal"
+      :loading="featureFlagsStore.overriding"
+      @submit="submitOverride"
+    />
   </div>
 </template>

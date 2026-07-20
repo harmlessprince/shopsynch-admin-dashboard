@@ -274,54 +274,23 @@ onMounted(load);
                 {{ featureFlagsStore.selectedFlag.releaseNotes }}
               </p>
             </div>
-            <div>
-              <dt class="text-[1.2rem] text-gray-500">Owner Team</dt>
-              <dd class="font-[600]">{{ featureFlagsStore.selectedFlag.ownerTeam || "—" }}</dd>
-            </div>
-            <div>
-              <dt class="text-[1.2rem] text-gray-500">Display Order</dt>
-              <dd class="font-[600]">{{ featureFlagsStore.selectedFlag.displayOrder ?? "—" }}</dd>
-            </div>
-            <div>
-              <dt class="text-[1.2rem] text-gray-500">Target Release Date</dt>
-              <dd class="font-[600]">
-                {{ featureFlagsStore.selectedFlag.targetReleaseDate ? formatDate(featureFlagsStore.selectedFlag.targetReleaseDate) : "—" }}
-              </dd>
-            </div>
-            <div v-if="featureFlagsStore.selectedFlag.documentation" class="col-span-2">
-              <dt class="text-[1.2rem] text-gray-500">Documentation</dt>
-              <dd>
-                <a
-                  :href="featureFlagsStore.selectedFlag.documentation"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="text-primary underline"
-                >
-                  {{ featureFlagsStore.selectedFlag.documentation }}
-                </a>
-              </dd>
-            </div>
-            <div v-if="featureFlagsStore.selectedFlag.releaseNotes" class="col-span-2">
-              <dt class="text-[1.2rem] text-gray-500">Release Notes</dt>
-              <dd class="whitespace-pre-line">{{ featureFlagsStore.selectedFlag.releaseNotes }}</dd>
-            </div>
-          </dl>
-        </section>
+          </section>
 
-        <!-- Adoption Metrics -->
-        <section
-          v-if="featureFlagsStore.selectedFlag.adoptionMetrics"
-          class="rounded-[8px] bg-white p-[2rem] shadow-sm"
-        >
-          <h2 class="mb-[1.6rem] text-[1.6rem] font-[700] text-[#000]">Adoption Metrics</h2>
-          <div class="grid grid-cols-2 gap-[1.6rem] sm:grid-cols-3">
-            <div
-              v-for="(value, key) in featureFlagsStore.selectedFlag.adoptionMetrics"
-              :key="key"
-              class="rounded-[8px] border border-slate-100 p-[1.2rem]"
-            >
-              <p class="text-[1.2rem] text-gray-500">{{ key }}</p>
-              <p class="text-[1.8rem] font-[700] text-[#000]">{{ value }}</p>
+          <!-- Adoption Metrics -->
+          <section
+            v-if="featureFlagsStore.selectedFlag.adoptionMetrics"
+            class="rounded-[8px] bg-white p-[2rem] shadow-sm"
+          >
+            <h2 class="mb-[1.6rem] text-[1.6rem] font-[700] text-[#000]">Adoption Metrics</h2>
+            <div class="grid grid-cols-2 gap-[1.6rem] sm:grid-cols-3">
+              <div
+                v-for="(value, key) in featureFlagsStore.selectedFlag.adoptionMetrics"
+                :key="key"
+                class="rounded-[8px] border border-slate-100 p-[1.2rem]"
+              >
+                <p class="text-[1.2rem] text-gray-500">{{ key }}</p>
+                <p class="text-[1.8rem] font-[700] text-[#000]">{{ value }}</p>
+              </div>
             </div>
           </section>
         </div>
