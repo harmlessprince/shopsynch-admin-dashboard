@@ -12,6 +12,7 @@ const toastStore = useToastStore();
 
 const categories = ["PAYMENT", "URL", "EMAIL", "FEATURE_FLAG", "SYSTEM", "O_AUTH"];
 const valueTypes = ["STRING", "NUMBER", "BOOLEAN", "JSON"];
+const askAnalyticsLimitKey = "askAnalyticsDailyQuestionLimit";
 
 const category = ref("");
 const drafts = ref({});
@@ -43,6 +44,19 @@ const visibleCategories = computed(() => {
   }
 
   return Object.keys(settingsByCategory.value).sort();
+});
+
+const askAnalyticsLimitSetting = computed(() =>
+  adminSettingsStore.settings.find((setting) => setting.key === askAnalyticsLimitKey)
+);
+
+const askAnalyticsLimitDraft = computed({
+  get() {
+    return drafts.value[askAnalyticsLimitKey] ?? "";
+  },
+  set(value) {
+    drafts.value[askAnalyticsLimitKey] = value;
+  },
 });
 
 function valueToDraft(setting) {
@@ -197,6 +211,42 @@ onMounted(fetchSettings);
     <div v-if="adminSettingsStore.error" class="rounded-[8px] border border-red-200 bg-red-50 p-[1.6rem] text-red-700">
       {{ adminSettingsStore.error }}
     </div>
+
+    <section class="rounded-[8px] bg-white p-[2rem] shadow-sm">
+      <div class="flex flex-col gap-[1.2rem] lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h2 class="text-[1.6rem] font-[700] text-[#000]">Ask Analytics daily cap</h2>
+          <p class="mt-[0.4rem] text-[1.2rem] text-slate-600">
+            Controls how many Ask Analytics questions each tenant can submit per day. Default is 5.
+          </p>
+        </div>
+        <div v-if="askAnalyticsLimitSetting" class="flex w-full flex-col gap-[0.8rem] sm:w-auto sm:min-w-[26rem]">
+          <label class="text-[1.2rem] font-[700] text-[#000]" for="askAnalyticsDailyLimit">
+            Questions per tenant per day
+          </label>
+          <div class="flex gap-[1rem]">
+            <input
+              id="askAnalyticsDailyLimit"
+              v-model="askAnalyticsLimitDraft"
+              type="number"
+              min="1"
+              class="w-full rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem]"
+              :disabled="!askAnalyticsLimitSetting.editable"
+            />
+            <button
+              class="rounded-[8px] bg-primary px-[1.4rem] py-[0.9rem] font-[700] text-white disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="!askAnalyticsLimitSetting.editable || savingKey === askAnalyticsLimitKey"
+              @click="saveSettingValue(askAnalyticsLimitSetting)"
+            >
+              {{ savingKey === askAnalyticsLimitKey ? "Saving..." : "Save" }}
+            </button>
+          </div>
+        </div>
+        <p v-else class="rounded-[8px] bg-amber-50 px-[1.2rem] py-[0.9rem] text-[1.2rem] font-[700] text-amber-700">
+          Setting will appear after backend settings are seeded.
+        </p>
+      </div>
+    </section>
 
     <section class="rounded-[8px] bg-white p-[2rem] shadow-sm">
       <div class="mb-[1.6rem]">
