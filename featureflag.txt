@@ -1,0 +1,590 @@
+Implement a UI for the following api's in the feature flag page using the existing model of api integration in the codebase
+
+We have already integrated retrieval of feature flags, diabling and enabling of a flag
+
+But some api are still missing; you can confirm the missing flags from the adminFeatureFlag.store.js files 
+
+make sure its easy to use, legible, seperation of concerns and don't put everything in one place
+
+
+## Admin Feature Flag Management APIs
+### List Feature Flags
+**URL:** https://api.shopsynch.com/v1/admin/feature-flags
+
+**Type:** GET
+
+
+**Content-Type:** application/x-www-form-urlencoded
+
+**Description:** Returns feature flags for the admin dashboard. Optional filters are category,
+         defaultStatus, and search.
+
+**Request-headers:**
+
+| Header | Type | Required | Description | Since | Example |
+|--------|------|----------|-------------|-------|---------|
+|X-MerchantApiKey|string|true|For every request the X-MerchantApiKey header is mandatory. You will get an error if the X-MerchantApiKey is not supplied when it is required|-|pk_test|
+
+
+**Query-parameters:**
+
+| Parameter | Type | Required | Description | Since | Example |
+|-----------|------|----------|-------------|-------|---------|
+|category|string|false|     Optional feature category.|-||
+|defaultStatus|enum|false|Optional default status.<br/>[Enum: HIDDEN, COMING_SOON, BETA, ENABLED, DEPRECATED]|-|HIDDEN|
+|search|string|false|       Optional search term for code or name.|-||
+
+**Request-example:**
+```bash
+curl -X GET -k -H "X-MerchantApiKey:pk_test" -i 'https://api.shopsynch.com/v1/admin/feature-flags?category=&defaultStatus=HIDDEN&search='
+```
+**Response-fields:**
+
+| Field | Type | Description | Since | Example |
+|-------|------|-------------|-------|---------|
+|status|boolean|No comments found.|-|true|
+|message|string|No comments found.|-||
+|data|array|No comments found.|-||
+|└─code|string|No comments found.|-||
+|└─name|string|No comments found.|-||
+|└─description|string|No comments found.|-||
+|└─defaultStatus|enum|No comments found.<br/>[Enum: HIDDEN, COMING_SOON, BETA, ENABLED, DEPRECATED]|-|HIDDEN|
+|└─status|enum|No comments found.<br/>[Enum: HIDDEN, COMING_SOON, BETA, ENABLED, DEPRECATED]|-|HIDDEN|
+|└─enabled|boolean|No comments found.|-|true|
+|└─category|string|No comments found.|-||
+|└─displayOrder|int32|No comments found.|-|0|
+|└─statusLabel|string|No comments found.|-||
+|└─statusColor|string|No comments found.|-||
+|└─releaseNotes|string|No comments found.|-||
+|└─targetReleaseDate|string|No comments found.|-|yyyy-MM-dd|
+|└─documentation|string|No comments found.|-||
+|└─requiredPlanTiers|array|No comments found.|-|""","""|
+|└─requiredCountries|array|No comments found.|-|""","""|
+|└─isExperimental|boolean|No comments found.|-|true|
+|└─isNew|boolean|No comments found.|-|true|
+|└─createdAt|string|No comments found.|-|yyyy-MM-dd HH:mm:ss|
+|└─updatedAt|string|No comments found.|-|yyyy-MM-dd HH:mm:ss|
+|└─releasedAt|string|No comments found.|-|yyyy-MM-dd HH:mm:ss|
+|└─deprecatedAt|string|No comments found.|-|yyyy-MM-dd HH:mm:ss|
+|└─totalTenantsCanAccess|int32|No comments found.|-|0|
+|└─tenantsUsingFeature|int32|No comments found.|-|0|
+|└─adoptionRate|double|No comments found.|-|0.0|
+|└─tenantOverrideStatus|string|No comments found.|-||
+|└─overrideGrantedAt|string|No comments found.|-|yyyy-MM-dd|
+|└─overrideExpiresAt|string|No comments found.|-|yyyy-MM-dd|
+|└─tenantUsageCount|int32|No comments found.|-|0|
+|└─ownerTeam|string|No comments found.|-||
+|└─adminNotes|string|No comments found.|-||
+
+**Response-example:**
+```json
+{
+  "status": true,
+  "message": "",
+  "data": [
+    {
+      "code": "",
+      "name": "",
+      "description": "",
+      "defaultStatus": "HIDDEN",
+      "status": "HIDDEN",
+      "enabled": true,
+      "category": "",
+      "displayOrder": 0,
+      "statusLabel": "",
+      "statusColor": "",
+      "releaseNotes": "",
+      "targetReleaseDate": "yyyy-MM-dd",
+      "documentation": "",
+      "requiredPlanTiers": [
+        ""
+      ],
+      "requiredCountries": [
+        ""
+      ],
+      "isExperimental": true,
+      "isNew": true,
+      "createdAt": "yyyy-MM-dd HH:mm:ss",
+      "updatedAt": "yyyy-MM-dd HH:mm:ss",
+      "releasedAt": "yyyy-MM-dd HH:mm:ss",
+      "deprecatedAt": "yyyy-MM-dd HH:mm:ss",
+      "totalTenantsCanAccess": 0,
+      "tenantsUsingFeature": 0,
+      "adoptionRate": 0.0,
+      "tenantOverrideStatus": "",
+      "overrideGrantedAt": "yyyy-MM-dd",
+      "overrideExpiresAt": "yyyy-MM-dd",
+      "tenantUsageCount": 0,
+      "ownerTeam": "",
+      "adminNotes": ""
+    }
+  ]
+}
+```
+
+### Create Feature Flag
+**URL:** https://api.shopsynch.com/v1/admin/feature-flags
+
+**Type:** POST
+
+
+**Content-Type:** application/json
+
+**Description:** Creates a new feature flag or updates an existing flag with the same code.
+
+**Request-headers:**
+
+| Header | Type | Required | Description | Since | Example |
+|--------|------|----------|-------------|-------|---------|
+|X-MerchantApiKey|string|true|For every request the X-MerchantApiKey header is mandatory. You will get an error if the X-MerchantApiKey is not supplied when it is required|-|pk_test|
+
+
+**Body-parameters:**
+
+| Parameter | Type | Required | Description | Since | Example |
+|-----------|------|----------|-------------|-------|---------|
+|code|string|false|No comments found.|-||
+|name|string|true|No comments found.|-||
+|description|string|false|No comments found.|-||
+|defaultStatus|enum|true|No comments found.<br/>[Enum: HIDDEN, COMING_SOON, BETA, ENABLED, DEPRECATED]|-|HIDDEN|
+|category|string|false|No comments found.|-||
+|displayOrder|int32|false|No comments found.|-|0|
+|releaseNotes|string|false|No comments found.|-||
+|targetReleaseDate|string|false|No comments found.|-|yyyy-MM-dd|
+|documentation|string|false|No comments found.|-||
+|requiredPlanTiers|array|false|No comments found.|-|""","""|
+|requiredCountries|array|false|No comments found.|-|""","""|
+|isExperimental|boolean|false|No comments found.|-|true|
+|ownerTeam|string|false|No comments found.|-||
+|enabled|boolean|false|No comments found.|-|true|
+
+**Request-example:**
+```bash
+curl -X POST -k -H "Content-Type: application/json" -H "X-MerchantApiKey:pk_test" -i 'https://api.shopsynch.com/v1/admin/feature-flags' --data '{
+  "code": "",
+  "name": "",
+  "description": "",
+  "defaultStatus": "HIDDEN",
+  "category": "",
+  "displayOrder": 0,
+  "releaseNotes": "",
+  "targetReleaseDate": "yyyy-MM-dd",
+  "documentation": "",
+  "requiredPlanTiers": [
+    ""
+  ],
+  "requiredCountries": [
+    ""
+  ],
+  "isExperimental": true,
+  "ownerTeam": "",
+  "enabled": true
+}'
+```
+**Response-fields:**
+
+| Field | Type | Description | Since | Example |
+|-------|------|-------------|-------|---------|
+|status|boolean|No comments found.|-|true|
+|message|string|No comments found.|-||
+|data|object|No comments found.|-||
+|└─code|string|No comments found.|-||
+|└─name|string|No comments found.|-||
+|└─description|string|No comments found.|-||
+|└─defaultStatus|enum|No comments found.<br/>[Enum: HIDDEN, COMING_SOON, BETA, ENABLED, DEPRECATED]|-|HIDDEN|
+|└─status|enum|No comments found.<br/>[Enum: HIDDEN, COMING_SOON, BETA, ENABLED, DEPRECATED]|-|HIDDEN|
+|└─enabled|boolean|No comments found.|-|true|
+|└─category|string|No comments found.|-||
+|└─displayOrder|int32|No comments found.|-|0|
+|└─statusLabel|string|No comments found.|-||
+|└─statusColor|string|No comments found.|-||
+|└─releaseNotes|string|No comments found.|-||
+|└─targetReleaseDate|string|No comments found.|-|yyyy-MM-dd|
+|└─documentation|string|No comments found.|-||
+|└─requiredPlanTiers|array|No comments found.|-|""","""|
+|└─requiredCountries|array|No comments found.|-|""","""|
+|└─isExperimental|boolean|No comments found.|-|true|
+|└─isNew|boolean|No comments found.|-|true|
+|└─createdAt|string|No comments found.|-|yyyy-MM-dd HH:mm:ss|
+|└─updatedAt|string|No comments found.|-|yyyy-MM-dd HH:mm:ss|
+|└─releasedAt|string|No comments found.|-|yyyy-MM-dd HH:mm:ss|
+|└─deprecatedAt|string|No comments found.|-|yyyy-MM-dd HH:mm:ss|
+|└─totalTenantsCanAccess|int32|No comments found.|-|0|
+|└─tenantsUsingFeature|int32|No comments found.|-|0|
+|└─adoptionRate|double|No comments found.|-|0.0|
+|└─tenantOverrideStatus|string|No comments found.|-||
+|└─overrideGrantedAt|string|No comments found.|-|yyyy-MM-dd|
+|└─overrideExpiresAt|string|No comments found.|-|yyyy-MM-dd|
+|└─tenantUsageCount|int32|No comments found.|-|0|
+|└─ownerTeam|string|No comments found.|-||
+|└─adminNotes|string|No comments found.|-||
+
+**Response-example:**
+```json
+{
+  "status": true,
+  "message": "",
+  "data": {
+    "code": "",
+    "name": "",
+    "description": "",
+    "defaultStatus": "HIDDEN",
+    "status": "HIDDEN",
+    "enabled": true,
+    "category": "",
+    "displayOrder": 0,
+    "statusLabel": "",
+    "statusColor": "",
+    "releaseNotes": "",
+    "targetReleaseDate": "yyyy-MM-dd",
+    "documentation": "",
+    "requiredPlanTiers": [
+      ""
+    ],
+    "requiredCountries": [
+      ""
+    ],
+    "isExperimental": true,
+    "isNew": true,
+    "createdAt": "yyyy-MM-dd HH:mm:ss",
+    "updatedAt": "yyyy-MM-dd HH:mm:ss",
+    "releasedAt": "yyyy-MM-dd HH:mm:ss",
+    "deprecatedAt": "yyyy-MM-dd HH:mm:ss",
+    "totalTenantsCanAccess": 0,
+    "tenantsUsingFeature": 0,
+    "adoptionRate": 0.0,
+    "tenantOverrideStatus": "",
+    "overrideGrantedAt": "yyyy-MM-dd",
+    "overrideExpiresAt": "yyyy-MM-dd",
+    "tenantUsageCount": 0,
+    "ownerTeam": "",
+    "adminNotes": ""
+  }
+}
+```
+
+### Update Feature Flag
+**URL:** https://api.shopsynch.com/v1/admin/feature-flags/{code}
+
+**Type:** PATCH
+
+
+**Content-Type:** application/json
+
+**Description:** Updates an existing feature flag by code, or creates it if it does not exist.
+
+**Request-headers:**
+
+| Header | Type | Required | Description | Since | Example |
+|--------|------|----------|-------------|-------|---------|
+|X-MerchantApiKey|string|true|For every request the X-MerchantApiKey header is mandatory. You will get an error if the X-MerchantApiKey is not supplied when it is required|-|pk_test|
+
+
+**Path-parameters:**
+
+| Parameter | Type | Required | Description | Since | Example |
+|-----------|------|----------|-------------|-------|---------|
+|code|string|true|   The unique feature flag code.|-||
+
+**Body-parameters:**
+
+| Parameter | Type | Required | Description | Since | Example |
+|-----------|------|----------|-------------|-------|---------|
+|code|string|false|No comments found.|-||
+|name|string|true|No comments found.|-||
+|description|string|false|No comments found.|-||
+|defaultStatus|enum|true|No comments found.<br/>[Enum: HIDDEN, COMING_SOON, BETA, ENABLED, DEPRECATED]|-|HIDDEN|
+|category|string|false|No comments found.|-||
+|displayOrder|int32|false|No comments found.|-|0|
+|releaseNotes|string|false|No comments found.|-||
+|targetReleaseDate|string|false|No comments found.|-|yyyy-MM-dd|
+|documentation|string|false|No comments found.|-||
+|requiredPlanTiers|array|false|No comments found.|-|""","""|
+|requiredCountries|array|false|No comments found.|-|""","""|
+|isExperimental|boolean|false|No comments found.|-|true|
+|ownerTeam|string|false|No comments found.|-||
+|enabled|boolean|false|No comments found.|-|true|
+
+**Request-example:**
+```bash
+curl -X PATCH -k -H "Content-Type: application/json" -H "X-MerchantApiKey:pk_test" -i 'https://api.shopsynch.com/v1/admin/feature-flags/{code}'
+```
+**Response-fields:**
+
+| Field | Type | Description | Since | Example |
+|-------|------|-------------|-------|---------|
+|status|boolean|No comments found.|-|true|
+|message|string|No comments found.|-||
+|data|object|No comments found.|-||
+|└─code|string|No comments found.|-||
+|└─name|string|No comments found.|-||
+|└─description|string|No comments found.|-||
+|└─defaultStatus|enum|No comments found.<br/>[Enum: HIDDEN, COMING_SOON, BETA, ENABLED, DEPRECATED]|-|HIDDEN|
+|└─status|enum|No comments found.<br/>[Enum: HIDDEN, COMING_SOON, BETA, ENABLED, DEPRECATED]|-|HIDDEN|
+|└─enabled|boolean|No comments found.|-|true|
+|└─category|string|No comments found.|-||
+|└─displayOrder|int32|No comments found.|-|0|
+|└─statusLabel|string|No comments found.|-||
+|└─statusColor|string|No comments found.|-||
+|└─releaseNotes|string|No comments found.|-||
+|└─targetReleaseDate|string|No comments found.|-|yyyy-MM-dd|
+|└─documentation|string|No comments found.|-||
+|└─requiredPlanTiers|array|No comments found.|-|""","""|
+|└─requiredCountries|array|No comments found.|-|""","""|
+|└─isExperimental|boolean|No comments found.|-|true|
+|└─isNew|boolean|No comments found.|-|true|
+|└─createdAt|string|No comments found.|-|yyyy-MM-dd HH:mm:ss|
+|└─updatedAt|string|No comments found.|-|yyyy-MM-dd HH:mm:ss|
+|└─releasedAt|string|No comments found.|-|yyyy-MM-dd HH:mm:ss|
+|└─deprecatedAt|string|No comments found.|-|yyyy-MM-dd HH:mm:ss|
+|└─totalTenantsCanAccess|int32|No comments found.|-|0|
+|└─tenantsUsingFeature|int32|No comments found.|-|0|
+|└─adoptionRate|double|No comments found.|-|0.0|
+|└─tenantOverrideStatus|string|No comments found.|-||
+|└─overrideGrantedAt|string|No comments found.|-|yyyy-MM-dd|
+|└─overrideExpiresAt|string|No comments found.|-|yyyy-MM-dd|
+|└─tenantUsageCount|int32|No comments found.|-|0|
+|└─ownerTeam|string|No comments found.|-||
+|└─adminNotes|string|No comments found.|-||
+
+**Response-example:**
+```json
+{
+  "status": true,
+  "message": "",
+  "data": {
+    "code": "",
+    "name": "",
+    "description": "",
+    "defaultStatus": "HIDDEN",
+    "status": "HIDDEN",
+    "enabled": true,
+    "category": "",
+    "displayOrder": 0,
+    "statusLabel": "",
+    "statusColor": "",
+    "releaseNotes": "",
+    "targetReleaseDate": "yyyy-MM-dd",
+    "documentation": "",
+    "requiredPlanTiers": [
+      ""
+    ],
+    "requiredCountries": [
+      ""
+    ],
+    "isExperimental": true,
+    "isNew": true,
+    "createdAt": "yyyy-MM-dd HH:mm:ss",
+    "updatedAt": "yyyy-MM-dd HH:mm:ss",
+    "releasedAt": "yyyy-MM-dd HH:mm:ss",
+    "deprecatedAt": "yyyy-MM-dd HH:mm:ss",
+    "totalTenantsCanAccess": 0,
+    "tenantsUsingFeature": 0,
+    "adoptionRate": 0.0,
+    "tenantOverrideStatus": "",
+    "overrideGrantedAt": "yyyy-MM-dd",
+    "overrideExpiresAt": "yyyy-MM-dd",
+    "tenantUsageCount": 0,
+    "ownerTeam": "",
+    "adminNotes": ""
+  }
+}
+```
+
+### Get Feature Flag
+**URL:** https://api.shopsynch.com/v1/admin/feature-flags/{code}
+
+**Type:** GET
+
+
+**Content-Type:** application/x-www-form-urlencoded
+
+**Description:** Returns a single feature flag detail for admin views.
+
+**Request-headers:**
+
+| Header | Type | Required | Description | Since | Example |
+|--------|------|----------|-------------|-------|---------|
+|X-MerchantApiKey|string|true|For every request the X-MerchantApiKey header is mandatory. You will get an error if the X-MerchantApiKey is not supplied when it is required|-|pk_test|
+
+
+**Path-parameters:**
+
+| Parameter | Type | Required | Description | Since | Example |
+|-----------|------|----------|-------------|-------|---------|
+|code|string|true|The unique feature flag code.|-||
+
+**Request-example:**
+```bash
+curl -X GET -k -H "X-MerchantApiKey:pk_test" -i 'https://api.shopsynch.com/v1/admin/feature-flags/{code}'
+```
+**Response-fields:**
+
+| Field | Type | Description | Since | Example |
+|-------|------|-------------|-------|---------|
+|status|boolean|No comments found.|-|true|
+|message|string|No comments found.|-||
+|data|object|No comments found.|-||
+|└─code|string|No comments found.|-||
+|└─name|string|No comments found.|-||
+|└─description|string|No comments found.|-||
+|└─defaultStatus|enum|No comments found.<br/>[Enum: HIDDEN, COMING_SOON, BETA, ENABLED, DEPRECATED]|-|HIDDEN|
+|└─status|enum|No comments found.<br/>[Enum: HIDDEN, COMING_SOON, BETA, ENABLED, DEPRECATED]|-|HIDDEN|
+|└─enabled|boolean|No comments found.|-|true|
+|└─category|string|No comments found.|-||
+|└─displayOrder|int32|No comments found.|-|0|
+|└─statusLabel|string|No comments found.|-||
+|└─statusColor|string|No comments found.|-||
+|└─releaseNotes|string|No comments found.|-||
+|└─targetReleaseDate|string|No comments found.|-|yyyy-MM-dd|
+|└─documentation|string|No comments found.|-||
+|└─requiredPlanTiers|array|No comments found.|-|""","""|
+|└─requiredCountries|array|No comments found.|-|""","""|
+|└─isExperimental|boolean|No comments found.|-|true|
+|└─isNew|boolean|No comments found.|-|true|
+|└─createdAt|string|No comments found.|-|yyyy-MM-dd HH:mm:ss|
+|└─updatedAt|string|No comments found.|-|yyyy-MM-dd HH:mm:ss|
+|└─releasedAt|string|No comments found.|-|yyyy-MM-dd HH:mm:ss|
+|└─deprecatedAt|string|No comments found.|-|yyyy-MM-dd HH:mm:ss|
+|└─totalTenantsCanAccess|int32|No comments found.|-|0|
+|└─tenantsUsingFeature|int32|No comments found.|-|0|
+|└─adoptionRate|double|No comments found.|-|0.0|
+|└─tenantOverrideStatus|string|No comments found.|-||
+|└─overrideGrantedAt|string|No comments found.|-|yyyy-MM-dd|
+|└─overrideExpiresAt|string|No comments found.|-|yyyy-MM-dd|
+|└─tenantUsageCount|int32|No comments found.|-|0|
+|└─ownerTeam|string|No comments found.|-||
+|└─adminNotes|string|No comments found.|-||
+
+**Response-example:**
+```json
+{
+  "status": true,
+  "message": "",
+  "data": {
+    "code": "",
+    "name": "",
+    "description": "",
+    "defaultStatus": "HIDDEN",
+    "status": "HIDDEN",
+    "enabled": true,
+    "category": "",
+    "displayOrder": 0,
+    "statusLabel": "",
+    "statusColor": "",
+    "releaseNotes": "",
+    "targetReleaseDate": "yyyy-MM-dd",
+    "documentation": "",
+    "requiredPlanTiers": [
+      ""
+    ],
+    "requiredCountries": [
+      ""
+    ],
+    "isExperimental": true,
+    "isNew": true,
+    "createdAt": "yyyy-MM-dd HH:mm:ss",
+    "updatedAt": "yyyy-MM-dd HH:mm:ss",
+    "releasedAt": "yyyy-MM-dd HH:mm:ss",
+    "deprecatedAt": "yyyy-MM-dd HH:mm:ss",
+    "totalTenantsCanAccess": 0,
+    "tenantsUsingFeature": 0,
+    "adoptionRate": 0.0,
+    "tenantOverrideStatus": "",
+    "overrideGrantedAt": "yyyy-MM-dd",
+    "overrideExpiresAt": "yyyy-MM-dd",
+    "tenantUsageCount": 0,
+    "ownerTeam": "",
+    "adminNotes": ""
+  }
+}
+```
+
+### Set Tenant Override
+**URL:** https://api.shopsynch.com/v1/admin/feature-flags/{code}/tenant-overrides
+
+**Type:** POST
+
+
+**Content-Type:** application/json
+
+**Description:** Creates or updates a tenant-specific feature flag override.
+
+**Request-headers:**
+
+| Header | Type | Required | Description | Since | Example |
+|--------|------|----------|-------------|-------|---------|
+|X-MerchantApiKey|string|true|For every request the X-MerchantApiKey header is mandatory. You will get an error if the X-MerchantApiKey is not supplied when it is required|-|pk_test|
+
+
+**Path-parameters:**
+
+| Parameter | Type | Required | Description | Since | Example |
+|-----------|------|----------|-------------|-------|---------|
+|code|string|true|   The unique feature flag code.|-||
+
+**Body-parameters:**
+
+| Parameter | Type | Required | Description | Since | Example |
+|-----------|------|----------|-------------|-------|---------|
+|tenantId|string|true|No comments found.|-||
+|status|enum|true|No comments found.<br/>[Enum: HIDDEN, COMING_SOON, BETA, ENABLED, DEPRECATED]|-|HIDDEN|
+|reason|string|false|No comments found.|-||
+|expiresAt|string|false|No comments found.|-|yyyy-MM-dd|
+|adminNotes|string|false|No comments found.|-||
+
+**Request-example:**
+```bash
+curl -X POST -k -H "Content-Type: application/json" -H "X-MerchantApiKey:pk_test" -i 'https://api.shopsynch.com/v1/admin/feature-flags/{code}/tenant-overrides' --data '{
+  "tenantId": "",
+  "status": "HIDDEN",
+  "reason": "",
+  "expiresAt": "yyyy-MM-dd",
+  "adminNotes": ""
+}'
+```
+**Response-fields:**
+
+| Field | Type | Description | Since | Example |
+|-------|------|-------------|-------|---------|
+|status|boolean|No comments found.|-|true|
+|message|string|No comments found.|-||
+|data|object|No comments found.|-||
+|└─createdAt|string|No comments found.|-|yyyy-MM-dd HH:mm:ss|
+|└─updatedAt|string|No comments found.|-|yyyy-MM-dd HH:mm:ss|
+|└─id|string|No comments found.|-||
+|└─tenantId|string|No comments found.|-||
+|└─featureFlagCode|string|No comments found.|-||
+|└─status|enum|No comments found.<br/>[Enum: HIDDEN, COMING_SOON, BETA, ENABLED, DEPRECATED]|-|HIDDEN|
+|└─grantedAt|string|No comments found.|-|yyyy-MM-dd|
+|└─expiresAt|string|No comments found.|-|yyyy-MM-dd|
+|└─adopted|boolean|No comments found.|-|true|
+|└─firstUsedAt|string|No comments found.|-|yyyy-MM-dd HH:mm:ss|
+|└─lastUsedAt|string|No comments found.|-|yyyy-MM-dd HH:mm:ss|
+|└─usageCount|int32|No comments found.|-|0|
+|└─reason|string|No comments found.|-||
+|└─adminNotes|string|No comments found.|-||
+
+**Response-example:**
+```json
+{
+  "status": true,
+  "message": "",
+  "data": {
+    "createdAt": "yyyy-MM-dd HH:mm:ss",
+    "updatedAt": "yyyy-MM-dd HH:mm:ss",
+    "id": "",
+    "tenantId": "",
+    "featureFlagCode": "",
+    "status": "HIDDEN",
+    "grantedAt": "yyyy-MM-dd",
+    "expiresAt": "yyyy-MM-dd",
+    "adopted": true,
+    "firstUsedAt": "yyyy-MM-dd HH:mm:ss",
+    "lastUsedAt": "yyyy-MM-dd HH:mm:ss",
+    "usageCount": 0,
+    "reason": "",
+    "adminNotes": ""
+  }
+}
+```

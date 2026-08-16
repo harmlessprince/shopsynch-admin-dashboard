@@ -108,5 +108,16 @@ export const endpoints = {
                 confirm: "/v1/admin/billing/invoices/:invoiceId/confirm",
             },
         },
+        notifications: {
+            preferences: "/v1/admin/notification-preferences",
+            preferenceDetail: "/v1/admin/notification-preferences/:notifiableType/:notifiableId",
+            updatePreference: "/v1/admin/notification-preferences/:id",
+            deliveries: "/v1/admin/notification-deliveries",
+            suppressions: "/v1/admin/notification-suppressions",
+            addSuppression: "/v1/admin/notification-suppressions",
+            removeSuppression: "/v1/admin/notification-suppressions/:email",
+            schedulerRuns: "/v1/admin/notification-scheduler-runs",
+            schedulerRunDetail: "/v1/admin/notification-scheduler-runs/:id",
+        },
     },
 }
