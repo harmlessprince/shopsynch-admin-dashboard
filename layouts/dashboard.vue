@@ -43,6 +43,8 @@ watch(
       currentPageTitle.value = "Categories";
     } else if (newPath.includes("/dashboard/product-templates")) {
       currentPageTitle.value = "Product Templates";
+    } else if (newPath.includes("/dashboard/notifications")) {
+      currentPageTitle.value = "Notification Operations";
     }
   },
   { immediate: true },
@@ -71,6 +73,14 @@ const dashboardSidebarMenu = [
     icon: "verified_user",
     activeIcon: "verified_user",
     link: "/dashboard/compliance",
+    comingSoon: false,
+  },
+  {
+    key: "notifications",
+    name: "Notifications",
+    icon: "notifications",
+    activeIcon: "notifications",
+    link: "/dashboard/notifications",
     comingSoon: false,
   },
   {
