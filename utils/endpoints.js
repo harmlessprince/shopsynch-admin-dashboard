@@ -1,5 +1,5 @@
 export const endpoints = {
-    login: "/v1/auth/login",
+    login: "/v1/admin/auth/login",
     refreshToken: "/v1/auth/refresh-token",
     logout: "/v1/auth/logout",
     requestPasswordReset: "/v1/password/forgot/request/merchant",
