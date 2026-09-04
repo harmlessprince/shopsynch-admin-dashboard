@@ -1,5 +1,5 @@
 export const endpoints = {
-    login: "/v1/auth/login",
+    login: "/v1/admin/auth/login",
     refreshToken: "/v1/auth/refresh-token",
     logout: "/v1/auth/logout",
     requestPasswordReset: "/v1/password/forgot/request/merchant",
@@ -107,6 +107,10 @@ export const endpoints = {
                 tenant: "/v1/admin/billing/tenants/:tenantId/invoices",
                 confirm: "/v1/admin/billing/invoices/:invoiceId/confirm",
             },
+        },
+        analytics: {
+            summary: "/v1/admin/analytics/summary",
+            runRollup: "/v1/admin/analytics/rollups/run",
         },
         notifications: {
             preferences: "/v1/admin/notification-preferences",

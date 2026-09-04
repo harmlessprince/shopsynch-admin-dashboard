@@ -50,6 +50,18 @@ export const useApiService = () => {
                 ...fetchOptions
             });
         } catch (error) {
+            const status = error?.response?.status || error?.statusCode;
+            if (status === 401 && !options?.skipAuthRefresh && !options?.authRetry && import.meta.client) {
+                const authStore = useAuthStore();
+                const refreshed = await authStore.refreshAuthToken();
+                if (refreshed) {
+                    return request(method, route, data, params, headers, {...options, authRetry: true});
+                }
+                authStore.clearAuthToken();
+                authStore.clearRefreshToken();
+                authStore.clearAuthUser();
+                await navigateTo('/login');
+            }
             logger.error(`API ${method} Error:`, error);
             throw error;
         }

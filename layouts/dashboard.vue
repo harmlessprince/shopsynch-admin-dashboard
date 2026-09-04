@@ -45,6 +45,8 @@ watch(
       currentPageTitle.value = "Product Templates";
     } else if (newPath.includes("/dashboard/notifications")) {
       currentPageTitle.value = "Notification Operations";
+    } else if (newPath.includes("/dashboard/analytics")) {
+      currentPageTitle.value = "Analytics";
     }
   },
   { immediate: true },
@@ -145,6 +147,14 @@ const dashboardSidebarMenu = [
     icon: "category",
     activeIcon: "category",
     link: "/dashboard/categories",
+    comingSoon: false,
+  },
+  {
+    key: "analytics",
+    name: "Analytics",
+    icon: "monitoring",
+    activeIcon: "monitoring",
+    link: "/dashboard/analytics",
     comingSoon: false,
   },
 ];

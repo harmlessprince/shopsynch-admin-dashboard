@@ -62,7 +62,11 @@ export default defineNuxtPlugin((_nuxtApp) => {
                     toastStore.error(data?.message ?? 'Bad request, please try again later', error)
                     break;
                 case 401:
+                    if (!(options as any).skipAuthRefresh && !(options as any).authRetry && authStore.getRefreshToken()) {
+                        break;
+                    }
                     authStore.clearAuthToken()
+                    authStore.clearRefreshToken()
                     authStore.clearAuthUser()
                     toastStore.error(message, "Unauthenticated")
                     navigateTo("/login")

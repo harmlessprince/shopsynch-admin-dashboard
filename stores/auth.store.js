@@ -3,11 +3,13 @@ import {defineStore} from "pinia";
 import {endpoints} from "~/utils/endpoints.js";
 import {useApiService} from "~/services/apiService.js";
 import {useToastStore} from "~/stores/toast.store.js";
+import {logger} from "~/utils/helpers";
 
 
 export const useAuthStore = defineStore("authStore", () => {
     const {post, get, patch} = useApiService();
     const authToken = ref(null);
+    const refreshToken = ref(null);
     const user = ref({
         merchantId: "", id: null, email: null, fullName: null, address: null, createdAt: null, role: {
             name: undefined, slug: undefined,
@@ -50,10 +52,21 @@ export const useAuthStore = defineStore("authStore", () => {
     const getAuthToken = () => {
         return authToken.value
     };
+    const setRefreshToken = (newToken) => {
+        refreshToken.value = newToken;
+        useCookie('shopsynch_admin_refresh_token').value = newToken || null;
+    };
+    const getRefreshToken = () => {
+        return refreshToken.value
+    };
 
     const clearAuthToken = () => {
         authToken.value = null;
         useCookie('shopsynch_admin_auth_token').value = null;
+    };
+    const clearRefreshToken = () => {
+        refreshToken.value = null;
+        useCookie('shopsynch_admin_refresh_token').value = null;
     };
 
     const setAuthUser = (newUser) => {
@@ -112,6 +125,7 @@ export const useAuthStore = defineStore("authStore", () => {
         if (response) {
             useCookie('shopsynch_admin_auth_token').value = response.token;
             setAuthToken(response.token);
+            setRefreshToken(response.refreshToken);
             await fetchUserProfile()
             
             const persistedRedirect = getInvitationRedirect();
@@ -174,6 +188,7 @@ export const useAuthStore = defineStore("authStore", () => {
         if (response) {
             useCookie('shopsynch_admin_auth_token').value = response.data.token;
             setAuthToken(response.data.token);
+            setRefreshToken(response.data.refreshToken);
             emailToVerify.value = null;
             emailVerificationTokenSent.value = false;
             await fetchUserProfile()
@@ -210,9 +225,40 @@ export const useAuthStore = defineStore("authStore", () => {
     async function loginWithGoogle(token, refreshToken, expiresIn) {
         useCookie('shopsynch_admin_auth_token').value = token;
         setAuthToken(token);
+        setRefreshToken(refreshToken);
         await fetchUserProfile();
         toastStore.success('Logged in with Google successfully!', '')
         await navigateTo('/dashboard');
+    }
+
+    async function refreshAuthToken() {
+        const currentRefreshToken = getRefreshToken();
+        if (!currentRefreshToken) return false;
+
+        try {
+            const response = await post(
+                endpoints.refreshToken,
+                {refreshToken: currentRefreshToken},
+                {forceMode: 'live', skipAuthRefresh: true, silent: true}
+            );
+            const data = response?.data ?? response;
+            if (!data?.token) {
+                clearRefreshToken();
+                return false;
+            }
+
+            useCookie('shopsynch_admin_auth_token').value = data.token;
+            setAuthToken(data.token);
+            setRefreshToken(data.refreshToken || currentRefreshToken);
+            if (data.user) {
+                setAuthUser(data.user);
+            }
+            return true;
+        } catch (error) {
+            logger.error('Failed to refresh auth token:', error);
+            clearRefreshToken();
+            return false;
+        }
     }
 
     function initiateGoogleLogin(redirectUrl) {
@@ -233,7 +279,20 @@ export const useAuthStore = defineStore("authStore", () => {
     }
 
     async function logout() {
+        const currentRefreshToken = getRefreshToken();
+        if (currentRefreshToken) {
+            try {
+                await post(
+                    endpoints.logout,
+                    {refreshToken: currentRefreshToken},
+                    {forceMode: 'live', skipAuthRefresh: true, silent: true}
+                );
+            } catch (error) {
+                logger.error('Failed to revoke refresh token:', error);
+            }
+        }
         clearAuthToken();
+        clearRefreshToken();
         clearAuthUser();
         await navigateTo('/login');
         toastStore.success('Logged out successfully!', '')
@@ -241,6 +300,7 @@ export const useAuthStore = defineStore("authStore", () => {
 
     function resetAll() {
         clearAuthToken();
+        clearRefreshToken();
         clearAuthUser();
         currentMode.value = null;
         emailVerificationTokenSent.value = false;
@@ -257,13 +317,18 @@ export const useAuthStore = defineStore("authStore", () => {
         logout,
         register,
         authToken,
+        refreshToken,
         clearAuthToken,
+        clearRefreshToken,
         clearAuthUser,
         user,
         fetchUserProfile,
         setAuthToken,
         setAuthUser,
         getAuthToken,
+        getRefreshToken,
+        setRefreshToken,
+        refreshAuthToken,
         init,
         currentMode,
         verifyingEmail,
