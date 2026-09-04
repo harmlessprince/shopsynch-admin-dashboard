@@ -108,6 +108,10 @@ export const endpoints = {
                 confirm: "/v1/admin/billing/invoices/:invoiceId/confirm",
             },
         },
+        analytics: {
+            summary: "/v1/admin/analytics/summary",
+            runRollup: "/v1/admin/analytics/rollups/run",
+        },
         notifications: {
             preferences: "/v1/admin/notification-preferences",
             preferenceDetail: "/v1/admin/notification-preferences/:notifiableType/:notifiableId",
