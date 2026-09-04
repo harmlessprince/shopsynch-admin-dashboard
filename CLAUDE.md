@@ -54,6 +54,13 @@ All stores live in `stores/`. Key stores:
 
 All endpoint paths are centralized in `utils/endpoints.js`. Endpoints that include route parameters use `:param` placeholders and must be interpolated before use (e.g. `url.replace(':id', id)`). The `appSettings` endpoints are functions that take `tenantId`.
 
+### Verifying Response Shapes
+
+**Never guess a response format or field name.** Before writing code that reads fields off an API response:
+1. Run the `reading-documentation` skill and check `/Users/harmlessprince/webprojects/shopsync/shopsynch_internall_docs/AllInOne.md` for the endpoint's documented contract.
+2. If it's undocumented, incomplete, or for a feature still in progress, inspect the real response — read the backend DTO/response class in `ecommerceapi`, or make an actual API call against a running backend.
+3. Still unsure? Ask the user. Do not infer field names from a plan doc, ticket description, or "reasonable" naming conventions — confirm them against the real backend first.
+
 ### 4. API Documentation**:
   - Consulting internal API documentation at `/Users/harmlessprince/webprojects/shopsync/shopsynch_internall_docs/AllInOne.md`.
   - Reviewing `utils/endpoints.js` for a quick reference to all API routes and their purposes.
