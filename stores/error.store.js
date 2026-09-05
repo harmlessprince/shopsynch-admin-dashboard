@@ -5,6 +5,7 @@ export const useErrorStore = defineStore("errorStore", () => {
     const errorMessage = ref(null);
     const validationErrors = ref(null);
     const serverError = ref(false);
+    const persistentError = ref(null);
 
     function resetErrors() {
         errorMessage.value = null;
@@ -24,6 +25,14 @@ export const useErrorStore = defineStore("errorStore", () => {
         serverError.value = isServerError;
     }
 
+    function setPersistentError(error) {
+        persistentError.value = error;
+    }
+
+    function clearPersistentError() {
+        persistentError.value = null;
+    }
+
     function getErrorMessage() {
         return errorMessage.value;
     }
@@ -40,9 +49,14 @@ export const useErrorStore = defineStore("errorStore", () => {
         setErrorMessage,
         setServerError,
         setValidationErrors,
+        setPersistentError,
+        clearPersistentError,
         getErrorMessage,
         getServerError,
         getValidationError,
         resetErrors,
+        errorMessage,
+        validationErrors,
+        persistentError,
     };
 });

@@ -170,6 +170,9 @@ onMounted(fetchSummary);
             placeholder="Page path"
             @keyup.enter="applyFilters"
           />
+        </div>
+        <div class="mt-[1rem] flex flex-col gap-[1rem] sm:flex-row sm:items-center sm:justify-end">
+          
           <select v-model.number="limit" class="rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem]">
             <option :value="10">10 rows</option>
             <option :value="25">25 rows</option>
