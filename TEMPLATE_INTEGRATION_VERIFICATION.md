@@ -54,20 +54,12 @@ API receives product with attributes object
 
 | File | Changes | Status |
 |------|---------|--------|
-| `/components/Dashboard/AddProductDrawer.vue` | Added template loading watcher and loadTemplateForCategory() method | ✅ Complete |
 | `/stores/productTemplate.store.js` | Created complete Pinia store | ✅ Complete |
 | `/components/Dashboard/TemplateAttributesRenderer.vue` | Created section-grouped renderer | ✅ Complete |
 | `/components/Dashboard/TemplateAttributeField.vue` | Created type-specific field renderer | ✅ Complete |
 | `/utils/endpoints.js` | Added productTemplates endpoints | ✅ Complete |
 
 ### Verification Checklist
-
-#### Template Loading
-- [x] `form.categoryId` prop exists in AddProductDrawer
-- [x] Watcher on `categoryId` exists  
-- [x] `loadTemplateForCategory()` function exists and calls store method
-- [x] Error handling with `templateLoadingError` state
-- [x] Template reset on category change: `form.attributes = {}`
 
 #### Component Props
 - [x] TemplateAttributesRenderer receives `:template="currentTemplate"`
@@ -78,7 +70,6 @@ API receives product with attributes object
 #### Event Emitters
 - [x] TemplateAttributeField emits `update:modelValue`
 - [x] TemplateAttributesRenderer emits `update:attribute` with (key, value)
-- [x] AddProductDrawer handler receives both arguments correctly
 
 #### Form Serialization
 - [x] `form.attributes` object exists in reactive form
@@ -200,7 +191,7 @@ API receives product with attributes object
 #### Priority 2: Frontend Validation (Optional)
 Add validation for required attributes before form submission:
 ```javascript
-// In AddProductDrawer.vue submit() function
+// In product form submit function
 const validateTemplateAttributes = () => {
   if (!currentTemplate.value) return true
   
