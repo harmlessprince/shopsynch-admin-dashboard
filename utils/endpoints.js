@@ -120,8 +120,13 @@ export const endpoints = {
             suppressions: "/v1/admin/notification-suppressions",
             addSuppression: "/v1/admin/notification-suppressions",
             removeSuppression: "/v1/admin/notification-suppressions/:email",
-            schedulerRuns: "/v1/admin/notification-scheduler-runs",
-            schedulerRunDetail: "/v1/admin/notification-scheduler-runs/:id",
+        },
+        schedulers: {
+            overview: "/v1/admin/schedulers/overview",
+            alerts: "/v1/admin/schedulers/alerts",
+            runs: "/v1/admin/schedulers/runs",
+            runDetail: "/v1/admin/schedulers/runs/:id",
+            summary: "/v1/admin/schedulers/:schedulerName/summary",
         },
     },
 }
