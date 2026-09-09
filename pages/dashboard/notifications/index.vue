@@ -41,12 +41,6 @@ const suppressionFilters = ref({
   reason: "",
 });
 
-// Filters for Scheduler Runs
-const schedulerFilters = ref({
-  schedulerName: "",
-  status: "",
-});
-
 // Edit Preference Modal state
 const showEditPrefModal = ref(false);
 const selectedPref = ref(null);
@@ -65,9 +59,6 @@ const addSuppressionForm = ref({
 });
 const addingSuppression = ref(false);
 
-// Scheduler Detail Drawer state
-const showSchedulerDrawer = ref(false);
-
 const loadActiveTabData = async () => {
   if (activeTab.value === "preferences") {
     await store.fetchPreferences(cleanParams(prefFilters.value));
@@ -75,8 +66,6 @@ const loadActiveTabData = async () => {
     await store.fetchDeliveries(cleanParams(deliveryFilters.value));
   } else if (activeTab.value === "suppressions") {
     await store.fetchSuppressions(cleanParams(suppressionFilters.value));
-  } else if (activeTab.value === "scheduler-runs") {
-    await store.fetchSchedulerRuns(cleanParams(schedulerFilters.value));
   }
 };
 
@@ -142,11 +131,6 @@ const handleRemoveSuppression = async (email) => {
   }
 };
 
-const openSchedulerDetail = async (run) => {
-  await store.fetchSchedulerRunDetail(run.id);
-  showSchedulerDrawer.value = true;
-};
-
 // Formatting helpers
 const getStatusBadge = (status) => {
   switch (status) {
@@ -173,7 +157,7 @@ const getStatusBadge = (status) => {
       <div>
         <h1 class="text-[2rem] lg:text-[2.4rem] font-[700] text-[#1B1B19]">Notification Operations</h1>
         <p class="text-[1.3rem] text-[#616161] mt-[0.2rem]">
-          Monitor deliverability health, opt-out preferences, suppression entries, and scheduler execution logs.
+          Monitor deliverability health, opt-out preferences, and suppression entries.
         </p>
       </div>
 
@@ -212,14 +196,6 @@ const getStatusBadge = (status) => {
         :class="activeTab === 'suppressions' ? 'border-[#003366] text-[#003366]' : 'border-transparent text-[#616161] hover:text-[#1B1B19]'"
       >
         Suppression List
-      </button>
-
-      <button
-        @click="activeTab = 'scheduler-runs'"
-        class="pb-[1rem] text-[1.4rem] font-[600] border-b-2 transition-colors duration-150"
-        :class="activeTab === 'scheduler-runs' ? 'border-[#003366] text-[#003366]' : 'border-transparent text-[#616161] hover:text-[#1B1B19]'"
-      >
-        Scheduler Runs
       </button>
     </div>
 
@@ -453,58 +429,6 @@ const getStatusBadge = (status) => {
         </table>
       </div>
     </div>
-
-    <!-- TAB 4: SCHEDULER RUNS -->
-    <div v-if="activeTab === 'scheduler-runs'" class="flex flex-col gap-y-[1.6rem]">
-      <!-- Table -->
-      <div class="bg-[#FFFFFF] rounded-[10px] border border-[#EBEBEB] overflow-x-auto">
-        <table class="w-full text-left text-[1.3rem]">
-          <thead class="bg-[#F8FAFC] border-b border-[#EBEBEB] text-[#64748B] font-[600] uppercase text-[1.1rem]">
-            <tr>
-              <th class="py-[1.2rem] px-[1.6rem]">Scheduler Name</th>
-              <th class="py-[1.2rem] px-[1.6rem]">Status</th>
-              <th class="py-[1.2rem] px-[1.6rem]">Scanned</th>
-              <th class="py-[1.2rem] px-[1.6rem]">Eligible</th>
-              <th class="py-[1.2rem] px-[1.6rem]">Sent</th>
-              <th class="py-[1.2rem] px-[1.6rem]">Skipped</th>
-              <th class="py-[1.2rem] px-[1.6rem]">Run Time</th>
-              <th class="py-[1.2rem] px-[1.6rem]">Details</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-[#EBEBEB]">
-            <tr v-if="store.loadingSchedulerRuns">
-              <td colspan="8" class="py-[3rem] text-center text-[#64748B]">Loading scheduler run logs...</td>
-            </tr>
-            <tr v-else-if="!store.schedulerRuns.length">
-              <td colspan="8" class="py-[3rem] text-center text-[#64748B]">No scheduler execution runs recorded.</td>
-            </tr>
-            <tr v-for="run in store.schedulerRuns" :key="run.id" class="hover:bg-[#F8FAFC]">
-              <td class="py-[1.2rem] px-[1.6rem] font-[600] text-[#0F172A]">
-                {{ run.schedulerName }}
-              </td>
-              <td class="py-[1.2rem] px-[1.6rem]">
-                <span class="px-[0.8rem] py-[0.2rem] rounded-full text-[1.1rem] font-[600]" :class="getStatusBadge(run.status)">
-                  {{ run.status }}
-                </span>
-              </td>
-              <td class="py-[1.2rem] px-[1.6rem] font-mono">{{ run.merchantsScanned || 0 }}</td>
-              <td class="py-[1.2rem] px-[1.6rem] font-mono">{{ run.eligibleCount || 0 }}</td>
-              <td class="py-[1.2rem] px-[1.6rem] font-mono text-[#137333] font-[600]">{{ run.sentCount || 0 }}</td>
-              <td class="py-[1.2rem] px-[1.6rem] font-mono text-[#B06000]">{{ run.skippedCount || 0 }}</td>
-              <td class="py-[1.2rem] px-[1.6rem] text-[#64748B] whitespace-nowrap">
-                {{ formatDate(run.createdAt) }}
-              </td>
-              <td class="py-[1.2rem] px-[1.6rem]">
-                <button @click="openSchedulerDetail(run)" class="text-[#003366] font-[600] hover:underline">
-                  View
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
     <!-- MODAL: EDIT PREFERENCE -->
     <div v-if="showEditPrefModal" class="fixed inset-0 bg-black/50 flex items-center justify-center p-[1.6rem] z-50">
       <div class="bg-white rounded-[12px] max-w-[480px] w-full p-[2.4rem] flex flex-col gap-y-[1.6rem]">
