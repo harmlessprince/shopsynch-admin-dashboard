@@ -23,12 +23,6 @@ export const useAdminNotificationOperationsStore = defineStore("adminNotificatio
     const suppressionPagination = ref({ page: 0, limit: 50, totalPages: 0, totalElements: 0 });
     const loadingSuppressions = ref(false);
 
-    // Scheduler runs state
-    const schedulerRuns = ref([]);
-    const schedulerRunPagination = ref({ page: 0, limit: 50, totalPages: 0, totalElements: 0 });
-    const loadingSchedulerRuns = ref(false);
-    const selectedSchedulerRun = ref(null);
-
     // Actions
     const fetchPreferences = async (params = {}) => {
         loadingPreferences.value = true;
@@ -116,34 +110,6 @@ export const useAdminNotificationOperationsStore = defineStore("adminNotificatio
         return response;
     };
 
-    const fetchSchedulerRuns = async (params = {}) => {
-        loadingSchedulerRuns.value = true;
-        try {
-            const response = await get(endpoints.admin.notifications.schedulerRuns, params, { forceMode: 'live' });
-            if (response?.status && response.data) {
-                schedulerRuns.value = response.data.content || [];
-                schedulerRunPagination.value = {
-                    page: response.data.page || 0,
-                    limit: response.data.limit || 50,
-                    totalPages: response.data.totalPages || 0,
-                    totalElements: response.data.totalElements || 0,
-                };
-            }
-            return response;
-        } finally {
-            loadingSchedulerRuns.value = false;
-        }
-    };
-
-    const fetchSchedulerRunDetail = async (id) => {
-        const url = endpoints.admin.notifications.schedulerRunDetail.replace(':id', id);
-        const response = await get(url, {}, { forceMode: 'live' });
-        if (response?.status && response.data) {
-            selectedSchedulerRun.value = response.data;
-        }
-        return response;
-    };
-
     return {
         preferences,
         preferencePagination,
@@ -163,11 +129,5 @@ export const useAdminNotificationOperationsStore = defineStore("adminNotificatio
         addSuppression,
         removeSuppression,
 
-        schedulerRuns,
-        schedulerRunPagination,
-        loadingSchedulerRuns,
-        selectedSchedulerRun,
-        fetchSchedulerRuns,
-        fetchSchedulerRunDetail,
     };
 });
