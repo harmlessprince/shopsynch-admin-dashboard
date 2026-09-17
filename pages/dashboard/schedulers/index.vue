@@ -140,15 +140,32 @@ const successRate = computed(() => {
   return pct % 1 === 0 ? `${pct}%` : `${pct.toFixed(1)}%`;
 });
 
-// Duration formatter
+// Duration formatters
+const formatDurationMillis = (ms) => {
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  return `${Math.round(ms / 60000)}m`;
+};
+
+// Runs recorded before durationMillis existed report it as 0, so fall back to the
+// startedAt/completedAt diff for those instead of showing a misleading "0ms".
 const formatRunDuration = (run) => {
+  if (run?.durationMillis > 0) return formatDurationMillis(run.durationMillis);
   if (!run?.startedAt || !run?.completedAt) return "-";
   const start = new Date(run.startedAt).getTime();
   const end = new Date(run.completedAt).getTime();
-  const diffMs = Math.max(0, end - start);
-  if (diffMs < 1000) return `${diffMs}ms`;
-  if (diffMs < 60000) return `${(diffMs / 1000).toFixed(1)}s`;
-  return `${Math.round(diffMs / 60000)}m`;
+  return formatDurationMillis(Math.max(0, end - start));
+};
+
+// Overview summary fields have no timestamps to fall back to, so null/0 just means "no data yet".
+const formatOverviewDuration = (ms) => {
+  if (ms === null || ms === undefined || ms <= 0) return "-";
+  return formatDurationMillis(ms);
+};
+
+const formatFailureRate = (rate) => {
+  if (rate === null || rate === undefined) return "-";
+  return `${Math.round(rate * 100)}%`;
 };
 
 // Badges
@@ -478,17 +495,19 @@ onMounted(async () => {
               <th class="py-[1.2rem] px-[1.6rem]">Health</th>
               <th class="py-[1.2rem] px-[1.6rem]">SLA Status</th>
               <th class="py-[1.2rem] px-[1.6rem]">Consecutive Failures</th>
+              <th class="py-[1.2rem] px-[1.6rem]">Recent Failure Rate</th>
               <th class="py-[1.2rem] px-[1.6rem]">Last Run</th>
+              <th class="py-[1.2rem] px-[1.6rem]">Duration</th>
               <th class="py-[1.2rem] px-[1.6rem]">Last Success</th>
               <th class="py-[1.2rem] px-[1.6rem] text-right">Actions</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-[#E2E8F0]">
             <tr v-if="store.loadingOverview">
-              <td colspan="9" class="py-[4rem] text-center text-[#64748B]">Loading scheduler overview...</td>
+              <td colspan="11" class="py-[4rem] text-center text-[#64748B]">Loading scheduler overview...</td>
             </tr>
             <tr v-else-if="!filteredSchedulers.length">
-              <td colspan="9" class="py-[4rem] text-center text-[#64748B]">No schedulers matched your filter criteria.</td>
+              <td colspan="11" class="py-[4rem] text-center text-[#64748B]">No schedulers matched your filter criteria.</td>
             </tr>
             <tr
               v-for="s in filteredSchedulers"
@@ -531,6 +550,14 @@ onMounted(async () => {
                 </span>
               </td>
               <td class="py-[1.2rem] px-[1.6rem]">
+                <span
+                  class="font-mono font-[600] text-[1.3rem]"
+                  :class="s.recentFailureRate >= 0.25 ? 'text-[#DC2626]' : 'text-[#64748B]'"
+                >
+                  {{ formatFailureRate(s.recentFailureRate) }}
+                </span>
+              </td>
+              <td class="py-[1.2rem] px-[1.6rem]">
                 <div v-if="s.lastRunStatus" class="flex items-center gap-x-[0.6rem]">
                   <span class="px-[0.6rem] py-[0.1rem] rounded text-[1rem] font-[700]" :class="getStatusBadge(s.lastRunStatus)">
                     {{ s.lastRunStatus }}
@@ -538,6 +565,10 @@ onMounted(async () => {
                   <span class="text-[1.2rem] text-[#64748B]">{{ formatDate(s.lastRunAt, 'relative') }}</span>
                 </div>
                 <span v-else class="text-[#94A3B8] text-[1.2rem]">Never</span>
+              </td>
+              <td class="py-[1.2rem] px-[1.6rem] whitespace-nowrap">
+                <div class="font-mono text-[1.2rem] text-[#475569]">{{ formatOverviewDuration(s.lastRunDurationMillis) }}</div>
+                <div class="text-[1.1rem] text-[#94A3B8]">avg {{ formatOverviewDuration(s.averageDurationMillis) }}</div>
               </td>
               <td class="py-[1.2rem] px-[1.6rem] text-[#64748B] text-[1.2rem] whitespace-nowrap">
                 {{ s.lastSuccessAt ? formatDate(s.lastSuccessAt, 'relative') : 'Never' }}
