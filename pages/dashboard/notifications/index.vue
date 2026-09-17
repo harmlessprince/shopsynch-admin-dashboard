@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useAdminNotificationOperationsStore } from "~/stores/adminNotificationOperations.store.js";
 import { formatDate } from "~/utils/helpers.js";
 
@@ -16,6 +16,10 @@ useHead({
 const store = useAdminNotificationOperationsStore();
 
 const activeTab = ref("preferences");
+
+// Pagination (shared across tabs — only one tab is visible at a time)
+const currentPage = ref(0);
+const pageSize = ref(50);
 
 // Filters for Preferences
 const prefFilters = ref({
@@ -60,12 +64,13 @@ const addSuppressionForm = ref({
 const addingSuppression = ref(false);
 
 const loadActiveTabData = async () => {
+  const pagination = { page: currentPage.value, limit: pageSize.value };
   if (activeTab.value === "preferences") {
-    await store.fetchPreferences(cleanParams(prefFilters.value));
+    await store.fetchPreferences({ ...cleanParams(prefFilters.value), ...pagination });
   } else if (activeTab.value === "deliveries") {
-    await store.fetchDeliveries(cleanParams(deliveryFilters.value));
+    await store.fetchDeliveries({ ...cleanParams(deliveryFilters.value), ...pagination });
   } else if (activeTab.value === "suppressions") {
-    await store.fetchSuppressions(cleanParams(suppressionFilters.value));
+    await store.fetchSuppressions({ ...cleanParams(suppressionFilters.value), ...pagination });
   }
 };
 
@@ -79,7 +84,39 @@ const cleanParams = (obj) => {
   return result;
 };
 
+const applyFilters = () => {
+  currentPage.value = 0;
+  loadActiveTabData();
+};
+
+const activePagination = computed(() => {
+  if (activeTab.value === "preferences") return store.preferencePagination;
+  if (activeTab.value === "deliveries") return store.deliveryPagination;
+  return store.suppressionPagination;
+});
+
+const activeLoading = computed(() => {
+  if (activeTab.value === "preferences") return store.loadingPreferences;
+  if (activeTab.value === "deliveries") return store.loadingDeliveries;
+  return store.loadingSuppressions;
+});
+
+const prevPage = () => {
+  if (currentPage.value > 0) {
+    currentPage.value--;
+    loadActiveTabData();
+  }
+};
+
+const nextPage = () => {
+  if (currentPage.value + 1 < activePagination.value.totalPages) {
+    currentPage.value++;
+    loadActiveTabData();
+  }
+};
+
 watch(activeTab, () => {
+  currentPage.value = 0;
   loadActiveTabData();
 });
 
@@ -205,17 +242,17 @@ const getStatusBadge = (status) => {
       <div class="bg-[#FFFFFF] p-[1.6rem] rounded-[10px] border border-[#EBEBEB] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-[1.2rem]">
         <input
           v-model="prefFilters.email"
-          @keyup.enter="loadActiveTabData"
+          @keyup.enter="applyFilters"
           placeholder="Filter by Email"
           class="px-[1.2rem] py-[0.8rem] border border-[#D0D5DD] rounded-[6px] text-[1.3rem]"
         />
         <input
           v-model="prefFilters.tenantId"
-          @keyup.enter="loadActiveTabData"
+          @keyup.enter="applyFilters"
           placeholder="Filter by Tenant ID"
           class="px-[1.2rem] py-[0.8rem] border border-[#D0D5DD] rounded-[6px] text-[1.3rem]"
         />
-        <select v-model="prefFilters.category" @change="loadActiveTabData" class="px-[1.2rem] py-[0.8rem] border border-[#D0D5DD] rounded-[6px] text-[1.3rem]">
+        <select v-model="prefFilters.category" @change="applyFilters" class="px-[1.2rem] py-[0.8rem] border border-[#D0D5DD] rounded-[6px] text-[1.3rem]">
           <option value="">All Categories</option>
           <option value="SECURITY">SECURITY</option>
           <option value="TRANSACTIONAL">TRANSACTIONAL</option>
@@ -223,12 +260,12 @@ const getStatusBadge = (status) => {
           <option value="MARKETING">MARKETING</option>
           <option value="BILLING">BILLING</option>
         </select>
-        <select v-model="prefFilters.enabled" @change="loadActiveTabData" class="px-[1.2rem] py-[0.8rem] border border-[#D0D5DD] rounded-[6px] text-[1.3rem]">
+        <select v-model="prefFilters.enabled" @change="applyFilters" class="px-[1.2rem] py-[0.8rem] border border-[#D0D5DD] rounded-[6px] text-[1.3rem]">
           <option value="">All Statuses</option>
           <option value="true">Enabled (Opted In)</option>
           <option value="false">Disabled (Opted Out)</option>
         </select>
-        <button @click="loadActiveTabData" class="px-[1.2rem] py-[0.8rem] bg-[#003366] text-white font-[600] rounded-[6px] text-[1.3rem]">
+        <button @click="applyFilters" class="px-[1.2rem] py-[0.8rem] bg-[#003366] text-white font-[600] rounded-[6px] text-[1.3rem]">
           Apply Filter
         </button>
       </div>
@@ -295,6 +332,31 @@ const getStatusBadge = (status) => {
             </tr>
           </tbody>
         </table>
+
+        <!-- Pagination -->
+        <div class="px-[1.6rem] py-[1.2rem] border-t border-[#EBEBEB] flex items-center justify-between">
+          <div class="text-[1.2rem] text-[#64748B]">
+            Page <span class="font-[600] text-[#0F172A]">{{ currentPage + 1 }}</span> of
+            <span class="font-[600] text-[#0F172A]">{{ store.preferencePagination.totalPages || 1 }}</span>
+            ({{ store.preferencePagination.totalElements || 0 }} total preferences)
+          </div>
+          <div class="flex items-center gap-x-[0.8rem]">
+            <button
+              @click="prevPage"
+              :disabled="currentPage === 0 || activeLoading"
+              class="px-[1.2rem] py-[0.6rem] border border-[#D0D5DD] rounded-[6px] text-[1.2rem] font-[600] disabled:opacity-50 hover:bg-[#F8FAFC]"
+            >
+              Previous
+            </button>
+            <button
+              @click="nextPage"
+              :disabled="currentPage + 1 >= store.preferencePagination.totalPages || activeLoading"
+              class="px-[1.2rem] py-[0.6rem] border border-[#D0D5DD] rounded-[6px] text-[1.2rem] font-[600] disabled:opacity-50 hover:bg-[#F8FAFC]"
+            >
+              Next
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -304,17 +366,17 @@ const getStatusBadge = (status) => {
       <div class="bg-[#FFFFFF] p-[1.6rem] rounded-[10px] border border-[#EBEBEB] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-[1.2rem]">
         <input
           v-model="deliveryFilters.email"
-          @keyup.enter="loadActiveTabData"
+          @keyup.enter="applyFilters"
           placeholder="Filter by Email"
           class="px-[1.2rem] py-[0.8rem] border border-[#D0D5DD] rounded-[6px] text-[1.3rem]"
         />
         <input
           v-model="deliveryFilters.tenantId"
-          @keyup.enter="loadActiveTabData"
+          @keyup.enter="applyFilters"
           placeholder="Filter by Tenant ID"
           class="px-[1.2rem] py-[0.8rem] border border-[#D0D5DD] rounded-[6px] text-[1.3rem]"
         />
-        <select v-model="deliveryFilters.status" @change="loadActiveTabData" class="px-[1.2rem] py-[0.8rem] border border-[#D0D5DD] rounded-[6px] text-[1.3rem]">
+        <select v-model="deliveryFilters.status" @change="applyFilters" class="px-[1.2rem] py-[0.8rem] border border-[#D0D5DD] rounded-[6px] text-[1.3rem]">
           <option value="">All Statuses</option>
           <option value="SENT">SENT</option>
           <option value="SKIPPED_OPT_OUT">SKIPPED_OPT_OUT</option>
@@ -323,7 +385,7 @@ const getStatusBadge = (status) => {
           <option value="SKIPPED_INVALID_CONTRACT">SKIPPED_INVALID_CONTRACT</option>
           <option value="FAILED">FAILED</option>
         </select>
-        <select v-model="deliveryFilters.category" @change="loadActiveTabData" class="px-[1.2rem] py-[0.8rem] border border-[#D0D5DD] rounded-[6px] text-[1.3rem]">
+        <select v-model="deliveryFilters.category" @change="applyFilters" class="px-[1.2rem] py-[0.8rem] border border-[#D0D5DD] rounded-[6px] text-[1.3rem]">
           <option value="">All Categories</option>
           <option value="REMINDER">REMINDER</option>
           <option value="TRANSACTIONAL">TRANSACTIONAL</option>
@@ -331,7 +393,7 @@ const getStatusBadge = (status) => {
           <option value="MARKETING">MARKETING</option>
           <option value="BILLING">BILLING</option>
         </select>
-        <button @click="loadActiveTabData" class="px-[1.2rem] py-[0.8rem] bg-[#003366] text-white font-[600] rounded-[6px] text-[1.3rem]">
+        <button @click="applyFilters" class="px-[1.2rem] py-[0.8rem] bg-[#003366] text-white font-[600] rounded-[6px] text-[1.3rem]">
           Filter Delivery Logs
         </button>
       </div>
@@ -381,6 +443,31 @@ const getStatusBadge = (status) => {
             </tr>
           </tbody>
         </table>
+
+        <!-- Pagination -->
+        <div class="px-[1.6rem] py-[1.2rem] border-t border-[#EBEBEB] flex items-center justify-between">
+          <div class="text-[1.2rem] text-[#64748B]">
+            Page <span class="font-[600] text-[#0F172A]">{{ currentPage + 1 }}</span> of
+            <span class="font-[600] text-[#0F172A]">{{ store.deliveryPagination.totalPages || 1 }}</span>
+            ({{ store.deliveryPagination.totalElements || 0 }} total delivery logs)
+          </div>
+          <div class="flex items-center gap-x-[0.8rem]">
+            <button
+              @click="prevPage"
+              :disabled="currentPage === 0 || activeLoading"
+              class="px-[1.2rem] py-[0.6rem] border border-[#D0D5DD] rounded-[6px] text-[1.2rem] font-[600] disabled:opacity-50 hover:bg-[#F8FAFC]"
+            >
+              Previous
+            </button>
+            <button
+              @click="nextPage"
+              :disabled="currentPage + 1 >= store.deliveryPagination.totalPages || activeLoading"
+              class="px-[1.2rem] py-[0.6rem] border border-[#D0D5DD] rounded-[6px] text-[1.2rem] font-[600] disabled:opacity-50 hover:bg-[#F8FAFC]"
+            >
+              Next
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -427,6 +514,31 @@ const getStatusBadge = (status) => {
             </tr>
           </tbody>
         </table>
+
+        <!-- Pagination -->
+        <div class="px-[1.6rem] py-[1.2rem] border-t border-[#EBEBEB] flex items-center justify-between">
+          <div class="text-[1.2rem] text-[#64748B]">
+            Page <span class="font-[600] text-[#0F172A]">{{ currentPage + 1 }}</span> of
+            <span class="font-[600] text-[#0F172A]">{{ store.suppressionPagination.totalPages || 1 }}</span>
+            ({{ store.suppressionPagination.totalElements || 0 }} total suppressed emails)
+          </div>
+          <div class="flex items-center gap-x-[0.8rem]">
+            <button
+              @click="prevPage"
+              :disabled="currentPage === 0 || activeLoading"
+              class="px-[1.2rem] py-[0.6rem] border border-[#D0D5DD] rounded-[6px] text-[1.2rem] font-[600] disabled:opacity-50 hover:bg-[#F8FAFC]"
+            >
+              Previous
+            </button>
+            <button
+              @click="nextPage"
+              :disabled="currentPage + 1 >= store.suppressionPagination.totalPages || activeLoading"
+              class="px-[1.2rem] py-[0.6rem] border border-[#D0D5DD] rounded-[6px] text-[1.2rem] font-[600] disabled:opacity-50 hover:bg-[#F8FAFC]"
+            >
+              Next
+            </button>
+          </div>
+        </div>
       </div>
     </div>
     <!-- MODAL: EDIT PREFERENCE -->

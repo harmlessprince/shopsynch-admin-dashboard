@@ -29,12 +29,12 @@ export const useAdminNotificationOperationsStore = defineStore("adminNotificatio
         try {
             const response = await get(endpoints.admin.notifications.preferences, params, { forceMode: 'live' });
             if (response?.status && response.data) {
-                preferences.value = response.data.content || [];
+                preferences.value = response.data.items || [];
                 preferencePagination.value = {
-                    page: response.data.page || 0,
-                    limit: response.data.limit || 50,
+                    page: response.data.currentPage || 0,
+                    limit: params.limit || 50,
                     totalPages: response.data.totalPages || 0,
-                    totalElements: response.data.totalElements || 0,
+                    totalElements: response.data.total || 0,
                 };
             }
             return response;
@@ -58,12 +58,12 @@ export const useAdminNotificationOperationsStore = defineStore("adminNotificatio
         try {
             const response = await get(endpoints.admin.notifications.deliveries, params, { forceMode: 'live' });
             if (response?.status && response.data) {
-                deliveries.value = response.data.content || [];
+                deliveries.value = response.data.items || [];
                 deliveryPagination.value = {
-                    page: response.data.page || 0,
-                    limit: response.data.limit || 50,
+                    page: response.data.currentPage || 0,
+                    limit: params.limit || 50,
                     totalPages: response.data.totalPages || 0,
-                    totalElements: response.data.totalElements || 0,
+                    totalElements: response.data.total || 0,
                 };
             }
             return response;
@@ -77,12 +77,12 @@ export const useAdminNotificationOperationsStore = defineStore("adminNotificatio
         try {
             const response = await get(endpoints.admin.notifications.suppressions, params, { forceMode: 'live' });
             if (response?.status && response.data) {
-                suppressions.value = response.data.content || [];
+                suppressions.value = response.data.items || [];
                 suppressionPagination.value = {
-                    page: response.data.page || 0,
-                    limit: response.data.limit || 50,
+                    page: response.data.currentPage || 0,
+                    limit: params.limit || 50,
                     totalPages: response.data.totalPages || 0,
-                    totalElements: response.data.totalElements || 0,
+                    totalElements: response.data.total || 0,
                 };
             }
             return response;

@@ -29,6 +29,8 @@ export const endpoints = {
             detail: "/v1/admin/merchants/:tenantId",
             updateStatus: "/v1/admin/merchants/:tenantId/status",
             paymentSecrets: "/v1/admin/merchants/:tenantId/payment-secrets",
+            sendReminder: "/v1/admin/merchants/:tenantId/send-reminder",
+            reminderTemplates: "/v1/admin/communication-templates/active",
         },
         compliance: {
             tenantDetail: "/v1/admin/compliance/tenants/:tenantId",

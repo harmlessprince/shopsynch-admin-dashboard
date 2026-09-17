@@ -1,6 +1,9 @@
 <script setup>
 import { logger } from "~/utils/helpers.js";
+import { useVfm } from "vue-final-modal";
 import DataTable from "~/components/table/DataTable.vue";
+import SendReminderModal from "~/components/Modals/SendReminderModal.vue";
+
 definePageMeta({
   layout: "dashboard",
   middleware: "auth-middleware",
@@ -9,12 +12,14 @@ definePageMeta({
 
 const adminMerchantsStore = useAdminMerchantsStore();
 const router = useRouter();
+const vfm = useVfm();
 const search = ref("");
 const complianceReviewStatus = ref("");
 const currentMode = ref("");
 const status = ref("");
 const page = ref(1);
 const limit = ref(50);
+const selectedMerchantForReminder = ref(null);
 
 const tableHeader = [
   { title: "Merchant", accessor: "businessTradingName" },
@@ -164,6 +169,12 @@ onMounted(fetchMerchants);
         </template>
 
         <template #more-actions="{ data }">
+          <div class="dt-action-item" @click="selectedMerchantForReminder = data; vfm.open('sendReminderModal')">
+            <span class="material-symbols-outlined">
+              forward_to_inbox
+            </span>
+            <p>Send Reminder</p>
+          </div>
           <div class="dt-action-item" @click="updateMerchantStatus(data)">
             <span class="material-symbols-outlined">
               {{ data.status ? "toggle_off" : "toggle_on" }}
@@ -173,5 +184,11 @@ onMounted(fetchMerchants);
         </template>
       </DataTable>
     </section>
+
+    <SendReminderModal
+      :merchant="selectedMerchantForReminder"
+      @sent="fetchMerchants()"
+      @closed="selectedMerchantForReminder = null"
+    />
   </div>
 </template>
