@@ -1,5 +1,7 @@
 <script setup>
 import { logger, formatDate, formatToMoney } from "~/utils/helpers.js";
+import { useVfm } from "vue-final-modal";
+import SendReminderModal from "~/components/Modals/SendReminderModal.vue";
 
 definePageMeta({
   layout: "dashboard",
@@ -9,6 +11,7 @@ definePageMeta({
 
 const route = useRoute();
 const store = useAdminMerchantsStore();
+const vfm = useVfm();
 
 const statusToggleLoading = ref(false);
 
@@ -93,6 +96,14 @@ onMounted(async () => {
             >
               <span v-if="statusToggleLoading" class="animate-spin material-symbols-outlined align-middle text-[1.6rem]">progress_activity</span>
               <span v-else>{{ m.status ? "Deactivate" : "Activate" }}</span>
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center gap-[0.4rem] rounded-[8px] bg-primary px-[1.6rem] py-[0.8rem] text-[1.3rem] font-[700] text-white transition-colors hover:bg-primary/90 cursor-pointer"
+              @click="vfm.open('sendReminderModal')"
+            >
+              <span class="material-symbols-outlined text-[1.6rem]">forward_to_inbox</span>
+              Send Reminder
             </button>
             <NuxtLink
               :to="`/dashboard/compliance/${m.id}`"
@@ -329,5 +340,10 @@ onMounted(async () => {
     </template>
 
     <p v-else-if="!store.detailLoading">No merchant found.</p>
+
+    <SendReminderModal
+      :merchant="m"
+      @sent="store.fetchMerchantDetail(route.params.tenantId)"
+    />
   </div>
 </template>

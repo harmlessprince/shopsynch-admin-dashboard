@@ -5,7 +5,7 @@ import { useToastStore } from "~/stores/toast.store.js";
 import { getPaginatedData } from "~/utils/helpers.js";
 
 export const useAdminMerchantsStore = defineStore("adminMerchantsStore", () => {
-    const { get, patch } = useApiService();
+    const { get, post, patch } = useApiService();
     const toastStore = useToastStore();
 
     const merchants = ref([]);
@@ -81,6 +81,37 @@ export const useAdminMerchantsStore = defineStore("adminMerchantsStore", () => {
         return response;
     }
 
+    async function fetchReminderTemplates(category = "ONBOARDING") {
+        try {
+            const response = await get(endpoints.admin.merchants.reminderTemplates, { category }, { forceMode: "live" });
+            return response?.data || [];
+        } catch {
+            return [];
+        }
+    }
+
+    async function fetchMerchantDeliveryLogs(tenantId) {
+        try {
+            const response = await get(endpoints.admin.notifications.deliveries, {
+                tenantId,
+                category: "REMINDER",
+                limit: 5,
+            }, { forceMode: "live" });
+            return response?.data?.content || response?.data?.items || [];
+        } catch {
+            return [];
+        }
+    }
+
+    async function sendOnboardingReminder(tenantId, payload) {
+        const url = endpoints.admin.merchants.sendReminder.replace(":tenantId", tenantId);
+        const response = await post(url, payload, { forceMode: "live" });
+        if (response?.status) {
+            toastStore.success(response.message || "Reminder email sent successfully", "");
+        }
+        return response;
+    }
+
     return {
         merchants,
         merchant,
@@ -93,5 +124,8 @@ export const useAdminMerchantsStore = defineStore("adminMerchantsStore", () => {
         fetchMerchants,
         fetchMerchantDetail,
         updateMerchantStatus,
+        fetchReminderTemplates,
+        fetchMerchantDeliveryLogs,
+        sendOnboardingReminder,
     };
 });
