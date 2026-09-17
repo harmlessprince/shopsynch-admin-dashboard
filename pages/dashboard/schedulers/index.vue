@@ -136,11 +136,8 @@ const successRate = computed(() => {
   const total = store.overview.last24HoursRunsCount || 0;
   const success = store.overview.last24HoursSuccessCount || 0;
   if (total === 0) return "100%";
-  return Math.round((success / total) * 100) + "%";
-});
-
-const atRiskCount = computed(() => {
-  return (store.overview.warningCount || 0) + (store.overview.criticalCount || 0);
+  const pct = (success / total) * 100;
+  return pct % 1 === 0 ? `${pct}%` : `${pct.toFixed(1)}%`;
 });
 
 // Duration formatter
@@ -238,12 +235,14 @@ onMounted(async () => {
     </div>
 
     <!-- Tier 1: KPI Overview Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-[1.6rem]">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[1.6rem]">
       <!-- Total Monitored -->
       <div class="bg-white rounded-[12px] p-[1.8rem] border border-[#E2E8F0] shadow-sm flex flex-col justify-between">
         <span class="text-[1.2rem] font-[600] text-[#64748B] uppercase tracking-wider">Monitored Jobs</span>
         <div class="flex items-baseline justify-between mt-[1rem]">
-          <span class="text-[2.8rem] font-[700] text-[#0F172A]">{{ store.overview.totalMonitored || 0 }}</span>
+          <span class="text-[2.8rem] font-[700] text-[#0F172A] tabular-nums">
+            {{ Number(store.overview.totalMonitored || 0).toLocaleString() }}
+          </span>
           <span class="material-symbols-outlined text-[#003366] text-[2.4rem]">timer</span>
         </div>
       </div>
@@ -252,19 +251,46 @@ onMounted(async () => {
       <div class="bg-white rounded-[12px] p-[1.8rem] border border-[#E2E8F0] shadow-sm flex flex-col justify-between">
         <span class="text-[1.2rem] font-[600] text-[#64748B] uppercase tracking-wider">Healthy</span>
         <div class="flex items-baseline justify-between mt-[1rem]">
-          <span class="text-[2.8rem] font-[700] text-[#137333]">{{ store.overview.healthyCount || 0 }}</span>
+          <span class="text-[2.8rem] font-[700] text-[#137333] tabular-nums">
+            {{ Number(store.overview.healthyCount || 0).toLocaleString() }}
+          </span>
           <span class="material-symbols-outlined text-[#137333] text-[2.4rem]">check_circle</span>
         </div>
       </div>
 
-      <!-- At Risk / Critical -->
+      <!-- Warning Jobs -->
       <div class="bg-white rounded-[12px] p-[1.8rem] border border-[#E2E8F0] shadow-sm flex flex-col justify-between">
-        <span class="text-[1.2rem] font-[600] text-[#64748B] uppercase tracking-wider">At Risk / Critical</span>
+        <span class="text-[1.2rem] font-[600] text-[#64748B] uppercase tracking-wider">Warning</span>
         <div class="flex items-baseline justify-between mt-[1rem]">
-          <span class="text-[2.8rem] font-[700]" :class="(store.overview.criticalCount || 0) > 0 ? 'text-[#C5221F]' : 'text-[#0F172A]'">
-            {{ atRiskCount }}
+          <span
+            class="text-[2.8rem] font-[700] tabular-nums"
+            :class="(store.overview.warningCount || 0) > 0 ? 'text-[#B06000]' : 'text-[#0F172A]'"
+          >
+            {{ Number(store.overview.warningCount || 0).toLocaleString() }}
           </span>
-          <span class="material-symbols-outlined text-[2.4rem]" :class="(store.overview.criticalCount || 0) > 0 ? 'text-[#C5221F]' : 'text-[#94A3B8]'">
+          <span
+            class="material-symbols-outlined text-[2.4rem]"
+            :class="(store.overview.warningCount || 0) > 0 ? 'text-[#B06000]' : 'text-[#94A3B8]'"
+          >
+            warning
+          </span>
+        </div>
+      </div>
+
+      <!-- Critical Jobs -->
+      <div class="bg-white rounded-[12px] p-[1.8rem] border border-[#E2E8F0] shadow-sm flex flex-col justify-between">
+        <span class="text-[1.2rem] font-[600] text-[#64748B] uppercase tracking-wider">Critical</span>
+        <div class="flex items-baseline justify-between mt-[1rem]">
+          <span
+            class="text-[2.8rem] font-[700] tabular-nums"
+            :class="(store.overview.criticalCount || 0) > 0 ? 'text-[#C5221F]' : 'text-[#0F172A]'"
+          >
+            {{ Number(store.overview.criticalCount || 0).toLocaleString() }}
+          </span>
+          <span
+            class="material-symbols-outlined text-[2.4rem]"
+            :class="(store.overview.criticalCount || 0) > 0 ? 'text-[#C5221F]' : 'text-[#94A3B8]'"
+          >
             error
           </span>
         </div>
@@ -274,22 +300,63 @@ onMounted(async () => {
       <div class="bg-white rounded-[12px] p-[1.8rem] border border-[#E2E8F0] shadow-sm flex flex-col justify-between">
         <span class="text-[1.2rem] font-[600] text-[#64748B] uppercase tracking-wider">Active Alerts</span>
         <div class="flex items-baseline justify-between mt-[1rem]">
-          <span class="text-[2.8rem] font-[700]" :class="(store.overview.activeAlertsCount || 0) > 0 ? 'text-[#B06000]' : 'text-[#0F172A]'">
-            {{ store.overview.activeAlertsCount || 0 }}
+          <span
+            class="text-[2.8rem] font-[700] tabular-nums"
+            :class="(store.overview.activeAlertsCount || 0) > 0 ? 'text-[#B06000]' : 'text-[#0F172A]'"
+          >
+            {{ Number(store.overview.activeAlertsCount || 0).toLocaleString() }}
           </span>
-          <span class="material-symbols-outlined text-[2.4rem]" :class="(store.overview.activeAlertsCount || 0) > 0 ? 'text-[#B06000]' : 'text-[#94A3B8]'">
+          <span
+            class="material-symbols-outlined text-[2.4rem]"
+            :class="(store.overview.activeAlertsCount || 0) > 0 ? 'text-[#B06000]' : 'text-[#94A3B8]'"
+          >
             notifications_active
           </span>
         </div>
       </div>
 
-      <!-- 24h Success Rate -->
+      <!-- 24h Total Runs -->
       <div class="bg-white rounded-[12px] p-[1.8rem] border border-[#E2E8F0] shadow-sm flex flex-col justify-between">
-        <span class="text-[1.2rem] font-[600] text-[#64748B] uppercase tracking-wider">24h Success Rate</span>
+        <span class="text-[1.2rem] font-[600] text-[#64748B] uppercase tracking-wider">24h Total Runs</span>
         <div class="flex items-baseline justify-between mt-[1rem]">
-          <span class="text-[2.8rem] font-[700] text-[#003366]">{{ successRate }}</span>
-          <span class="text-[1.2rem] text-[#64748B]">
-            {{ store.overview.last24HoursRunsCount || 0 }} runs
+          <span class="text-[2.8rem] font-[700] text-[#0F172A] tabular-nums">
+            {{ Number(store.overview.last24HoursRunsCount || 0).toLocaleString() }}
+          </span>
+          <span class="material-symbols-outlined text-[#003366] text-[2.4rem]">history</span>
+        </div>
+      </div>
+
+      <!-- 24h Successful Runs -->
+      <div class="bg-white rounded-[12px] p-[1.8rem] border border-[#E2E8F0] shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-[1.2rem] font-[600] text-[#64748B] uppercase tracking-wider">24h Successful Runs</span>
+          <span class="text-[1.1rem] font-[600] text-[#137333] bg-[#E6F4EA] px-[0.6rem] py-[0.1rem] rounded-full">
+            {{ successRate }}
+          </span>
+        </div>
+        <div class="flex items-baseline justify-between mt-[1rem]">
+          <span class="text-[2.8rem] font-[700] text-[#137333] tabular-nums">
+            {{ Number(store.overview.last24HoursSuccessCount || 0).toLocaleString() }}
+          </span>
+          <span class="material-symbols-outlined text-[#137333] text-[2.4rem]">task_alt</span>
+        </div>
+      </div>
+
+      <!-- 24h Failed Runs -->
+      <div class="bg-white rounded-[12px] p-[1.8rem] border border-[#E2E8F0] shadow-sm flex flex-col justify-between">
+        <span class="text-[1.2rem] font-[600] text-[#64748B] uppercase tracking-wider">24h Failed Runs</span>
+        <div class="flex items-baseline justify-between mt-[1rem]">
+          <span
+            class="text-[2.8rem] font-[700] tabular-nums"
+            :class="(store.overview.last24HoursFailureCount || 0) > 0 ? 'text-[#C5221F]' : 'text-[#0F172A]'"
+          >
+            {{ Number(store.overview.last24HoursFailureCount || 0).toLocaleString() }}
+          </span>
+          <span
+            class="material-symbols-outlined text-[2.4rem]"
+            :class="(store.overview.last24HoursFailureCount || 0) > 0 ? 'text-[#C5221F]' : 'text-[#94A3B8]'"
+          >
+            {{ (store.overview.last24HoursFailureCount || 0) > 0 ? 'cancel' : 'check_circle' }}
           </span>
         </div>
       </div>
