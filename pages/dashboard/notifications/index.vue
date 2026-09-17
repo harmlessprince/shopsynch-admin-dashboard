@@ -1,7 +1,9 @@
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
 import { useAdminNotificationOperationsStore } from "~/stores/adminNotificationOperations.store.js";
-import { formatDate } from "~/utils/helpers.js";
+import { useAdminNotificationMonitoringStore } from "~/stores/adminNotificationMonitoring.store.js";
+import { formatDate, logger } from "~/utils/helpers.js";
+import DataTable from "~/components/table/DataTable.vue";
 
 definePageMeta({
   layout: "dashboard",
@@ -14,6 +16,7 @@ useHead({
 });
 
 const store = useAdminNotificationOperationsStore();
+const monitoringStore = useAdminNotificationMonitoringStore();
 
 const activeTab = ref("preferences");
 
@@ -45,6 +48,15 @@ const suppressionFilters = ref({
   reason: "",
 });
 
+// Filters for Monitoring (Overview & Statistics)
+const monitoringTenantId = ref("");
+const statsFromDate = ref(monitoringStore.statsFilters.from.slice(0, 10));
+const statsToDate = ref(monitoringStore.statsFilters.to.slice(0, 10));
+const statsCategory = ref("");
+const statsNotificationType = ref("");
+const statsNotifiableType = ref("");
+const rollupDays = ref(1);
+
 // Edit Preference Modal state
 const showEditPrefModal = ref(false);
 const selectedPref = ref(null);
@@ -71,6 +83,55 @@ const loadActiveTabData = async () => {
     await store.fetchDeliveries({ ...cleanParams(deliveryFilters.value), ...pagination });
   } else if (activeTab.value === "suppressions") {
     await store.fetchSuppressions({ ...cleanParams(suppressionFilters.value), ...pagination });
+  } else if (activeTab.value === "monitoring") {
+    await loadMonitoringData();
+  }
+};
+
+const isRollupDisabled = computed(() => {
+  if (monitoringStore.rollupRunning) return true;
+  if (!monitoringStore.nextAllowedAt) return false;
+  return new Date(monitoringStore.nextAllowedAt).getTime() > Date.now();
+});
+
+const loadMonitoringOverview = async () => {
+  try {
+    await monitoringStore.fetchOverview(monitoringTenantId.value.trim());
+  } catch (err) {
+    logger.error("Failed to load notification monitoring overview", err);
+  }
+};
+
+const loadMonitoringStats = async () => {
+  try {
+    monitoringStore.setStatsFilters({
+      from: statsFromDate.value ? new Date(`${statsFromDate.value}T00:00:00.000Z`).toISOString() : undefined,
+      to: statsToDate.value ? new Date(`${statsToDate.value}T23:59:59.999Z`).toISOString() : undefined,
+      tenantId: monitoringTenantId.value.trim(),
+      category: statsCategory.value,
+      notificationType: statsNotificationType.value.trim(),
+      notifiableType: statsNotifiableType.value.trim(),
+    });
+    await monitoringStore.fetchStats();
+  } catch (err) {
+    logger.error("Failed to load notification delivery statistics", err);
+  }
+};
+
+const loadMonitoringData = async () => {
+  await Promise.all([loadMonitoringOverview(), loadMonitoringStats()]);
+};
+
+const applyMonitoringFilters = () => {
+  loadMonitoringData();
+};
+
+const refreshNotificationRollup = async () => {
+  try {
+    await monitoringStore.runRollup(rollupDays.value);
+    await loadMonitoringData();
+  } catch (err) {
+    logger.error("Failed to run notification rollup", err);
   }
 };
 
@@ -185,6 +246,58 @@ const getStatusBadge = (status) => {
       return "bg-[#F1F3F4] text-[#5F6368]";
   }
 };
+
+const getHealthBadge = (health) => {
+  switch (health?.toUpperCase()) {
+    case "HEALTHY":
+      return "bg-[#E6F4EA] text-[#137333] border border-[#CEEAD6]";
+    case "WARNING":
+      return "bg-[#FEF7E0] text-[#B06000] border border-[#FEEFC3]";
+    case "CRITICAL":
+      return "bg-[#FCE8E6] text-[#C5221F] border border-[#FAD2CF]";
+    default:
+      return "bg-[#F1F3F4] text-[#5F6368] border border-[#DADCE0]";
+  }
+};
+
+const dailyTrendHeader = [
+  { title: "Date", accessor: "date" },
+  { title: "Attempts", accessor: "totalAttempts" },
+  { title: "Sent", accessor: "sentCount" },
+  { title: "Failed", accessor: "failedCount" },
+  { title: "Skipped", accessor: "skippedCount" },
+  { title: "Unique recipients", accessor: "uniqueRecipients" },
+  { title: "Success rate %", accessor: "successRate" },
+];
+
+const categoryBreakdownHeader = [
+  { title: "Category", accessor: "category" },
+  { title: "Attempts", accessor: "totalAttempts" },
+  { title: "Sent", accessor: "sentCount" },
+  { title: "Failed", accessor: "failedCount" },
+  { title: "Skipped", accessor: "skippedCount" },
+  { title: "Success rate %", accessor: "successRate" },
+];
+
+const notificationTypeBreakdownHeader = [
+  { title: "Notification Type", accessor: "notificationType" },
+  { title: "Category", accessor: "category" },
+  { title: "Attempts", accessor: "totalAttempts" },
+  { title: "Sent", accessor: "sentCount" },
+  { title: "Failed", accessor: "failedCount" },
+  { title: "Skipped", accessor: "skippedCount" },
+  { title: "Success rate %", accessor: "successRate" },
+];
+
+const topTenantsHeader = [
+  { title: "Tenant", accessor: "merchantName" },
+  { title: "Tenant Code", accessor: "tenantCode" },
+  { title: "Creator Email", accessor: "creatorEmail" },
+  { title: "Attempts", accessor: "totalAttempts" },
+  { title: "Sent", accessor: "sentCount" },
+  { title: "Failed", accessor: "failedCount" },
+  { title: "Success rate %", accessor: "successRate" },
+];
 </script>
 
 <template>
@@ -233,6 +346,14 @@ const getStatusBadge = (status) => {
         :class="activeTab === 'suppressions' ? 'border-[#003366] text-[#003366]' : 'border-transparent text-[#616161] hover:text-[#1B1B19]'"
       >
         Suppression List
+      </button>
+
+      <button
+        @click="activeTab = 'monitoring'"
+        class="pb-[1rem] text-[1.4rem] font-[600] border-b-2 transition-colors duration-150"
+        :class="activeTab === 'monitoring' ? 'border-[#003366] text-[#003366]' : 'border-transparent text-[#616161] hover:text-[#1B1B19]'"
+      >
+        Monitoring & Stats
       </button>
     </div>
 
@@ -541,6 +662,224 @@ const getStatusBadge = (status) => {
         </div>
       </div>
     </div>
+
+    <!-- TAB 4: MONITORING & STATS -->
+    <div v-if="activeTab === 'monitoring'" class="flex flex-col gap-y-[1.6rem]">
+      <!-- Filter Bar -->
+      <div class="bg-[#FFFFFF] rounded-[10px] border border-[#EBEBEB] p-[1.6rem] flex flex-col gap-y-[1.2rem]">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[1.2rem]">
+          <div>
+            <label class="block text-[1.2rem] font-[600] text-[#334155] mb-[0.4rem]">Tenant ID</label>
+            <input
+              v-model="monitoringTenantId"
+              placeholder="Leave blank for platform-wide"
+              class="w-full px-[1.2rem] py-[0.8rem] border border-[#D0D5DD] rounded-[6px] text-[1.3rem]"
+            />
+          </div>
+          <div>
+            <label class="block text-[1.2rem] font-[600] text-[#334155] mb-[0.4rem]">From</label>
+            <input v-model="statsFromDate" type="date" class="w-full px-[1.2rem] py-[0.8rem] border border-[#D0D5DD] rounded-[6px] text-[1.3rem]" />
+          </div>
+          <div>
+            <label class="block text-[1.2rem] font-[600] text-[#334155] mb-[0.4rem]">To</label>
+            <input v-model="statsToDate" type="date" class="w-full px-[1.2rem] py-[0.8rem] border border-[#D0D5DD] rounded-[6px] text-[1.3rem]" />
+          </div>
+          <div>
+            <label class="block text-[1.2rem] font-[600] text-[#334155] mb-[0.4rem]">Category</label>
+            <select v-model="statsCategory" class="w-full px-[1.2rem] py-[0.8rem] border border-[#D0D5DD] rounded-[6px] text-[1.3rem]">
+              <option value="">All Categories</option>
+              <option value="SECURITY">SECURITY</option>
+              <option value="TRANSACTIONAL">TRANSACTIONAL</option>
+              <option value="REMINDER">REMINDER</option>
+              <option value="MARKETING">MARKETING</option>
+              <option value="BILLING">BILLING</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[1.2rem] font-[600] text-[#334155] mb-[0.4rem]">Notification Type</label>
+            <input
+              v-model="statsNotificationType"
+              placeholder="e.g. order_confirmation"
+              class="w-full px-[1.2rem] py-[0.8rem] border border-[#D0D5DD] rounded-[6px] text-[1.3rem]"
+            />
+          </div>
+          <div>
+            <label class="block text-[1.2rem] font-[600] text-[#334155] mb-[0.4rem]">Notifiable Type</label>
+            <input
+              v-model="statsNotifiableType"
+              placeholder="e.g. Customer, Merchant"
+              class="w-full px-[1.2rem] py-[0.8rem] border border-[#D0D5DD] rounded-[6px] text-[1.3rem]"
+            />
+          </div>
+        </div>
+        <div class="flex items-center justify-end gap-x-[1.2rem] pt-[0.8rem] border-t border-[#F1F5F9]">
+          <button
+            @click="applyMonitoringFilters"
+            class="px-[1.6rem] py-[0.6rem] bg-[#003366] text-white rounded-[6px] text-[1.3rem] font-[600] hover:bg-[#002244]"
+          >
+            Apply Filters
+          </button>
+        </div>
+      </div>
+
+      <!-- Rollup Trigger -->
+      <div class="bg-[#FFFFFF] rounded-[10px] border border-[#EBEBEB] p-[1.6rem] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-[1.2rem]">
+        <div>
+          <p v-if="monitoringStore.rollupResult" class="text-[1.3rem] text-[#1B1B19]">
+            Last rollup: {{ monitoringStore.rollupResult.status }} — {{ monitoringStore.rollupResult.message }}
+            <span v-if="monitoringStore.rollupResult.rowsProcessed !== undefined">
+              ({{ monitoringStore.rollupResult.rowsProcessed }} rows processed)
+            </span>
+          </p>
+          <p v-if="monitoringStore.rollupError" class="text-[1.3rem] text-[#DC2626]">{{ monitoringStore.rollupError }}</p>
+          <p v-if="isRollupDisabled && monitoringStore.nextAllowedAt" class="text-[1.2rem] text-[#64748B]">
+            Next rollup available at {{ formatDate(monitoringStore.nextAllowedAt) }}.
+          </p>
+        </div>
+        <div class="flex items-center gap-x-[1rem]">
+          <select v-model.number="rollupDays" class="px-[1.2rem] py-[0.8rem] border border-[#D0D5DD] rounded-[6px] text-[1.3rem]">
+            <option :value="1">Last 1 day</option>
+            <option :value="3">Last 3 days</option>
+            <option :value="7">Last 7 days</option>
+            <option :value="30">Last 30 days</option>
+          </select>
+          <button
+            @click="refreshNotificationRollup"
+            :disabled="isRollupDisabled"
+            class="px-[1.6rem] py-[0.8rem] bg-[#003366] text-white rounded-[6px] text-[1.3rem] font-[600] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {{ monitoringStore.rollupRunning ? 'Refreshing…' : 'Refresh Rollup' }}
+          </button>
+        </div>
+      </div>
+
+      <div v-if="monitoringStore.overviewError" class="rounded-[8px] border border-red-200 bg-red-50 p-[1.6rem] text-red-700 text-[1.3rem]">
+        {{ monitoringStore.overviewError }}
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[1.6rem]">
+        <div class="bg-white rounded-[12px] p-[1.8rem] border border-[#E2E8F0] shadow-sm flex flex-col justify-between">
+          <span class="text-[1.2rem] font-[600] text-[#64748B] uppercase tracking-wider">Health</span>
+          <div class="mt-[1rem]">
+            <span
+              class="px-[1rem] py-[0.4rem] rounded-full text-[1.4rem] font-[700]"
+              :class="getHealthBadge(monitoringStore.overview?.health)"
+            >
+              {{ monitoringStore.overview?.health || 'UNKNOWN' }}
+            </span>
+          </div>
+        </div>
+        <div class="bg-white rounded-[12px] p-[1.8rem] border border-[#E2E8F0] shadow-sm flex flex-col justify-between">
+          <span class="text-[1.2rem] font-[600] text-[#64748B] uppercase tracking-wider">24h Attempts</span>
+          <span class="text-[2.8rem] font-[700] text-[#0F172A] tabular-nums mt-[1rem]">
+            {{ Number(monitoringStore.overview?.last24HoursTotalAttempts || 0).toLocaleString() }}
+          </span>
+        </div>
+        <div class="bg-white rounded-[12px] p-[1.8rem] border border-[#E2E8F0] shadow-sm flex flex-col justify-between">
+          <span class="text-[1.2rem] font-[600] text-[#64748B] uppercase tracking-wider">24h Success Rate</span>
+          <span class="text-[2.8rem] font-[700] text-[#137333] tabular-nums mt-[1rem]">
+            {{ monitoringStore.overview?.last24HoursSuccessRate ?? 0 }}%
+          </span>
+        </div>
+        <div class="bg-white rounded-[12px] p-[1.8rem] border border-[#E2E8F0] shadow-sm flex flex-col justify-between">
+          <span class="text-[1.2rem] font-[600] text-[#64748B] uppercase tracking-wider">Active Alerts</span>
+          <span
+            class="text-[2.8rem] font-[700] tabular-nums mt-[1rem]"
+            :class="(monitoringStore.overview?.activeAlertsCount || 0) > 0 ? 'text-[#B06000]' : 'text-[#0F172A]'"
+          >
+            {{ monitoringStore.overview?.activeAlertsCount || 0 }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Active Alerts Banner -->
+      <div
+        v-if="monitoringStore.overview?.alerts?.length"
+        class="bg-[#FEF2F2] border-l-4 border-[#EF4444] p-[1.6rem] rounded-r-[8px] shadow-sm flex flex-col gap-y-[1.2rem]"
+      >
+        <div class="flex items-center gap-x-[0.8rem]">
+          <span class="material-symbols-outlined text-[#DC2626] text-[2.2rem]">warning</span>
+          <h3 class="text-[1.5rem] font-[700] text-[#991B1B]">
+            {{ monitoringStore.overview.alerts.length }} Active Delivery {{ monitoringStore.overview.alerts.length === 1 ? 'Alert' : 'Alerts' }}
+          </h3>
+        </div>
+        <div class="flex flex-col gap-y-[0.8rem]">
+          <div
+            v-for="(alert, idx) in monitoringStore.overview.alerts"
+            :key="idx"
+            class="flex flex-col sm:flex-row sm:items-center gap-[0.8rem] bg-white/80 p-[1.2rem] rounded-[6px] border border-[#FCA5A5]"
+          >
+            <span
+              class="px-[0.8rem] py-[0.2rem] rounded-full text-[1rem] font-[700] uppercase tracking-wide"
+              :class="alert.severity === 'CRITICAL' ? 'bg-[#DC2626] text-white' : 'bg-[#D97706] text-white'"
+            >
+              {{ alert.severity }}
+            </span>
+            <span class="px-[0.8rem] py-[0.2rem] bg-[#F1F5F9] text-[#475569] rounded-[4px] font-mono text-[1.1rem]">
+              {{ alert.alertType }}
+            </span>
+            <span class="text-[1.3rem] text-[#1E293B] font-[500]">{{ alert.message }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="monitoringStore.statsError" class="rounded-[8px] border border-red-200 bg-red-50 p-[1.6rem] text-red-700 text-[1.3rem]">
+        {{ monitoringStore.statsError }}
+      </div>
+
+      <!-- Daily Trend -->
+      <section class="overflow-hidden rounded-[10px] bg-white border border-[#EBEBEB]">
+        <h2 class="p-[1.6rem] pb-0 text-[1.6rem] font-[700] text-[#1B1B19]">Daily Delivery Trend</h2>
+        <div class="p-[1.6rem]">
+          <DataTable
+            :table-header="dailyTrendHeader"
+            :table-data="monitoringStore.stats?.dailyTrend || []"
+            :loading="monitoringStore.loadingStats"
+            :has-pagination="false"
+          />
+        </div>
+      </section>
+
+      <div class="grid grid-cols-1 gap-[1.6rem] xl:grid-cols-2">
+        <section class="overflow-hidden rounded-[10px] bg-white border border-[#EBEBEB]">
+          <h2 class="p-[1.6rem] pb-0 text-[1.6rem] font-[700] text-[#1B1B19]">Category Breakdown</h2>
+          <div class="p-[1.6rem]">
+            <DataTable
+              :table-header="categoryBreakdownHeader"
+              :table-data="monitoringStore.stats?.categoryBreakdown || []"
+              :loading="monitoringStore.loadingStats"
+              :has-pagination="false"
+            />
+          </div>
+        </section>
+
+        <section class="overflow-hidden rounded-[10px] bg-white border border-[#EBEBEB]">
+          <h2 class="p-[1.6rem] pb-0 text-[1.6rem] font-[700] text-[#1B1B19]">Notification Type Breakdown</h2>
+          <div class="p-[1.6rem]">
+            <DataTable
+              :table-header="notificationTypeBreakdownHeader"
+              :table-data="monitoringStore.stats?.notificationTypeBreakdown || []"
+              :loading="monitoringStore.loadingStats"
+              :has-pagination="false"
+            />
+          </div>
+        </section>
+      </div>
+
+      <section v-if="!monitoringTenantId" class="overflow-hidden rounded-[10px] bg-white border border-[#EBEBEB]">
+        <h2 class="p-[1.6rem] pb-0 text-[1.6rem] font-[700] text-[#1B1B19]">Top Merchants by Notification Volume</h2>
+        <div class="p-[1.6rem]">
+          <DataTable
+            :table-header="topTenantsHeader"
+            :table-data="monitoringStore.stats?.topTenants || []"
+            :loading="monitoringStore.loadingStats"
+            :has-pagination="false"
+          />
+        </div>
+      </section>
+    </div>
+
     <!-- MODAL: EDIT PREFERENCE -->
     <div v-if="showEditPrefModal" class="fixed inset-0 bg-black/50 flex items-center justify-center p-[1.6rem] z-50">
       <div class="bg-white rounded-[12px] max-w-[480px] w-full p-[2.4rem] flex flex-col gap-y-[1.6rem]">

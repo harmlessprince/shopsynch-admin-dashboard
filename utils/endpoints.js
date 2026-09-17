@@ -123,6 +123,12 @@ export const endpoints = {
             addSuppression: "/v1/admin/notification-suppressions",
             removeSuppression: "/v1/admin/notification-suppressions/:email",
         },
+        notificationMonitoring: {
+            overview: "/v1/admin/notification-monitoring/overview",
+            stats: "/v1/admin/notification-monitoring/stats",
+            alerts: "/v1/admin/notification-monitoring/alerts",
+            runRollup: "/v1/admin/notification-monitoring/rollups/run",
+        },
         schedulers: {
             overview: "/v1/admin/schedulers/overview",
             alerts: "/v1/admin/schedulers/alerts",
