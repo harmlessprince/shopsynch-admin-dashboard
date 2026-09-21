@@ -153,12 +153,11 @@
 <script setup>
 import ActionsMenu from "./ActionsMenu.vue";
 import TablePagination from "./TablePagination.vue";
-import { useVfm } from "vue-final-modal";
+import { useModal } from "vue-final-modal";
 import { watch, ref, computed } from "vue";
 import ConfirmModal from "../Modals/ConfirmModal.vue";
 import EmptyState from "../EmptyState.vue";
 import { formatToMoney, formatDate } from "~/utils/helpers.js";
-const vfm = useVfm();
 
 const props = defineProps({
   tableHeader: {
@@ -300,18 +299,17 @@ function show(id) {
 }
 
 function remove(id) {
-  vfm.open(
-    {
-      component: ConfirmModal,
-      on: {
-        confirm(close) {
-          emit("delete", id);
-          close();
-        },
+  const confirmModal = useModal({
+    component: ConfirmModal,
+    attrs: {
+      modalTitle: "Delete",
+      onConfirm() {
+        confirmModal.close();
+        emit("delete", id);
       },
     },
-    { modalTitle: "Delete" },
-  );
+  });
+  confirmModal.open();
 }
 
 const formatBoolean = (val, labels = {}) => {
