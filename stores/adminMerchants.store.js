@@ -11,6 +11,10 @@ export const useAdminMerchantsStore = defineStore("adminMerchantsStore", () => {
     const merchants = ref([]);
     const merchant = ref(null);
     const paymentSecrets = ref([]);
+    const bankAccounts = ref([]);
+    const bankAccountsLoading = ref(false);
+    const banks = ref([]);
+    const banksLoading = ref(false);
     const loading = ref(false);
     const detailLoading = ref(false);
     const total = ref(0);
@@ -116,10 +120,62 @@ export const useAdminMerchantsStore = defineStore("adminMerchantsStore", () => {
         return await post(endpoints.admin.merchants.register, payload, { forceMode: "live" });
     }
 
+    async function completeCompliance(tenantId, payload) {
+        const url = endpoints.admin.merchants.completeCompliance.replace(":tenantId", tenantId);
+        const response = await post(url, payload, { forceMode: "live" });
+        if (response) {
+            toastStore.success(response.message || "Compliance submitted for review successfully", "");
+        }
+        return response;
+    }
+
+    async function fetchBankAccounts(tenantId) {
+        bankAccountsLoading.value = true;
+        try {
+            const url = endpoints.admin.merchants.bankAccounts.replace(":tenantId", tenantId);
+            const response = await get(url, {}, { forceMode: "live" });
+            bankAccounts.value = response?.data || [];
+            return bankAccounts.value;
+        } catch (err) {
+            bankAccounts.value = [];
+            throw err;
+        } finally {
+            bankAccountsLoading.value = false;
+        }
+    }
+
+    async function addBankAccount(tenantId, payload) {
+        const url = endpoints.admin.merchants.bankAccounts.replace(":tenantId", tenantId);
+        const response = await post(url, payload, { forceMode: "live" });
+        if (response) {
+            toastStore.success(response.message || "Bank account added successfully", "");
+        }
+        return response;
+    }
+
+    async function fetchBanks() {
+        if (banks.value.length > 0) return banks.value;
+        banksLoading.value = true;
+        try {
+            const response = await get(endpoints.banks, {}, { forceMode: "live" });
+            banks.value = response?.data || [];
+            return banks.value;
+        } catch (err) {
+            banks.value = [];
+            throw err;
+        } finally {
+            banksLoading.value = false;
+        }
+    }
+
     return {
         merchants,
         merchant,
         paymentSecrets,
+        bankAccounts,
+        bankAccountsLoading,
+        banks,
+        banksLoading,
         loading,
         detailLoading,
         total,
@@ -132,5 +188,9 @@ export const useAdminMerchantsStore = defineStore("adminMerchantsStore", () => {
         fetchMerchantDeliveryLogs,
         sendOnboardingReminder,
         registerMerchant,
+        completeCompliance,
+        fetchBankAccounts,
+        addBankAccount,
+        fetchBanks,
     };
 });
