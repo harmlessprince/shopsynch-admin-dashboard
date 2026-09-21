@@ -25,6 +25,7 @@ export const endpoints = {
         },
         merchants: {
             list: "/v1/admin/merchants",
+            register: "/v1/admin/merchants",
             complianceQueue: "/v1/admin/merchants/compliance-queue",
             detail: "/v1/admin/merchants/:tenantId",
             updateStatus: "/v1/admin/merchants/:tenantId/status",

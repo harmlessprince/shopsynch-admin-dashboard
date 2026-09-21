@@ -41,6 +41,7 @@
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@rollup/plugin-strip": "^3.0.4",
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.3",

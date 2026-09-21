@@ -112,6 +112,10 @@ export const useAdminMerchantsStore = defineStore("adminMerchantsStore", () => {
         return response;
     }
 
+    async function registerMerchant(payload) {
+        return await post(endpoints.admin.merchants.register, payload, { forceMode: "live" });
+    }
+
     return {
         merchants,
         merchant,
@@ -127,5 +131,6 @@ export const useAdminMerchantsStore = defineStore("adminMerchantsStore", () => {
         fetchReminderTemplates,
         fetchMerchantDeliveryLogs,
         sendOnboardingReminder,
+        registerMerchant,
     };
 });
