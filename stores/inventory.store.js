@@ -13,27 +13,31 @@ export const useInventoryStore = defineStore("inventoryStore", () => {
   const loading = ref(false);
   const error = ref(null);
 
-  async function getInventory(page = 1, limit = 10) {
+  async function getInventory(page = 1, limit = 50, filters = {}) {
     try {
       loading.value = true;
       error.value = null;
-      const response = await get(endpoints.inventory.list, {
+      const params = {
         page: page - 1,
         limit,
-      });
+        ...filters,
+      };
+      const response = await get(endpoints.admin.inventory.list, params);
       if (response && response.data) {
         const data = response.data;
         if (Array.isArray(data)) {
           inventory.value = data;
         } else {
-          inventory.value = data.items || data;
-          if (data.total !== undefined) {
+          inventory.value = data.items || data.content || [];
+          if (data.total !== undefined || data.totalElements !== undefined) {
+            const totalCount = data.total ?? data.totalElements ?? inventory.value.length;
+            const currentPage = data.currentPage ?? page;
             paginatedData.value = getPaginatedData({
-              current_page: data.currentPage ?? page,
+              current_page: currentPage,
               per_page: limit,
-              total: data.total,
-              from: (data.currentPage - 1) * limit + 1,
-              to: Math.min(data.currentPage * limit, data.total),
+              total: totalCount,
+              from: (currentPage - 1) * limit + 1,
+              to: Math.min(currentPage * limit, totalCount),
             });
           }
         }

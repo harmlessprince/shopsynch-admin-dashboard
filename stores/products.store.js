@@ -14,18 +14,27 @@ export const useProductStore = defineStore("productsStore", () => {
   });
   const isLoadingStats = ref(false);
   const isLoading = ref(false);
-   const paginatedData = ref(undefined);
+  const total = ref(0);
+  const paginatedData = ref(undefined);
 
   async function getProducts(params = {}) {
     try {
       isLoading.value = true;
-      const response = await get(endpoints.allProducts, params);
+      const response = await get(endpoints.admin.products.list, params);
       if (response && response.data) {
-        // products.value = response.data;
-         products.value = response.data?.products;
-         console.log("Fetched products:", products.value);
-        paginatedData.value = getPaginatedData(response.data);
+        products.value = response.data?.products || [];
+        total.value = response.data?.total || 0;
+        const limit = Number(params.limit || 50);
+        const currentPage = Number(response.data?.currentPage || 1);
+        paginatedData.value = getPaginatedData({
+          current_page: currentPage,
+          per_page: limit,
+          total: total.value,
+          from: (currentPage - 1) * limit + 1,
+          to: Math.min(currentPage * limit, total.value),
+        });
       }
+      return response;
     } finally {
       isLoading.value = false;
     }
@@ -62,7 +71,7 @@ export const useProductStore = defineStore("productsStore", () => {
   }
 
   async function getProductById(id) {
-    const response = await get(endpoints.showProduct.replace(":id", id), {});
+    const response = await get(endpoints.admin.products.detail.replace(":id", id), {});
     return response;
   }
 
@@ -100,7 +109,7 @@ export const useProductStore = defineStore("productsStore", () => {
   }
 
   async function getProductWithInventory(id) {
-    const response = await get(endpoints.showProduct.replace(":id", id), {});
+    const response = await get(endpoints.admin.products.detail.replace(":id", id), {});
     if (response && response.data) {
       try {
         const { useInventoryStore } =
@@ -135,6 +144,8 @@ export const useProductStore = defineStore("productsStore", () => {
 
   return {
     products,
+    total,
+    paginatedData,
     getProducts,
     stats,
     getProductStats,
