@@ -2,6 +2,8 @@
 import { logger, formatDate, formatToMoney } from "~/utils/helpers.js";
 import { useVfm } from "vue-final-modal";
 import SendReminderModal from "~/components/Modals/SendReminderModal.vue";
+import CompleteComplianceModal from "~/components/Modals/CompleteComplianceModal.vue";
+import AddBankAccountModal from "~/components/Modals/AddBankAccountModal.vue";
 
 definePageMeta({
   layout: "dashboard",
@@ -44,9 +46,12 @@ async function toggleStatus() {
 
 onMounted(async () => {
   try {
-    await store.fetchMerchantDetail(route.params.tenantId);
+    await Promise.all([
+      store.fetchMerchantDetail(route.params.tenantId),
+      store.fetchBankAccounts(route.params.tenantId),
+    ]);
   } catch (err) {
-    logger.error("Failed to load merchant detail", err);
+    logger.error("Failed to load merchant detail or bank accounts", err);
   }
 });
 </script>
@@ -105,6 +110,22 @@ onMounted(async () => {
               <span class="material-symbols-outlined text-[1.6rem]">forward_to_inbox</span>
               Send Reminder
             </button>
+            <button
+              v-if="['NOT_SUBMITTED', 'REJECTED'].includes(m.complianceReviewStatus)"
+              type="button"
+              class="inline-flex items-center gap-[0.4rem] rounded-[8px] bg-emerald-600 px-[1.6rem] py-[0.8rem] text-[1.3rem] font-[700] text-white transition-colors hover:bg-emerald-700 cursor-pointer"
+              @click="vfm.open('completeComplianceModal')"
+            >
+              <span class="material-symbols-outlined text-[1.6rem]">assignment_turned_in</span>
+              Complete Compliance
+            </button>
+            <NuxtLink
+              :to="`/dashboard/product/import?tenantId=${m.id}`"
+              class="inline-flex items-center gap-[0.4rem] rounded-[8px] border border-slate-300 px-[1.6rem] py-[0.8rem] text-[1.3rem] font-[700] text-slate-700 transition-colors hover:bg-slate-50"
+            >
+              <span class="material-symbols-outlined text-[1.6rem]">upload_file</span>
+              Import Products
+            </NuxtLink>
             <NuxtLink
               :to="`/dashboard/compliance/${m.id}`"
               class="inline-flex items-center gap-[0.4rem] rounded-[8px] border border-primary px-[1.6rem] py-[0.8rem] text-[1.3rem] font-[700] text-primary transition-colors hover:bg-primary/5"
@@ -165,6 +186,32 @@ onMounted(async () => {
             <span v-if="m.complianceOverrideReason" class="font-normal"> — {{ m.complianceOverrideReason }}</span>
           </p>
         </div>
+      </div>
+
+      <!-- Staff Compliance Completion Card -->
+      <div
+        v-if="['NOT_SUBMITTED', 'REJECTED'].includes(m.complianceReviewStatus)"
+        class="rounded-[8px] border border-blue-200 bg-blue-50/70 p-[2rem] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-[1.6rem]"
+      >
+        <div class="flex items-start gap-[1.2rem]">
+          <div class="flex h-[4rem] w-[4rem] shrink-0 items-center justify-center rounded-full bg-blue-100 text-primary">
+            <span class="material-symbols-outlined text-[2.2rem]">support_agent</span>
+          </div>
+          <div>
+            <h3 class="text-[1.6rem] font-[700] text-slate-900">Staff-Assisted Compliance Completion</h3>
+            <p class="mt-[0.2rem] text-[1.3rem] text-slate-600">
+              Complete business profile, contact details, and owner KYC on behalf of this merchant to submit for review.
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="inline-flex shrink-0 items-center gap-[0.6rem] rounded-[8px] bg-primary px-[2rem] py-[1rem] text-[1.4rem] font-[700] text-white shadow-sm hover:bg-blue-700 cursor-pointer"
+          @click="vfm.open('completeComplianceModal')"
+        >
+          <span class="material-symbols-outlined text-[1.8rem]">edit_document</span>
+          Fill & Submit Compliance
+        </button>
       </div>
 
       <!-- ===== BUSINESS PROFILE ===== -->
@@ -337,6 +384,60 @@ onMounted(async () => {
           <p v-else class="italic text-slate-400">No payment gateway secrets available.</p>
         </div>
       </div>
+
+      <!-- ===== SETTLEMENT BANK ACCOUNTS ===== -->
+      <div class="rounded-[8px] bg-white shadow-sm">
+        <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-[2rem] py-[1.4rem]">
+          <div class="flex items-center gap-[1rem]">
+            <span class="material-symbols-outlined text-primary">account_balance_wallet</span>
+            <h2 class="text-[1.6rem] font-[700] text-[#000]">Settlement Bank Accounts</h2>
+          </div>
+          <button
+            type="button"
+            class="inline-flex items-center gap-[0.4rem] rounded-[8px] bg-primary px-[1.4rem] py-[0.6rem] text-[1.3rem] font-[700] text-white transition-colors hover:bg-primary/90 cursor-pointer"
+            @click="vfm.open('addBankAccountModal')"
+          >
+            <span class="material-symbols-outlined text-[1.6rem]">add</span>
+            Add Bank Account
+          </button>
+        </div>
+        <div class="p-[1.6rem]">
+          <div v-if="store.bankAccountsLoading" class="flex items-center justify-center py-[2rem] text-[#616161]">
+            <span class="animate-spin material-symbols-outlined mr-[0.8rem] text-[2rem] text-primary">progress_activity</span>
+            Loading bank accounts...
+          </div>
+          <div v-else-if="store.bankAccounts.length" class="space-y-[1rem]">
+            <div
+              v-for="account in store.bankAccounts"
+              :key="account.id || account.accountNumber"
+              class="grid grid-cols-1 sm:grid-cols-4 items-center gap-[1.2rem] rounded-[8px] border border-slate-100 p-[1.4rem]"
+            >
+              <div>
+                <p class="text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">Bank</p>
+                <p class="mt-[0.4rem] font-[700] text-[#000]">{{ account.bankName || account.bankCode || "—" }}</p>
+              </div>
+              <div>
+                <p class="text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">Account Number</p>
+                <p class="mt-[0.4rem] font-mono font-[700] text-[#000]">{{ account.accountNumber || "—" }}</p>
+              </div>
+              <div>
+                <p class="text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">Account Name</p>
+                <p class="mt-[0.4rem] font-[600] text-[#000]">{{ account.accountName || "—" }}</p>
+              </div>
+              <div class="flex items-center justify-end sm:justify-start">
+                <span
+                  v-if="account.primary"
+                  class="rounded-full bg-emerald-100 px-[1rem] py-[0.2rem] text-[1.2rem] font-[700] text-emerald-800"
+                >
+                  Primary
+                </span>
+                <span v-else class="text-[1.2rem] text-slate-400">Secondary</span>
+              </div>
+            </div>
+          </div>
+          <p v-else class="italic text-slate-400">No settlement bank accounts configured for this merchant.</p>
+        </div>
+      </div>
     </template>
 
     <p v-else-if="!store.detailLoading">No merchant found.</p>
@@ -344,6 +445,18 @@ onMounted(async () => {
     <SendReminderModal
       :merchant="m"
       @sent="store.fetchMerchantDetail(route.params.tenantId)"
+    />
+
+    <CompleteComplianceModal
+      :tenant-id="route.params.tenantId"
+      :merchant="m"
+      @completed="store.fetchMerchantDetail(route.params.tenantId)"
+    />
+
+    <AddBankAccountModal
+      :tenant-id="route.params.tenantId"
+      :merchant="m"
+      @added="store.fetchBankAccounts(route.params.tenantId)"
     />
   </div>
 </template>

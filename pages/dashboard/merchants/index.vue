@@ -3,6 +3,7 @@ import { logger } from "~/utils/helpers.js";
 import { useVfm } from "vue-final-modal";
 import DataTable from "~/components/table/DataTable.vue";
 import SendReminderModal from "~/components/Modals/SendReminderModal.vue";
+import RegisterMerchantModal from "~/components/Modals/RegisterMerchantModal.vue";
 
 definePageMeta({
   layout: "dashboard",
@@ -79,9 +80,19 @@ onMounted(fetchMerchants);
   <div class="space-y-[1.6rem] text-[1.4rem] text-dashboard_text_color">
     <section class="rounded-[8px] bg-white p-[2rem] shadow-sm">
       <div class="flex flex-col gap-[1.2rem] md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 class="text-[2rem] font-[700] text-[#000]">Merchants</h1>
-          <p class="mt-[0.4rem]">All platform merchants: {{ adminMerchantsStore.total }}</p>
+        <div class="flex flex-col sm:flex-row sm:items-center gap-[1.2rem] justify-between">
+          <div>
+            <h1 class="text-[2rem] font-[700] text-[#000]">Merchants</h1>
+            <p class="mt-[0.4rem]">All platform merchants: {{ adminMerchantsStore.total }}</p>
+          </div>
+          <button
+            data-testid="open-register-merchant-modal"
+            class="rounded-[8px] bg-primary px-[1.6rem] py-[0.9rem] font-[700] text-white flex items-center gap-2 hover:bg-primary/90 transition-colors w-fit"
+            @click="vfm.open('registerMerchantModal')"
+          >
+            <span class="material-symbols-outlined text-[1.8rem]">add</span>
+            <span>Register Merchant</span>
+          </button>
         </div>
         <div class="flex flex-col gap-[1rem] sm:flex-row sm:flex-wrap sm:justify-end">
           <input
@@ -185,10 +196,16 @@ onMounted(fetchMerchants);
       </DataTable>
     </section>
 
-    <SendReminderModal
-      :merchant="selectedMerchantForReminder"
-      @sent="fetchMerchants()"
-      @closed="selectedMerchantForReminder = null"
-    />
+    <ClientOnly>
+      <SendReminderModal
+        :merchant="selectedMerchantForReminder"
+        @sent="fetchMerchants()"
+        @closed="selectedMerchantForReminder = null"
+      />
+
+      <RegisterMerchantModal
+        @registered="fetchMerchants()"
+      />
+    </ClientOnly>
   </div>
 </template>

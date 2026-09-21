@@ -17,6 +17,11 @@ export const endpoints = {
         delete: "/v2/product-templates/:id",
     },
 
+    banks: "/v1/banks",
+    files: {
+        uploadSingle: "/v1/files/upload/single/image",
+    },
+
     admin: {
         dashboard: {
             overview: "/v1/admin/dashboard/overview",
@@ -25,12 +30,20 @@ export const endpoints = {
         },
         merchants: {
             list: "/v1/admin/merchants",
+            register: "/v1/admin/merchants",
             complianceQueue: "/v1/admin/merchants/compliance-queue",
             detail: "/v1/admin/merchants/:tenantId",
             updateStatus: "/v1/admin/merchants/:tenantId/status",
             paymentSecrets: "/v1/admin/merchants/:tenantId/payment-secrets",
             sendReminder: "/v1/admin/merchants/:tenantId/send-reminder",
             reminderTemplates: "/v1/admin/communication-templates/active",
+            completeCompliance: "/v1/admin/merchants/:tenantId/compliance/complete",
+            bankAccounts: "/v1/admin/merchants/:tenantId/bank-accounts",
+        },
+        productImport: {
+            preview: "/v1/admin/merchants/:tenantId/products/import/preview",
+            commit: "/v1/admin/merchants/:tenantId/products/import/commit",
+            status: "/v1/admin/merchants/:tenantId/products/import/:importJobId/status",
         },
         compliance: {
             tenantDetail: "/v1/admin/compliance/tenants/:tenantId",
