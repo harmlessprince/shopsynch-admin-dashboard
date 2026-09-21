@@ -23,7 +23,9 @@ watch(
       return;
     }
 
-    if (newPath.includes("/dashboard/merchants")) {
+    if (newPath.includes("/dashboard/product/import")) {
+      currentPageTitle.value = "Product Import";
+    } else if (newPath.includes("/dashboard/merchants")) {
       currentPageTitle.value = "Merchants";
     } else if (newPath.includes("/dashboard/compliance")) {
       currentPageTitle.value = "Compliance";
@@ -69,6 +71,14 @@ const dashboardSidebarMenu = [
     icon: "storefront",
     activeIcon: "storefront",
     link: "/dashboard/merchants",
+    comingSoon: false,
+  },
+  {
+    key: "product-import",
+    name: "Product Import",
+    icon: "upload_file",
+    activeIcon: "upload_file",
+    link: "/dashboard/product/import",
     comingSoon: false,
   },
   {
@@ -181,8 +191,8 @@ const dashboardSidebarMenu = [
         src="/logos/dashboard-logo.png"
         class="w-[140px] h-[20px]"
         alt="ShopSynch logo"
-      />
-      <button @click="isSidebarOpen = true" class="p-2">
+      >
+      <button class="p-2" @click="isSidebarOpen = true">
         <span class="material-symbols-outlined text-[#292D32]">menu</span>
       </button>
     </header>
@@ -192,7 +202,7 @@ const dashboardSidebarMenu = [
       v-if="isSidebarOpen"
       class="lg:hidden fixed inset-0 bg-black/50 z-[90]"
       @click="isSidebarOpen = false"
-    ></div>
+    />
 
     <!-- Sidebar -->
     <div
@@ -206,10 +216,10 @@ const dashboardSidebarMenu = [
           src="/logos/dashboard-logo.png"
           class="w-[200px] h-[29px]"
           alt="ShopSynch logo for e-commerce backend api service"
-        />
+        >
         <button
-          @click="isSidebarOpen = false"
           class="lg:hidden p-2 text-white/70"
+          @click="isSidebarOpen = false"
         >
           <span class="material-symbols-outlined">close</span>
         </button>
