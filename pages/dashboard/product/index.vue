@@ -6,6 +6,7 @@ import SearchableSelectInput from "~/components/SearchableSelectInput.vue";
 import { useProductStore } from "~/stores/products.store.js";
 import { useAdminMerchantsStore } from "~/stores/adminMerchants.store.js";
 import { useAdminCategoriesStore } from "~/stores/adminCategories.store.js";
+import { useToastStore } from "~/stores/toast.store.js";
 import { formatToMoney, formatDate, logger } from "~/utils/helpers.js";
 
 definePageMeta({
@@ -23,6 +24,7 @@ const route = useRoute();
 const productStore = useProductStore();
 const merchantsStore = useAdminMerchantsStore();
 const categoriesStore = useAdminCategoriesStore();
+const toastStore = useToastStore();
 
 const filters = reactive({
   search: "",
@@ -169,6 +171,16 @@ function handleChangeLimit(nextLimit) {
   loadProducts();
 }
 
+async function handleDeleteProduct(id) {
+  try {
+    await productStore.deleteProduct(id);
+    toastStore.success("Product deleted", "");
+  } catch (err) {
+    logger.error("Failed to delete product:", err);
+    toastStore.error("Unable to delete product");
+  }
+}
+
 watch(
   () => [filters.search, filters.tenantId, filters.category, filters.status, filters.availability],
   () => {
@@ -307,8 +319,11 @@ onMounted(async () => {
         :pagination="productStore.paginatedData"
         empty-state-title="No products found"
         empty-state-description="No imported or merchant products match the selected criteria."
+        has-action
+        has-delete
         @fetch-page="handleFetchPage"
         @change-limit="handleChangeLimit"
+        @delete="handleDeleteProduct"
       >
         <!-- Product Name & Thumbnail -->
         <template #cell(name)="{ row }">

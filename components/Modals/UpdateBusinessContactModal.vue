@@ -135,7 +135,7 @@
 
 <script setup>
 import { ref, reactive, watch } from 'vue'
-import { VueFinalModal, useVfm } from 'vue-final-modal'
+import { VueFinalModal, useModal } from 'vue-final-modal'
 import { useAdminMerchantsStore } from '~/stores/adminMerchants.store.js'
 import { useToastStore } from '~/stores/toast.store.js'
 import ConfirmModal from '~/components/Modals/ConfirmModal.vue'
@@ -147,7 +147,6 @@ const props = defineProps({
 
 const emit = defineEmits(['updated', 'closed'])
 
-const vfm = useVfm()
 const adminMerchantsStore = useAdminMerchantsStore()
 const toastStore = useToastStore()
 
@@ -236,25 +235,22 @@ function handleSubmit(close) {
     const randomCode = generateRandomCode()
     const statusLabel = isApproved ? 'approved' : isUnderReview ? 'under review' : 'already prefilled'
 
-    vfm.open(
-      {
-        component: ConfirmModal,
-        on: {
-          confirm(closeConfirm) {
-            closeConfirm()
-            executeSubmit(close)
-          },
-        },
-      },
-      {
+    const confirmModal = useModal({
+      component: ConfirmModal,
+      attrs: {
         modalTitle: 'Confirm Business Contact Update',
         prompt: `This section is currently ${statusLabel}. Updating it will modify recorded contact details for this merchant.`,
         challengeText: randomCode,
         challengeInstructions: 'Please enter the confirmation code below to apply this update:',
         confirmLabel: 'Confirm & Update',
         variant: 'primary',
-      }
-    )
+        onConfirm() {
+          confirmModal.close()
+          executeSubmit(close)
+        },
+      },
+    })
+    confirmModal.open()
   } else {
     executeSubmit(close)
   }
