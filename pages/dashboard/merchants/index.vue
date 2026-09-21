@@ -21,7 +21,6 @@ const status = ref("");
 const page = ref(1);
 const limit = ref(50);
 const selectedMerchantForReminder = ref(null);
-const showRegisterModal = ref(false);
 
 const tableHeader = [
   { title: "Merchant", accessor: "businessTradingName" },
@@ -89,7 +88,7 @@ onMounted(fetchMerchants);
           <button
             data-testid="open-register-merchant-modal"
             class="rounded-[8px] bg-primary px-[1.6rem] py-[0.9rem] font-[700] text-white flex items-center gap-2 hover:bg-primary/90 transition-colors w-fit"
-            @click="showRegisterModal = true"
+            @click="vfm.open('registerMerchantModal')"
           >
             <span class="material-symbols-outlined text-[1.8rem]">add</span>
             <span>Register Merchant</span>
@@ -205,9 +204,7 @@ onMounted(fetchMerchants);
       />
 
       <RegisterMerchantModal
-        v-if="showRegisterModal"
-        @registered="fetchMerchants(); showRegisterModal = false"
-        @closed="showRegisterModal = false"
+        @registered="fetchMerchants()"
       />
     </ClientOnly>
   </div>
