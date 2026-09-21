@@ -57,7 +57,7 @@ export const formatToMoney = (value, currency = '₦') => {
     })}`;
 }
 
-export const handleFileUpload = async (eventOrFile) => {
+export const handleFileUpload = async (eventOrFile, explicitTenantId = null) => {
   let file;
   
   // Handle both event objects and File objects
@@ -76,12 +76,32 @@ export const handleFileUpload = async (eventOrFile) => {
     return null;
   }
 
+  let resolvedTenantId = explicitTenantId;
+  if (!resolvedTenantId) {
+    try {
+      const route = useRoute();
+      resolvedTenantId = route?.params?.tenantId || null;
+    } catch {
+      // Outside Nuxt route context
+    }
+  }
+
   const formData = new FormData();
   formData.append('file', file);
+  if (resolvedTenantId) {
+    formData.append('tenantId', resolvedTenantId);
+  }
 
   try {
     const { post } = useApiService();
-    const response = await post(endpoints.files.uploadSingle, formData);
+    const options = {};
+    if (resolvedTenantId) {
+      options.headers = {
+        'X-TenantId': resolvedTenantId,
+        'X-MerchantId': resolvedTenantId,
+      };
+    }
+    const response = await post(endpoints.files.uploadSingle, formData, options);
     if (response?.data?.url) {
       return response.data.url;
     } else {      

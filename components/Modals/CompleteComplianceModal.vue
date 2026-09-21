@@ -620,7 +620,7 @@ function goToPrevTab() {
 async function uploadFile(e, type) {
   uploadingDoc.value = type
   try {
-    const url = await handleFileUpload(e)
+    const url = await handleFileUpload(e, props.tenantId)
     if (url) {
       if (type === 'cac') form.businessProfile.cacDocumentUrl = url
       else if (type === 'idDoc') form.ownerKyc.idDocumentUrl = url

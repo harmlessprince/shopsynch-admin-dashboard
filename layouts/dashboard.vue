@@ -25,6 +25,12 @@ watch(
 
     if (newPath.includes("/dashboard/product/import")) {
       currentPageTitle.value = "Product Import";
+    } else if (newPath.includes("/dashboard/product-templates")) {
+      currentPageTitle.value = "Product Templates";
+    } else if (newPath.includes("/dashboard/product")) {
+      currentPageTitle.value = "Products";
+    } else if (newPath.includes("/dashboard/inventory")) {
+      currentPageTitle.value = "Inventory";
     } else if (newPath.includes("/dashboard/merchants")) {
       currentPageTitle.value = "Merchants";
     } else if (newPath.includes("/dashboard/compliance")) {
@@ -43,8 +49,6 @@ watch(
       currentPageTitle.value = "Billing";
     } else if (newPath.includes("/dashboard/categories")) {
       currentPageTitle.value = "Categories";
-    } else if (newPath.includes("/dashboard/product-templates")) {
-      currentPageTitle.value = "Product Templates";
     } else if (newPath.includes("/dashboard/notifications")) {
       currentPageTitle.value = "Notification Operations";
     } else if (newPath.includes("/dashboard/schedulers")) {
@@ -71,6 +75,22 @@ const dashboardSidebarMenu = [
     icon: "storefront",
     activeIcon: "storefront",
     link: "/dashboard/merchants",
+    comingSoon: false,
+  },
+  {
+    key: "products",
+    name: "Products",
+    icon: "inventory_2",
+    activeIcon: "inventory_2",
+    link: "/dashboard/product",
+    comingSoon: false,
+  },
+  {
+    key: "inventory",
+    name: "Inventory",
+    icon: "warehouse",
+    activeIcon: "warehouse",
+    link: "/dashboard/inventory",
     comingSoon: false,
   },
   {

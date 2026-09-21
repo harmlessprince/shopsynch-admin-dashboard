@@ -1,52 +1,78 @@
 <template>
-  <vue-final-modal name="ConfirmModal" v-slot="{ params, close }">
+  <VueFinalModal
+    v-slot="{ params, close }"
+    name="ConfirmModal"
+    :lock-scroll="false"
+    @click-outside="!isSubmitting && close()"
+  >
     <div
-      class="w-[30rem] overflow-auto my-10 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+      class="absolute left-1/2 top-1/2 z-[99999999] w-[calc(100vw-3.2rem)] max-w-[400px] -translate-x-1/2 -translate-y-1/2"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="confirm-modal-title"
+      aria-describedby="confirm-modal-description"
     >
-      <!-- Modal content -->
-      <div class="bg-white rounded-lg shadow overflow-y-auto p-4 pb-6">
-        <!-- Modal header -->
-        <div class="flex justify-between items-center rounded-t">
-          <h3 class="text-xl font-semibold text-custom-black">
-            {{ params?.modalTitle }}
-          </h3>
+      <div class="rounded-[10px] bg-white shadow">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between border-b border-[#E0E0E0] px-[2.4rem] pb-[1.6rem] pt-[2.4rem]">
+          <h2 id="confirm-modal-title" class="text-[1.8rem] font-[600] text-[#1B1B19]">
+            {{ modalTitle ?? params?.modalTitle ?? 'Confirm Action' }}
+          </h2>
           <button
             type="button"
-            class="text-custom-black bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center"
-            @click="close"
+            class="flex h-[3.2rem] w-[3.2rem] items-center justify-center rounded-[6px] transition-colors hover:bg-[#F5F5F5] focus:ring-2 focus:ring-primary focus:outline-none cursor-pointer"
+            aria-label="Close modal"
+            :disabled="isSubmitting"
+            @click="close()"
           >
-            <span class="material-icons-outlined md-18 ml-auto"> close </span>
+            <span class="material-symbols-outlined text-[2.4rem] text-[#616161]" aria-hidden="true">cancel</span>
           </button>
         </div>
-        <!-- Modal body -->
-        <div class="flex flex-col justify-end gap-5 mt-5">
-          <div>
-            <p class="text-xl">
-              {{ params.prompt ?? "Are you sure ?" }}
-            </p>
-          </div>
-          <div class="flex justify-between gap-5 mt-5">
-            <button
+
+        <!-- Modal Body -->
+        <div class="flex flex-col gap-y-[2rem] px-[2.4rem] py-[2.4rem]">
+          <p id="confirm-modal-description" class="text-[1.5rem] text-[#616161]">
+            {{ prompt ?? params?.prompt ?? "Are you sure ?" }}
+          </p>
+
+          <!-- Modal Actions -->
+          <div class="flex items-center justify-end gap-[1.2rem] pt-[0.8rem]">
+            <BaseButton
               type="button"
-              class="py-5 px-10 text-xl font-semibold text-blue-navy focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-royal focus:z-10 focus:ring-4 focus:ring-gray-200"
-              @click.stop="close"
+              variant="outline"
+              class="h-[4.7rem] rounded-[10px] px-[2.4rem] w-[48%]"
+              :disabled="isSubmitting"
+              @click.stop="close()"
             >
               Cancel
-            </button>
-            <button
-              class="text-white bg-blue-royal hover:bg-blue-navy focus:ring-4 focus:ring-blue-300 font-medium rounded-md text-xl py-5 px-10 focus:outline-none"
+            </BaseButton>
+            <BaseButton
+              type="button"
+              variant="danger"
+              class="h-[4.7rem] rounded-[10px] px-[2.4rem] w-[48%]"
+              :loading="isSubmitting"
+              :disabled="isSubmitting"
               @click="confirm(close)"
             >
-              Confirm
-            </button>
+              {{ confirmLabel }}
+            </BaseButton>
           </div>
         </div>
       </div>
     </div>
-  </vue-final-modal>
+  </VueFinalModal>
 </template>
 
 <script setup>
+import { VueFinalModal } from 'vue-final-modal'
+
+const props = defineProps({
+  modalTitle: { type: String, default: undefined },
+  prompt: { type: String, default: undefined },
+  confirmLabel: { type: String, default: 'Confirm' },
+  isSubmitting: { type: Boolean, default: false }
+})
+
 const emit = defineEmits(["confirm"]);
 
 function confirm(close) {
