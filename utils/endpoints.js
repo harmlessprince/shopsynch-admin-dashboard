@@ -51,6 +51,9 @@ export const endpoints = {
             reminderTemplates: "/v1/admin/communication-templates/active",
             completeCompliance: "/v1/admin/merchants/:tenantId/compliance/complete",
             bankAccounts: "/v1/admin/merchants/:tenantId/bank-accounts",
+            businessProfile: "/v1/admin/merchants/:tenantId/business-profile",
+            businessContact: "/v1/admin/merchants/:tenantId/business-contact",
+            ownerKyc: "/v1/admin/merchants/:tenantId/owner-kyc",
         },
         products: {
             list: "/v1/admin/products",
