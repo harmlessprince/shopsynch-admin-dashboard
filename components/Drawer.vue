@@ -1,31 +1,32 @@
 <template>
   <div
     :id="`dialog-${side}`"
-    class="fixed inset-0 z-[100] transition-all"
+    class="fixed inset-0 z-[99999] transition-all"
     :class="[open ? 'visible' : 'invisible']"
     role="dialog"
     aria-modal="true"
+    :aria-hidden="!open"
   >
     <!-- Backdrop -->
     <div
       class="fixed inset-0 bg-gray-100/50 bg-opacity-75 transition-all duration-500 ease-in-out"
       :class="[open ? 'opacity-100' : 'opacity-0']"
       @click="$emit('update:open', false)"
-    ></div>
+    />
 
     <!-- Drawer panel wrapper -->
     <div 
       :class="[
-        'fixed transition-all duration-500 ease-in-out transform',
+        'fixed transition-all duration-500 ease-in-out transform flex justify-end',
         classNames[side],
         open ? openClassNames[side] : closeClassNames[side],
-        sideWidths[side]
+        widthClass || sideWidths[side]
       ]"
       @click.stop
     >
       <div
         :class="[
-          'flex flex-col h-full shadow-xl bg-white',
+          'flex flex-col h-full shadow-xl bg-white w-full',
           contentClass,
         ]"
       >
@@ -36,7 +37,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { watch, onUnmounted } from 'vue'
 
 const props = defineProps({
   open: {
@@ -52,9 +53,38 @@ const props = defineProps({
     type: String,
     default: "p-6",
   },
+  widthClass: {
+    type: String,
+    default: null,
+  },
 })
 
 const emit = defineEmits(["update:open"])
+
+function handleKeyDown(e) {
+  if (e.key === 'Escape' && props.open) {
+    emit('update:open', false)
+  }
+}
+
+watch(
+  () => props.open,
+  (isOpen) => {
+    if (typeof window === 'undefined') return
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown)
+    } else {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  },
+  { immediate: true }
+)
+
+onUnmounted(() => {
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('keydown', handleKeyDown)
+  }
+})
 
 const openClassNames = {
   right: "translate-x-0",

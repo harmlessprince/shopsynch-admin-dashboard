@@ -17,15 +17,21 @@ interface Props {
   prefix?: string
   inputClass?: string
   disabled?: boolean
+  allowCreate?: boolean
+  customValue?: string
+  createLabel?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   inputClass: '',
   searchPlaceholder: 'Search...',
-  disabled: false
+  disabled: false,
+  allowCreate: false,
+  customValue: '',
+  createLabel: 'Create'
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'update:customValue', 'create'])
 
 const isOpen = ref(false)
 const searchQuery = ref('')
@@ -33,19 +39,29 @@ const searchInputRef = ref<HTMLInputElement | null>(null)
 const containerRef = ref<HTMLElement | null>(null)
 
 const selectedOption = computed(() =>
-  props.options.find(o => o.value === props.modelValue)
+  (props.options || []).find(o => o.value === props.modelValue)
 )
+
+const selectedLabel = computed(() =>
+  selectedOption.value?.label || props.customValue || ''
+)
+
+const trimmedSearchQuery = computed(() => searchQuery.value.trim())
 
 const filteredOptions = computed(() => {
   const q = searchQuery.value.toLowerCase().trim()
-  if (!q) return props.options
-  return props.options.filter(o => o.label.toLowerCase().includes(q))
+  if (!q) return props.options || []
+  return (props.options || []).filter(o => o.label.toLowerCase().includes(q))
 })
+
+const canCreateOption = computed(() =>
+  props.allowCreate && trimmedSearchQuery.value.length > 0 && filteredOptions.value.length === 0
+)
 
 function openDropdown() {
   if (props.disabled) return
   isOpen.value = true
-  searchQuery.value = ''
+  searchQuery.value = props.customValue || ''
   setTimeout(() => searchInputRef.value?.focus(), 50)
 }
 
@@ -56,12 +72,22 @@ function closeDropdown() {
 
 function selectOption(option: SelectOption) {
   emit('update:modelValue', option.value)
+  if (props.allowCreate) emit('update:customValue', '')
+  closeDropdown()
+}
+
+function createOption() {
+  if (!canCreateOption.value) return
+  emit('update:modelValue', '')
+  emit('update:customValue', trimmedSearchQuery.value)
+  emit('create', trimmedSearchQuery.value)
   closeDropdown()
 }
 
 function clearSelection(e: MouseEvent) {
   e.stopPropagation()
   emit('update:modelValue', '')
+  if (props.allowCreate) emit('update:customValue', '')
   closeDropdown()
 }
 
@@ -71,13 +97,17 @@ function handleClickOutside(e: MouseEvent) {
   }
 }
 
-onMounted(() => document.addEventListener('mousedown', handleClickOutside))
-onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
+onMounted(() => {
+  if (typeof document !== 'undefined') document.addEventListener('mousedown', handleClickOutside)
+})
+onUnmounted(() => {
+  if (typeof document !== 'undefined') document.removeEventListener('mousedown', handleClickOutside)
+})
 </script>
 
 <template>
   <div class="w-full" ref="containerRef" :class="{ 'opacity-50 pointer-events-none': disabled }">
-    <label v-if="label" class="block text-sm font-semibold text-slate-700 mb-2">
+    <label v-if="label" class="block text-md font-normal text-black mb-2">
       {{ label }}
     </label>
 
@@ -85,7 +115,7 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
       <!-- Trigger button -->
       <span
         v-if="prefix"
-        class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold z-10 pointer-events-none"
+        class="absolute left-4 top-1/2 -translate-y-1/2 text-black font-bold z-10 pointer-events-none"
       >
         {{ prefix }}
       </span>
@@ -94,6 +124,12 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
         type="button"
         @click="isOpen ? closeDropdown() : openDropdown()"
         :disabled="disabled"
+        role="combobox"
+        aria-haspopup="listbox"
+        :aria-expanded="isOpen"
+        :aria-controls="isOpen ? 'searchable-select-options' : undefined"
+        :aria-describedby="error ? 'error-msg' : hint ? 'hint-msg' : undefined"
+        :aria-label="selectedLabel || label || placeholder || 'Select an option'"
         class="w-full h-14 rounded-xl border bg-white outline-none transition-all text-left text-[1.4rem] flex items-center pr-10"
         :class="[
           prefix ? 'pl-10' : 'px-4',
@@ -106,8 +142,8 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
           inputClass
         ]"
       >
-        <span class="truncate pr-4" :class="selectedOption ? 'text-slate-700' : 'text-slate-400'">
-          {{ selectedOption ? selectedOption.label : (placeholder ?? 'Select an option') }}
+        <span class="truncate pr-4 text-[1.4rem]" :class="selectedLabel ? 'text-slate-700' : 'text-black'">
+          {{ selectedLabel || (placeholder ?? 'Select an option') }}
         </span>
       </button>
 
@@ -115,18 +151,20 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
       <div class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
          <!-- Clear button -->
          <button 
-           v-if="selectedOption && !disabled" 
+           v-if="selectedLabel && !disabled" 
            type="button" 
-           class="p-1 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-600"
+           class="p-1 hover:bg-slate-100 rounded-full transition-colors text-black hover:text-slate-600 cursor-pointer"
            @click.stop="clearSelection"
+           aria-label="Clear selection"
          >
-           <span class="material-symbols-outlined text-sm">close</span>
+           <span class="material-symbols-outlined text-sm" aria-hidden="true">close</span>
          </button>
 
          <!-- Chevron -->
          <span
-           class="pointer-events-none text-slate-400 transition-transform duration-200"
+           class="pointer-events-none text-black transition-transform duration-200"
            :class="isOpen ? 'rotate-180' : ''"
+           aria-hidden="true"
          >
            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
              <path
@@ -154,7 +192,7 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
           <!-- Search input -->
           <div class="p-2 border-b border-slate-100">
             <div class="relative">
-              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-black" aria-hidden="true">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
                   <path
                     fill-rule="evenodd"
@@ -167,21 +205,24 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
                 ref="searchInputRef"
                 v-model="searchQuery"
                 :placeholder="searchPlaceholder"
+                :aria-label="searchPlaceholder"
                 type="text"
-                class="w-full h-10 pl-9 pr-3 rounded-lg bg-slate-50 border border-slate-200 text-[1.3rem] text-slate-700 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                class="w-full h-10 pl-9 pr-3 rounded-lg bg-slate-50 border border-slate-200 text-[1.3rem] text-slate-700 placeholder:text-black outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
               />
             </div>
           </div>
 
           <!-- Options list -->
-          <ul class="max-h-80 overflow-y-auto py-1">
-            <li v-if="filteredOptions.length === 0" class="px-4 py-3 text-[1.3rem] text-slate-400 text-center">
+          <ul id="searchable-select-options" role="listbox" class="max-h-80 overflow-y-auto py-1">
+            <li v-if="filteredOptions.length === 0 && !canCreateOption" class="px-4 py-3 text-[1.3rem] text-black text-center" role="option" aria-selected="false">
               No results for "{{ searchQuery }}"
             </li>
             <li
               v-for="option in filteredOptions"
               :key="option.value"
               @click="selectOption(option)"
+              role="option"
+              :aria-selected="option.value === modelValue"
               class="flex items-center justify-between px-4 py-3 text-[1.4rem] cursor-pointer transition-colors"
               :class="
                 option.value === modelValue
@@ -198,6 +239,7 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
                 class="w-4 h-4 shrink-0"
                 viewBox="0 0 20 20"
                 fill="currentColor"
+                aria-hidden="true"
               >
                 <path
                   fill-rule="evenodd"
@@ -206,12 +248,22 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
                 />
               </svg>
             </li>
+            <li
+              v-if="canCreateOption"
+              @click="createOption"
+              role="option"
+              aria-selected="false"
+              class="flex items-center gap-2 px-4 py-3 text-[1.4rem] cursor-pointer transition-colors text-primary hover:bg-primary/5 font-semibold border-t border-slate-100"
+            >
+              <span class="material-symbols-outlined text-base" aria-hidden="true">add</span>
+              {{ createLabel }} "{{ trimmedSearchQuery }}"
+            </li>
           </ul>
         </div>
       </Transition>
     </div>
 
-    <p v-if="error" class="text-xs text-rose-500 mt-1.5 font-medium">{{ error }}</p>
-    <p v-else-if="hint" class="text-[10px] text-slate-400 mt-2 uppercase font-bold tracking-widest">{{ hint }}</p>
+    <p v-if="error" id="error-msg" class="text-xs text-rose-500 mt-1.5 font-medium">{{ error }}</p>
+    <p v-else-if="hint" id="hint-msg" class="text-[10px] text-black mt-2 uppercase font-bold tracking-widest">{{ hint }}</p>
   </div>
 </template>

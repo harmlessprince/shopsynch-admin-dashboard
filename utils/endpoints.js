@@ -17,12 +17,24 @@ export const endpoints = {
         delete: "/v2/product-templates/:id",
     },
 
+    allProducts: "/v1/admin/products",
+    inventory: {
+        list: "/v1/admin/inventory",
+    },
+
     banks: "/v1/banks",
     files: {
-        uploadSingle: "/v1/files/upload/single/image",
+        uploadSingle: "/v1/admin/files/upload/single/image",
+        upload: "/v1/admin/files/upload",
+        uploadMultiple: "/v1/admin/files/upload/multiple/images",
     },
 
     admin: {
+        files: {
+            uploadSingle: "/v1/admin/files/upload/single/image",
+            upload: "/v1/admin/files/upload",
+            uploadMultiple: "/v1/admin/files/upload/multiple/images",
+        },
         dashboard: {
             overview: "/v1/admin/dashboard/overview",
             merchantTrend: "/v1/admin/dashboard/merchants/trend",
@@ -39,6 +51,14 @@ export const endpoints = {
             reminderTemplates: "/v1/admin/communication-templates/active",
             completeCompliance: "/v1/admin/merchants/:tenantId/compliance/complete",
             bankAccounts: "/v1/admin/merchants/:tenantId/bank-accounts",
+        },
+        products: {
+            list: "/v1/admin/products",
+            detail: "/v1/admin/products/:id",
+        },
+        inventory: {
+            list: "/v1/admin/inventory",
+            enable: "/v1/admin/inventory/tenants/:tenantId/enable",
         },
         productImport: {
             preview: "/v1/admin/merchants/:tenantId/products/import/preview",
