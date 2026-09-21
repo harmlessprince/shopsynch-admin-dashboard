@@ -4,6 +4,10 @@ import { useVfm } from "vue-final-modal";
 import SendReminderModal from "~/components/Modals/SendReminderModal.vue";
 import CompleteComplianceModal from "~/components/Modals/CompleteComplianceModal.vue";
 import AddBankAccountModal from "~/components/Modals/AddBankAccountModal.vue";
+import UpdateBusinessProfileModal from "~/components/Modals/UpdateBusinessProfileModal.vue";
+import UpdateBusinessContactModal from "~/components/Modals/UpdateBusinessContactModal.vue";
+import UpdateOwnerKycModal from "~/components/Modals/UpdateOwnerKycModal.vue";
+import ConfirmModal from "~/components/Modals/ConfirmModal.vue";
 
 definePageMeta({
   layout: "dashboard",
@@ -30,6 +34,69 @@ const complianceStatusConfig = {
 
 function complianceBadge(status) {
   return complianceStatusConfig[status] || complianceStatusConfig.NOT_SUBMITTED;
+}
+
+function getProfileStatus(merchant) {
+  if (!merchant) return { label: 'Not Provided', class: 'bg-slate-100 text-slate-600' }
+  const isFilled = merchant.kybDetailFilled || Boolean(merchant.businessTradingName)
+  if (merchant.kybCompleted || (merchant.complianceReviewStatus === 'APPROVED' && isFilled)) {
+    return { label: 'Approved', class: 'bg-green-100 text-green-700' }
+  }
+  if (merchant.complianceReviewStatus === 'UNDER_REVIEW' && isFilled) {
+    return { label: 'Under Review', class: 'bg-blue-100 text-blue-700' }
+  }
+  if (merchant.complianceReviewStatus === 'AWAITING_APPROVAL' && isFilled) {
+    return { label: 'Awaiting Approval', class: 'bg-yellow-100 text-yellow-700' }
+  }
+  if (merchant.complianceReviewStatus === 'REJECTED') {
+    return { label: 'Rejected', class: 'bg-red-100 text-red-700' }
+  }
+  if (isFilled) {
+    return { label: 'Prefilled', class: 'bg-slate-100 text-slate-700' }
+  }
+  return { label: 'Not Provided', class: 'bg-slate-100 text-slate-500' }
+}
+
+function getContactStatus(merchant) {
+  if (!merchant) return { label: 'Not Provided', class: 'bg-slate-100 text-slate-600' }
+  const isFilled = merchant.contactDetailFilled || Boolean(merchant.businessPrimaryPhoneNumber)
+  if (merchant.complianceReviewStatus === 'APPROVED' && isFilled) {
+    return { label: 'Approved', class: 'bg-green-100 text-green-700' }
+  }
+  if (merchant.complianceReviewStatus === 'UNDER_REVIEW' && isFilled) {
+    return { label: 'Under Review', class: 'bg-blue-100 text-blue-700' }
+  }
+  if (merchant.complianceReviewStatus === 'AWAITING_APPROVAL' && isFilled) {
+    return { label: 'Awaiting Approval', class: 'bg-yellow-100 text-yellow-700' }
+  }
+  if (merchant.complianceReviewStatus === 'REJECTED') {
+    return { label: 'Rejected', class: 'bg-red-100 text-red-700' }
+  }
+  if (isFilled) {
+    return { label: 'Prefilled', class: 'bg-slate-100 text-slate-700' }
+  }
+  return { label: 'Not Provided', class: 'bg-slate-100 text-slate-500' }
+}
+
+function getKycStatus(merchant) {
+  if (!merchant) return { label: 'Not Provided', class: 'bg-slate-100 text-slate-600' }
+  const isFilled = merchant.kycDetailFilled || Boolean(merchant.owner?.idType || merchant.owner?.idNumber || merchant.owner?.address)
+  if (merchant.kycCompleted || (merchant.complianceReviewStatus === 'APPROVED' && isFilled)) {
+    return { label: 'Approved', class: 'bg-green-100 text-green-700' }
+  }
+  if (merchant.complianceReviewStatus === 'UNDER_REVIEW' && isFilled) {
+    return { label: 'Under Review', class: 'bg-blue-100 text-blue-700' }
+  }
+  if (merchant.complianceReviewStatus === 'AWAITING_APPROVAL' && isFilled) {
+    return { label: 'Awaiting Approval', class: 'bg-yellow-100 text-yellow-700' }
+  }
+  if (merchant.complianceReviewStatus === 'REJECTED') {
+    return { label: 'Rejected', class: 'bg-red-100 text-red-700' }
+  }
+  if (isFilled) {
+    return { label: 'Prefilled', class: 'bg-slate-100 text-slate-700' }
+  }
+  return { label: 'Not Provided', class: 'bg-slate-100 text-slate-500' }
 }
 
 async function toggleStatus() {
@@ -216,9 +283,22 @@ onMounted(async () => {
 
       <!-- ===== BUSINESS PROFILE ===== -->
       <div class="rounded-[8px] bg-white shadow-sm">
-        <div class="flex items-center gap-[1rem] border-b border-slate-100 bg-slate-50 px-[2rem] py-[1.4rem]">
-          <span class="material-symbols-outlined text-primary">storefront</span>
-          <h2 class="text-[1.6rem] font-[700] text-[#000]">Business Profile</h2>
+        <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-[2rem] py-[1.4rem]">
+          <div class="flex items-center gap-[1rem]">
+            <span class="material-symbols-outlined text-primary">storefront</span>
+            <h2 class="text-[1.6rem] font-[700] text-[#000]">Business Profile</h2>
+            <span :class="['inline-flex items-center rounded-full px-[1rem] py-[0.2rem] text-[1.2rem] font-[700]', getProfileStatus(m).class]">
+              {{ getProfileStatus(m).label }}
+            </span>
+          </div>
+          <button
+            type="button"
+            class="inline-flex items-center gap-[0.4rem] rounded-[8px] bg-primary px-[1.4rem] py-[0.6rem] text-[1.3rem] font-[700] text-white transition-colors hover:bg-primary/90 cursor-pointer"
+            @click="vfm.open('updateBusinessProfileModal')"
+          >
+            <span class="material-symbols-outlined text-[1.6rem]">edit</span>
+            Update Business Profile
+          </button>
         </div>
         <div class="grid grid-cols-2 gap-[1.2rem] p-[1.6rem]">
           <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
@@ -273,9 +353,22 @@ onMounted(async () => {
 
       <!-- ===== BUSINESS CONTACT ===== -->
       <div class="rounded-[8px] bg-white shadow-sm">
-        <div class="flex items-center gap-[1rem] border-b border-slate-100 bg-slate-50 px-[2rem] py-[1.4rem]">
-          <span class="material-symbols-outlined text-primary">contact_mail</span>
-          <h2 class="text-[1.6rem] font-[700] text-[#000]">Business Contact</h2>
+        <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-[2rem] py-[1.4rem]">
+          <div class="flex items-center gap-[1rem]">
+            <span class="material-symbols-outlined text-primary">contact_mail</span>
+            <h2 class="text-[1.6rem] font-[700] text-[#000]">Business Contact</h2>
+            <span :class="['inline-flex items-center rounded-full px-[1rem] py-[0.2rem] text-[1.2rem] font-[700]', getContactStatus(m).class]">
+              {{ getContactStatus(m).label }}
+            </span>
+          </div>
+          <button
+            type="button"
+            class="inline-flex items-center gap-[0.4rem] rounded-[8px] bg-primary px-[1.4rem] py-[0.6rem] text-[1.3rem] font-[700] text-white transition-colors hover:bg-primary/90 cursor-pointer"
+            @click="vfm.open('updateBusinessContactModal')"
+          >
+            <span class="material-symbols-outlined text-[1.6rem]">edit</span>
+            Update Business Contact
+          </button>
         </div>
         <div class="grid grid-cols-2 gap-[1.2rem] p-[1.6rem]">
           <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
@@ -345,6 +438,101 @@ onMounted(async () => {
             <p :class="['font-[700]', m.owner.twoFactorEnabled ? 'text-green-600' : 'text-slate-400']">
               {{ m.owner.twoFactorEnabled ? "Enabled" : "Disabled" }}
             </p>
+          </div>
+        </div>
+        <p v-else class="p-[1.6rem] italic text-slate-400">No owner information available.</p>
+      </div>
+
+      <!-- ===== KYC / IDENTITY VERIFICATION ===== -->
+      <div class="rounded-[8px] bg-white shadow-sm">
+        <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-[2rem] py-[1.4rem]">
+          <div class="flex items-center gap-[1rem]">
+            <span class="material-symbols-outlined text-primary">verified_user</span>
+            <h2 class="text-[1.6rem] font-[700] text-[#000]">Owner KYC / Identity Details</h2>
+            <span :class="['inline-flex items-center rounded-full px-[1rem] py-[0.2rem] text-[1.2rem] font-[700]', getKycStatus(m).class]">
+              {{ getKycStatus(m).label }}
+            </span>
+          </div>
+          <button
+            type="button"
+            class="inline-flex items-center gap-[0.4rem] rounded-[8px] bg-primary px-[1.4rem] py-[0.6rem] text-[1.3rem] font-[700] text-white transition-colors hover:bg-primary/90 cursor-pointer"
+            @click="vfm.open('updateOwnerKycModal')"
+          >
+            <span class="material-symbols-outlined text-[1.6rem]">edit</span>
+            Update KYC
+          </button>
+        </div>
+        <div v-if="m.owner" class="grid grid-cols-2 gap-[1.2rem] p-[1.6rem]">
+          <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
+            <p class="mb-[0.4rem] text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">First Name</p>
+            <p class="font-[500] text-[#000]">{{ m.owner.firstName || "—" }}</p>
+          </div>
+          <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
+            <p class="mb-[0.4rem] text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">Last Name</p>
+            <p class="font-[500] text-[#000]">{{ m.owner.lastName || "—" }}</p>
+          </div>
+          <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
+            <p class="mb-[0.4rem] text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">Other Name</p>
+            <p class="font-[500] text-[#000]">{{ m.owner.otherName || "—" }}</p>
+          </div>
+          <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
+            <p class="mb-[0.4rem] text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">Date of Birth</p>
+            <p class="font-[500] text-[#000]">{{ m.owner.dateOfBirth ? formatDate(m.owner.dateOfBirth) : "—" }}</p>
+          </div>
+          <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
+            <p class="mb-[0.4rem] text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">Nationality</p>
+            <p class="font-[500] text-[#000]">{{ m.owner.nationality || "—" }}</p>
+          </div>
+          <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
+            <p class="mb-[0.4rem] text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">ID Type</p>
+            <p class="font-[500] uppercase text-[#000]">{{ m.owner.idType || "—" }}</p>
+          </div>
+          <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
+            <p class="mb-[0.4rem] text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">ID Number</p>
+            <p class="font-[500] font-mono text-[#000]">{{ m.owner.idNumber || "—" }}</p>
+          </div>
+          <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
+            <p class="mb-[0.4rem] text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">Address</p>
+            <p class="font-[500] text-[#000]">{{ m.owner.address || "—" }}</p>
+          </div>
+
+          <!-- Documents / Links -->
+          <div class="col-span-2 grid grid-cols-1 md:grid-cols-3 gap-[1.2rem]">
+            <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
+              <div class="flex items-center justify-between mb-[0.4rem]">
+                <p class="text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">ID Document</p>
+                <span v-if="m.owner.idDocumentVerified" class="text-[1.1rem] font-[700] text-emerald-600">Verified</span>
+              </div>
+              <a v-if="m.owner.idDocumentUrl" :href="m.owner.idDocumentUrl" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-[0.4rem] font-[600] text-primary underline hover:no-underline">
+                <span class="material-symbols-outlined text-[1.6rem]">open_in_new</span>
+                View ID Document
+              </a>
+              <p v-else class="italic text-slate-400">Not uploaded</p>
+            </div>
+
+            <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
+              <div class="flex items-center justify-between mb-[0.4rem]">
+                <p class="text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">Owner Photo / Selfie</p>
+                <span v-if="m.owner.profileImageVerified" class="text-[1.1rem] font-[700] text-emerald-600">Verified</span>
+              </div>
+              <a v-if="m.owner.profileUrl" :href="m.owner.profileUrl" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-[0.4rem] font-[600] text-primary underline hover:no-underline">
+                <span class="material-symbols-outlined text-[1.6rem]">open_in_new</span>
+                View Photo
+              </a>
+              <p v-else class="italic text-slate-400">Not uploaded</p>
+            </div>
+
+            <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
+              <div class="flex items-center justify-between mb-[0.4rem]">
+                <p class="text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">Proof of Address</p>
+                <span v-if="m.owner.proofOfAddressVerified" class="text-[1.1rem] font-[700] text-emerald-600">Verified</span>
+              </div>
+              <a v-if="m.owner.proofOfAddress" :href="m.owner.proofOfAddress" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-[0.4rem] font-[600] text-primary underline hover:no-underline">
+                <span class="material-symbols-outlined text-[1.6rem]">open_in_new</span>
+                View Proof of Address
+              </a>
+              <p v-else class="italic text-slate-400">Not uploaded</p>
+            </div>
           </div>
         </div>
         <p v-else class="p-[1.6rem] italic text-slate-400">No owner information available.</p>
@@ -458,5 +646,25 @@ onMounted(async () => {
       :merchant="m"
       @added="store.fetchBankAccounts(route.params.tenantId)"
     />
+
+    <UpdateBusinessProfileModal
+      :tenant-id="route.params.tenantId"
+      :merchant="m"
+      @updated="store.fetchMerchantDetail(route.params.tenantId)"
+    />
+
+    <UpdateBusinessContactModal
+      :tenant-id="route.params.tenantId"
+      :merchant="m"
+      @updated="store.fetchMerchantDetail(route.params.tenantId)"
+    />
+
+    <UpdateOwnerKycModal
+      :tenant-id="route.params.tenantId"
+      :merchant="m"
+      @updated="store.fetchMerchantDetail(route.params.tenantId)"
+    />
+
+    <ConfirmModal />
   </div>
 </template>
