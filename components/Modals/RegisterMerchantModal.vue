@@ -62,6 +62,20 @@
           </div>
         </div>
 
+        <div
+          v-if="outcome === 'ERROR'"
+          class="p-4 rounded-[8px] bg-rose-50 border border-rose-300 text-rose-950 text-[1.3rem] flex items-start gap-3"
+          data-testid="outcome-error-alert"
+        >
+          <span class="material-symbols-outlined text-rose-600 text-[2rem] shrink-0 mt-0.5">error</span>
+          <div>
+            <h4 class="font-[700] text-rose-950 text-[1.4rem]">Registration Failed</h4>
+            <p class="mt-1 text-rose-800 leading-[1.8rem]">
+              {{ outcomeMessage || "An error occurred during registration. Please try again." }}
+            </p>
+          </div>
+        </div>
+
         <form @submit.prevent="handleSubmit" class="flex flex-col gap-y-[1.6rem]">
           <!-- Owner Name -->
           <div>
@@ -201,12 +215,13 @@ async function handleSubmit() {
       outcome.value = "EMAIL_ALREADY_REGISTERED";
       outcomeMessage.value = result.message;
     } else {
-      // Fallback
-      toastStore.success(response?.message || "Merchant registered successfully", "");
-      emit("registered", result);
-      handleClose();
+      // Unrecognized/missing outcome from the backend — surface as an error rather than
+      // assuming success, since we can't confirm the merchant was actually created.
+      outcome.value = "ERROR";
+      outcomeMessage.value = result?.message || response?.message || "Registration could not be confirmed. Please check the merchants list before retrying.";
     }
   } catch (err) {
+    outcome.value = "ERROR";
     outcomeMessage.value = err?.data?.message || err?.message || "An error occurred during registration.";
   } finally {
     isSubmitting.value = false;
