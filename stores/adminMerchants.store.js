@@ -129,6 +129,33 @@ export const useAdminMerchantsStore = defineStore("adminMerchantsStore", () => {
         return response;
     }
 
+    async function updateBusinessProfile(tenantId, payload) {
+        const url = endpoints.admin.merchants.businessProfile.replace(":tenantId", tenantId);
+        const response = await patch(url, payload, { forceMode: "live" });
+        if (response) {
+            toastStore.success(response.message || "Business profile updated successfully", "");
+        }
+        return response;
+    }
+
+    async function updateBusinessContact(tenantId, payload) {
+        const url = endpoints.admin.merchants.businessContact.replace(":tenantId", tenantId);
+        const response = await patch(url, payload, { forceMode: "live" });
+        if (response) {
+            toastStore.success(response.message || "Business contact updated successfully", "");
+        }
+        return response;
+    }
+
+    async function updateOwnerKyc(tenantId, payload) {
+        const url = endpoints.admin.merchants.ownerKyc.replace(":tenantId", tenantId);
+        const response = await patch(url, payload, { forceMode: "live" });
+        if (response) {
+            toastStore.success(response.message || "Owner KYC updated successfully", "");
+        }
+        return response;
+    }
+
     async function fetchBankAccounts(tenantId) {
         bankAccountsLoading.value = true;
         try {
@@ -189,6 +216,9 @@ export const useAdminMerchantsStore = defineStore("adminMerchantsStore", () => {
         sendOnboardingReminder,
         registerMerchant,
         completeCompliance,
+        updateBusinessProfile,
+        updateBusinessContact,
+        updateOwnerKyc,
         fetchBankAccounts,
         addBankAccount,
         fetchBanks,
