@@ -1019,68 +1019,77 @@ function formatMoney(amount) {
             </template>
 
             <template #cell(errors)="{ row }">
-              <div v-if="row.errors && row.errors.length > 0" class="space-y-[0.4rem] text-[1.3rem] text-red-600">
-                <div v-for="(err, idx) in row.errors" :key="idx" class="flex items-center gap-[0.4rem]">
-                  <span class="material-symbols-outlined text-[1.3rem]">close</span>
-                  <span>{{ err }}</span>
-                </div>
-
-                <!-- Blocked SKU collision affordance -->
-                <div
-                  v-if="row.suggestedSku && !row.valid"
-                  class="mt-[0.8rem] rounded-[8px] border border-amber-200 bg-amber-50/70 p-[1rem] text-slate-800 space-y-[0.8rem]"
-                >
-                  <div class="flex flex-wrap items-center gap-[0.8rem]">
-                    <button
-                      type="button"
-                      class="inline-flex items-center gap-[0.4rem] rounded-[6px] bg-emerald-600 px-[1rem] py-[0.4rem] text-[1.2rem] font-semibold text-white shadow-xs hover:bg-emerald-700 cursor-pointer"
-                      @click="handleAcceptSuffix(row.rowNumber, row.suggestedSku)"
-                    >
-                      <span class="material-symbols-outlined text-[1.4rem]">check</span>
-                      Use suggested: {{ row.suggestedSku }}
-                    </button>
-
-                    <button
-                      v-if="editingSkuRowNumber !== row.rowNumber"
-                      type="button"
-                      class="inline-flex items-center gap-[0.4rem] rounded-[6px] border border-slate-300 bg-white px-[1rem] py-[0.4rem] text-[1.2rem] font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
-                      @click="startEditingSku(row.rowNumber, row.sku)"
-                    >
-                      <span class="material-symbols-outlined text-[1.4rem]">edit</span>
-                      Edit SKU
-                    </button>
+              <div class="space-y-[0.4rem] text-[1.3rem]">
+                <div v-if="row.errors && row.errors.length > 0" class="space-y-[0.4rem] text-red-600">
+                  <div v-for="(err, idx) in row.errors" :key="idx" class="flex items-center gap-[0.4rem]">
+                    <span class="material-symbols-outlined text-[1.3rem]">close</span>
+                    <span>{{ err }}</span>
                   </div>
 
+                  <!-- Blocked SKU collision affordance -->
                   <div
-                    v-if="editingSkuRowNumber === row.rowNumber"
-                    class="flex items-center gap-[0.6rem] pt-[0.4rem]"
+                    v-if="row.suggestedSku && !row.valid"
+                    class="mt-[0.8rem] rounded-[8px] border border-amber-200 bg-amber-50/70 p-[1rem] text-slate-800 space-y-[0.8rem]"
                   >
-                    <input
-                      v-model="editingSkuValue"
-                      type="text"
-                      class="w-[18rem] rounded-[6px] border border-slate-300 bg-white px-[0.8rem] py-[0.4rem] text-[1.2rem] font-mono text-slate-900 focus:border-primary focus:outline-none"
-                      placeholder="Enter custom SKU"
-                      @keyup.enter="saveEditingSku(row.rowNumber)"
-                      @keyup.esc="cancelEditingSku"
+                    <div class="flex flex-wrap items-center gap-[0.8rem]">
+                      <button
+                        type="button"
+                        class="inline-flex items-center gap-[0.4rem] rounded-[6px] bg-emerald-600 px-[1rem] py-[0.4rem] text-[1.2rem] font-semibold text-white shadow-xs hover:bg-emerald-700 cursor-pointer"
+                        @click="handleAcceptSuffix(row.rowNumber, row.suggestedSku)"
+                      >
+                        <span class="material-symbols-outlined text-[1.4rem]">check</span>
+                        Use suggested: {{ row.suggestedSku }}
+                      </button>
+
+                      <button
+                        v-if="editingSkuRowNumber !== row.rowNumber"
+                        type="button"
+                        class="inline-flex items-center gap-[0.4rem] rounded-[6px] border border-slate-300 bg-white px-[1rem] py-[0.4rem] text-[1.2rem] font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
+                        @click="startEditingSku(row.rowNumber, row.sku)"
+                      >
+                        <span class="material-symbols-outlined text-[1.4rem]">edit</span>
+                        Edit SKU
+                      </button>
+                    </div>
+
+                    <div
+                      v-if="editingSkuRowNumber === row.rowNumber"
+                      class="flex items-center gap-[0.6rem] pt-[0.4rem]"
                     >
-                    <button
-                      type="button"
-                      class="rounded-[6px] bg-primary px-[1rem] py-[0.4rem] text-[1.2rem] font-semibold text-white hover:bg-blue-700 cursor-pointer"
-                      @click="saveEditingSku(row.rowNumber)"
-                    >
-                      Apply
-                    </button>
-                    <button
-                      type="button"
-                      class="rounded-[6px] border border-slate-300 bg-white px-[0.8rem] py-[0.4rem] text-[1.2rem] font-medium text-slate-600 hover:bg-slate-50 cursor-pointer"
-                      @click="cancelEditingSku"
-                    >
-                      Cancel
-                    </button>
+                      <input
+                        v-model="editingSkuValue"
+                        type="text"
+                        class="w-[18rem] rounded-[6px] border border-slate-300 bg-white px-[0.8rem] py-[0.4rem] text-[1.2rem] font-mono text-slate-900 focus:border-primary focus:outline-none"
+                        placeholder="Enter custom SKU"
+                        @keyup.enter="saveEditingSku(row.rowNumber)"
+                        @keyup.esc="cancelEditingSku"
+                      >
+                      <button
+                        type="button"
+                        class="rounded-[6px] bg-primary px-[1rem] py-[0.4rem] text-[1.2rem] font-semibold text-white hover:bg-blue-700 cursor-pointer"
+                        @click="saveEditingSku(row.rowNumber)"
+                      >
+                        Apply
+                      </button>
+                      <button
+                        type="button"
+                        class="rounded-[6px] border border-slate-300 bg-white px-[0.8rem] py-[0.4rem] text-[1.2rem] font-medium text-slate-600 hover:bg-slate-50 cursor-pointer"
+                        @click="cancelEditingSku"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <span v-else class="text-slate-400">Ready to import</span>
+
+                <div v-if="row.warnings && row.warnings.length > 0" class="space-y-[0.4rem] text-amber-700">
+                  <div v-for="(warning, idx) in row.warnings" :key="idx" class="flex items-center gap-[0.4rem]">
+                    <span class="material-symbols-outlined text-[1.3rem]">warning</span>
+                    <span>{{ warning }}</span>
                   </div>
                 </div>
               </div>
-              <span v-else class="text-[1.3rem] text-slate-400">Ready to import</span>
             </template>
           </DataTable>
         </div>
@@ -1231,13 +1240,22 @@ function formatMoney(amount) {
             </template>
 
             <template #cell(errors)="{ row }">
-              <div v-if="row.errors && row.errors.length > 0" class="space-y-[0.2rem] text-[1.3rem] text-red-600">
-                <div v-for="(err, idx) in row.errors" :key="idx" class="flex items-center gap-[0.4rem]">
-                  <span class="material-symbols-outlined text-[1.3rem]">close</span>
-                  <span>{{ err }}</span>
+              <div class="space-y-[0.2rem] text-[1.3rem]">
+                <div v-if="row.errors && row.errors.length > 0" class="space-y-[0.2rem] text-red-600">
+                  <div v-for="(err, idx) in row.errors" :key="idx" class="flex items-center gap-[0.4rem]">
+                    <span class="material-symbols-outlined text-[1.3rem]">close</span>
+                    <span>{{ err }}</span>
+                  </div>
+                </div>
+                <span v-else class="font-medium text-emerald-700">Product created</span>
+
+                <div v-if="row.warnings && row.warnings.length > 0" class="space-y-[0.2rem] text-amber-700">
+                  <div v-for="(warning, idx) in row.warnings" :key="idx" class="flex items-center gap-[0.4rem]">
+                    <span class="material-symbols-outlined text-[1.3rem]">warning</span>
+                    <span>{{ warning }}</span>
+                  </div>
                 </div>
               </div>
-              <span v-else class="text-[1.3rem] font-medium text-emerald-700">Product created</span>
             </template>
           </DataTable>
         </div>
