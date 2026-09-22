@@ -43,10 +43,12 @@ const targetFields = [
   { key: "name", label: "Product Name", required: true, description: "Display name of the product" },
   { key: "description", label: "Description", required: true, description: "Detailed description (min 5 chars)" },
   { key: "price", label: "Price", required: true, description: "Selling price in store currency (min 1)" },
+  { key: "costPrice", label: "Cost Price", required: false, description: "Cost or purchase price per unit (optional)" },
   { key: "category", label: "Category", required: true, description: "Existing category name or ID" },
   { key: "sku", label: "SKU", required: false, description: "Stock keeping unit code" },
   { key: "quantity", label: "Stock Quantity", required: false, description: "Initial on-hand inventory" },
   { key: "image", label: "Image URL", required: false, description: "Public image link (e.g. https://...)" },
+  { key: "tags", label: "Tags", required: false, description: "Comma-separated keywords or labels (e.g. tag1, tag2)" },
 ];
 
 const headerOptions = computed(() => {
@@ -97,6 +99,8 @@ const previewTableHeaders = [
   { title: "SKU", accessor: "sku" },
   { title: "Category", accessor: "category" },
   { title: "Price", accessor: "price" },
+  { title: "Cost", accessor: "costPrice" },
+  { title: "Tags", accessor: "tags" },
   { title: "Status", accessor: "status" },
   { title: "Image", accessor: "imageCheckStatus" },
   { title: "Validation Details", accessor: "errors" },
@@ -163,7 +167,12 @@ const filteredPreviewRows = computed(() => {
   const rows = importStore.previewJob?.rows || [];
   const search = previewFilters.value.search.trim().toLowerCase();
   return rows.filter((row) => {
-    if (search && !row.name?.toLowerCase().includes(search)) return false;
+    if (
+      search &&
+      !row.name?.toLowerCase().includes(search) &&
+      !row.tags?.some((t) => t.toLowerCase().includes(search))
+    )
+      return false;
     if (previewFilters.value.category && row.category !== previewFilters.value.category) return false;
     if (previewFilters.value.status === "valid" && !row.valid) return false;
     if (previewFilters.value.status === "invalid" && row.valid) return false;
@@ -364,7 +373,15 @@ function autoMatchHeaders() {
       mapping.name = h;
     } else if (!mapping.description && (clean.includes("desc") || clean.includes("detail") || clean.includes("body"))) {
       mapping.description = h;
-    } else if (!mapping.price && (clean.includes("price") || clean.includes("cost") || clean.includes("amount") || clean.includes("rate"))) {
+    } else if (
+      !mapping.costPrice &&
+      (clean.includes("costprice") || clean.includes("unitcost") || clean === "cost" || clean.startsWith("cost"))
+    ) {
+      mapping.costPrice = h;
+    } else if (
+      !mapping.price &&
+      (clean.includes("price") || clean.includes("amount") || clean.includes("rate") || clean.includes("sellingprice"))
+    ) {
       mapping.price = h;
     } else if (!mapping.category && (clean.includes("cat") || clean.includes("collection") || clean.includes("group") || clean.includes("type"))) {
       mapping.category = h;
@@ -374,6 +391,8 @@ function autoMatchHeaders() {
       mapping.quantity = h;
     } else if (!mapping.image && (clean.includes("image") || clean.includes("img") || clean.includes("photo") || clean.includes("pic") || clean.includes("url"))) {
       mapping.image = h;
+    } else if (!mapping.tags && (clean.includes("tag") || clean.includes("label") || clean.includes("keyword"))) {
+      mapping.tags = h;
     }
   });
 
@@ -833,9 +852,26 @@ function formatMoney(amount) {
                 </div>
                 <h4 class="mt-[0.8rem] truncate text-[1.4rem] font-semibold text-slate-900" :title="item.name">{{ item.name }}</h4>
                 <p class="text-[1.3rem] text-slate-500">{{ item.category }}</p>
+                <div v-if="item.tags && item.tags.length > 0" class="mt-[0.6rem] flex flex-wrap gap-[0.4rem]">
+                  <span
+                    v-for="(tag, idx) in item.tags.slice(0, 2)"
+                    :key="idx"
+                    class="rounded-full bg-slate-200/80 px-[0.6rem] py-[0.1rem] text-[1rem] text-slate-700"
+                  >
+                    {{ tag }}
+                  </span>
+                  <span v-if="item.tags.length > 2" class="text-[1rem] text-slate-500">
+                    +{{ item.tags.length - 2 }}
+                  </span>
+                </div>
               </div>
               <div class="mt-[0.8rem] flex items-center justify-between border-t border-slate-200 pt-[0.8rem]">
-                <span class="text-[1.3rem] font-bold text-slate-900">{{ formatMoney(item.price) }}</span>
+                <div class="flex flex-col">
+                  <span class="text-[1.3rem] font-bold text-slate-900">{{ formatMoney(item.price) }}</span>
+                  <span v-if="item.costPrice !== null && item.costPrice !== undefined" class="text-[1.1rem] text-slate-500">
+                    Cost: {{ formatMoney(item.costPrice) }}
+                  </span>
+                </div>
                 <span class="text-[1.1rem] text-slate-400">Row #{{ item.rowNumber }}</span>
               </div>
             </div>
@@ -919,6 +955,31 @@ function formatMoney(amount) {
 
             <template #cell(price)="{ value }">
               <span>{{ formatMoney(value) }}</span>
+            </template>
+
+            <template #cell(costPrice)="{ value }">
+              <span v-if="value !== null && value !== undefined">{{ formatMoney(value) }}</span>
+              <span v-else class="text-slate-400">—</span>
+            </template>
+
+            <template #cell(tags)="{ value }">
+              <div v-if="value && value.length > 0" class="flex flex-wrap gap-[0.4rem] max-w-[20rem]">
+                <span
+                  v-for="(tag, idx) in value.slice(0, 3)"
+                  :key="idx"
+                  class="inline-flex items-center rounded-full bg-slate-100 px-[0.8rem] py-[0.1rem] text-[1.1rem] font-medium text-slate-700"
+                >
+                  {{ tag }}
+                </span>
+                <span
+                  v-if="value.length > 3"
+                  class="inline-flex items-center rounded-full bg-slate-200 px-[0.6rem] py-[0.1rem] text-[1.1rem] font-semibold text-slate-600"
+                  :title="value.slice(3).join(', ')"
+                >
+                  +{{ value.length - 3 }}
+                </span>
+              </div>
+              <span v-else class="text-slate-400">—</span>
             </template>
 
             <template #cell(category)="{ value, row }">

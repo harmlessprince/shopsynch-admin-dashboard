@@ -1,11 +1,11 @@
-Product Name,Description,Price,Category,Stock Quantity,SKU,Image URL
-Classic White T-Shirt,"Premium 100% combed cotton crewneck t-shirt, soft and breathable.",12500,Clothing,50,TSHIRT-WHT-01,https://images.unsplash.com/photo-1521572267360-ee0c2909d518
-Slim Fit Denim Jeans,Stretchable slim-fit denim blue jeans with comfortable everyday fit.,25000,Clothing,35,JEANS-BLU-02,https://images.unsplash.com/photo-1542272604-787c3835535d
-Running Sneakers,Breathable lightweight athletic running shoes with responsive sole cushioning.,45000,Footwear,20,SHOE-RUN-03,https://images.unsplash.com/photo-1542291026-7eec264c27ff
-Leather Oxford Shoes,Handcrafted genuine brown leather dress shoes with sleek stitched detailing.,60000,Footwear,15,SHOE-OXF-04,https://images.unsplash.com/photo-1614252235316-8c857d38b5f4
-Wireless Bluetooth Earbuds,Active noise cancelling in-ear wireless earbuds with 24-hour battery case.,35000,Electronics,40,AUDIO-EAR-05,https://images.unsplash.com/photo-1590658268037-6bf12165a8df
-Smart Fitness Watch,Water-resistant digital smartwatch with 24/7 heart rate and sleep tracking.,55000,Electronics,25,TECH-WTC-06,https://images.unsplash.com/photo-1523275335684-37898b6baf30
-Canvas Travel Backpack,Durable water-resistant travel backpack with padded 15.6 inch laptop sleeve.,32000,Accessories,30,BAG-CAN-07,https://images.unsplash.com/photo-1553062407-98eeb64c6a62
-Stainless Steel Water Bottle,Double-wall vacuum insulated reusable water bottle keeping drinks cold 24h.,8500,Accessories,60,BOT-SS-08,https://images.unsplash.com/photo-1602143407151-7111542de6e8
-Polarized Classic Sunglasses,UV400 protection retro polarized sunglasses with durable metal frame.,14000,Accessories,45,SUN-POL-09,https://images.unsplash.com/photo-1511499767150-a48a237f0083
-Ceramic Coffee Mug,Hand-glazed minimalist ceramic coffee mug holding 350ml hot or cold beverage.,6000,Home & Kitchen,80,HOME-MUG-10,https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd
+Product Name,Description,Price,Cost Price,Category,Stock Quantity,SKU,Image URL,Tags
+Classic White T-Shirt,"Premium 100% combed cotton crewneck t-shirt, soft and breathable.",12500,8000,Clothing,50,TSHIRT-WHT-01,https://images.unsplash.com/photo-1521572267360-ee0c2909d518,"cotton, summer, basics"
+Slim Fit Denim Jeans,Stretchable slim-fit denim blue jeans with comfortable everyday fit.,25000,16000,Clothing,35,JEANS-BLU-02,https://images.unsplash.com/photo-1542272604-787c3835535d,"denim, casual, pants"
+Running Sneakers,Breathable lightweight athletic running shoes with responsive sole cushioning.,45000,30000,Footwear,20,SHOE-RUN-03,https://images.unsplash.com/photo-1542291026-7eec264c27ff,"sports, running, footwear"
+Leather Oxford Shoes,Handcrafted genuine brown leather dress shoes with sleek stitched detailing.,60000,42000,Footwear,15,SHOE-OXF-04,https://images.unsplash.com/photo-1614252235316-8c857d38b5f4,"leather, formal, office"
+Wireless Bluetooth Earbuds,Active noise cancelling in-ear wireless earbuds with 24-hour battery case.,35000,22000,Electronics,40,AUDIO-EAR-05,https://images.unsplash.com/photo-1590658268037-6bf12165a8df,"audio, bluetooth, wireless"
+Smart Fitness Watch,Water-resistant digital smartwatch with 24/7 heart rate and sleep tracking.,55000,38000,Electronics,25,TECH-WTC-06,https://images.unsplash.com/photo-1523275335684-37898b6baf30,"fitness, smartwatch, wearable"
+Canvas Travel Backpack,Durable water-resistant travel backpack with padded 15.6 inch laptop sleeve.,32000,20000,Accessories,30,BAG-CAN-07,https://images.unsplash.com/photo-1553062407-98eeb64c6a62,"travel, bag, outdoor"
+Stainless Steel Water Bottle,Double-wall vacuum insulated reusable water bottle keeping drinks cold 24h.,8500,5000,Accessories,60,BOT-SS-08,https://images.unsplash.com/photo-1602143407151-7111542de6e8,"eco, bottle, hydration"
+Polarized Classic Sunglasses,UV400 protection retro polarized sunglasses with durable metal frame.,14000,9000,Accessories,45,SUN-POL-09,https://images.unsplash.com/photo-1511499767150-a48a237f0083,"sunglasses, uv400, eyewear"
+Ceramic Coffee Mug,Hand-glazed minimalist ceramic coffee mug holding 350ml hot or cold beverage.,6000,3500,Home & Kitchen,80,HOME-MUG-10,https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd,"kitchen, mug, coffee"
