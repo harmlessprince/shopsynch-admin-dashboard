@@ -24,10 +24,12 @@ export const useAdminProductImportStore = defineStore("adminProductImportStore",
     name: "",
     description: "",
     price: "",
+    costPrice: "",
     category: "",
     sku: "",
     quantity: "",
     image: "",
+    tags: "",
   });
 
   // Loading & polling state
@@ -90,10 +92,12 @@ export const useAdminProductImportStore = defineStore("adminProductImportStore",
         name: draft.columnMapping?.name || "",
         description: draft.columnMapping?.description || "",
         price: draft.columnMapping?.price || "",
+        costPrice: draft.columnMapping?.costPrice || "",
         category: draft.columnMapping?.category || "",
         sku: draft.columnMapping?.sku || "",
         quantity: draft.columnMapping?.quantity || "",
         image: draft.columnMapping?.image || "",
+        tags: draft.columnMapping?.tags || "",
       };
       rowOverrides.value = draft.rowOverrides || {};
       currentStep.value = draft.currentStep || 2;
@@ -139,11 +143,29 @@ export const useAdminProductImportStore = defineStore("adminProductImportStore",
         if (!isNaN(parsed)) priceVal = parsed;
       }
 
+      const rawCostPrice = columnMapping.value.costPrice ? row[columnMapping.value.costPrice] : null;
+      let costPriceVal = null;
+      if (rawCostPrice !== null && rawCostPrice !== undefined && rawCostPrice !== "") {
+        const parsed = parseFloat(cleanNumericString(rawCostPrice, { allowDecimal: true }));
+        if (!isNaN(parsed)) costPriceVal = parsed;
+      }
+
       const rawQty = columnMapping.value.quantity ? row[columnMapping.value.quantity] : null;
       let qtyVal = null;
       if (rawQty !== null && rawQty !== undefined && rawQty !== "") {
         const parsed = parseInt(cleanNumericString(rawQty, { allowDecimal: false }), 10);
         if (!isNaN(parsed)) qtyVal = parsed;
+      }
+
+      const rawTags = columnMapping.value.tags ? row[columnMapping.value.tags] : null;
+      let tagsVal = [];
+      if (Array.isArray(rawTags)) {
+        tagsVal = rawTags.map(t => String(t).trim()).filter(Boolean);
+      } else if (rawTags !== null && rawTags !== undefined && String(rawTags).trim() !== "") {
+        tagsVal = String(rawTags)
+          .split(",")
+          .map(t => t.trim())
+          .filter(Boolean);
       }
 
       const override = rowOverrides.value[rowNumber] || {};
@@ -155,10 +177,12 @@ export const useAdminProductImportStore = defineStore("adminProductImportStore",
         name: nameVal,
         description: descVal,
         price: priceVal,
+        costPrice: costPriceVal,
         category: catVal,
         sku: finalSku,
         quantity: qtyVal,
         image: imgVal,
+        tags: tagsVal,
       };
 
       if (autoSuffixVal !== undefined) {
@@ -380,10 +404,12 @@ export const useAdminProductImportStore = defineStore("adminProductImportStore",
       name: "",
       description: "",
       price: "",
+      costPrice: "",
       category: "",
       sku: "",
       quantity: "",
       image: "",
+      tags: "",
     };
     rowOverrides.value = {};
     previewJobId.value = null;
