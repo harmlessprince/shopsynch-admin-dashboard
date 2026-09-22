@@ -1,6 +1,5 @@
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from "vue";
-import { useRouter, useRoute } from "vue-router";
+import { reactive, computed, onMounted, watch } from "vue";
 import DataTable from "~/components/table/DataTable.vue";
 import SearchableSelectInput from "~/components/SearchableSelectInput.vue";
 import { useProductStore } from "~/stores/products.store.js";
@@ -19,8 +18,6 @@ useHead({
   title: "Products - ShopSynch Admin",
 });
 
-const router = useRouter();
-const route = useRoute();
 const productStore = useProductStore();
 const merchantsStore = useAdminMerchantsStore();
 const categoriesStore = useAdminCategoriesStore();
@@ -28,6 +25,7 @@ const toastStore = useToastStore();
 
 const filters = reactive({
   search: "",
+  tag: "",
   tenantId: "",
   category: "",
   status: "",
@@ -80,6 +78,8 @@ const tableHeaders = [
   { title: "Category", accessor: "category" },
   { title: "Type", accessor: "productType" },
   { title: "Price", accessor: "price" },
+  { title: "Cost", accessor: "costPrice" },
+  { title: "Tags", accessor: "tags" },
   { title: "Stock", accessor: "availableQty" },
   { title: "Status", accessor: "status" },
   { title: "Created", accessor: "createdAt", type: "date" },
@@ -114,6 +114,7 @@ function getQueryFromFilters() {
     sortDirectionParam: "DESC",
   };
   if (filters.search) query.search = filters.search.trim();
+  if (filters.tag) query.tag = filters.tag.trim();
   if (filters.tenantId) query.tenantId = filters.tenantId;
   if (filters.category) query.category = filters.category;
   if (filters.status) {
@@ -141,6 +142,7 @@ async function loadProducts() {
 const hasActiveFilters = computed(() =>
   Boolean(
     filters.search ||
+    filters.tag ||
     filters.tenantId ||
     filters.category ||
     filters.status ||
@@ -151,6 +153,7 @@ const hasActiveFilters = computed(() =>
 function resetFilters() {
   Object.assign(filters, {
     search: "",
+    tag: "",
     tenantId: "",
     category: "",
     status: "",
@@ -182,7 +185,7 @@ async function handleDeleteProduct(id) {
 }
 
 watch(
-  () => [filters.search, filters.tenantId, filters.category, filters.status, filters.availability],
+  () => [filters.search, filters.tag, filters.tenantId, filters.category, filters.status, filters.availability],
   () => {
     filters.page = 1;
     loadProducts();
@@ -233,7 +236,7 @@ onMounted(async () => {
 
     <!-- Filter Bar -->
     <section class="rounded-[10px] bg-white p-[2rem] shadow-sm border border-slate-100 space-y-4">
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <!-- Search -->
         <div>
           <label class="block text-[1.2rem] font-semibold text-slate-600 mb-1">Search</label>
@@ -244,7 +247,21 @@ onMounted(async () => {
               type="search"
               placeholder="Name, SKU, code..."
               class="w-full rounded-[8px] border border-slate-200 pl-10 pr-3 py-2 text-[1.3rem] text-slate-800 placeholder-slate-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            />
+            >
+          </div>
+        </div>
+
+        <!-- Tag Filter -->
+        <div>
+          <label class="block text-[1.2rem] font-semibold text-slate-600 mb-1">Tag</label>
+          <div class="relative">
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[2rem]">label</span>
+            <input
+              v-model="filters.tag"
+              type="search"
+              placeholder="Filter by tag..."
+              class="w-full rounded-[8px] border border-slate-200 pl-10 pr-3 py-2 text-[1.3rem] text-slate-800 placeholder-slate-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            >
           </div>
         </div>
 
@@ -333,7 +350,7 @@ onMounted(async () => {
               :src="getProductImage(row)"
               class="w-[4.4rem] h-[4.4rem] rounded-xl object-cover border border-slate-100 flex-shrink-0 bg-slate-50"
               alt=""
-            />
+            >
             <div
               v-else
               class="w-[4.4rem] h-[4.4rem] rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0 border border-slate-100 text-slate-400"
@@ -405,6 +422,35 @@ onMounted(async () => {
               {{ formatToMoney(row.price) }}
             </span>
           </div>
+        </template>
+
+        <!-- Cost Price -->
+        <template #cell(costPrice)="{ value }">
+          <span v-if="value !== null && value !== undefined" class="font-mono text-[1.3rem] text-slate-600">
+            {{ formatToMoney(value) }}
+          </span>
+          <span v-else class="text-slate-400 text-[1.2rem]">—</span>
+        </template>
+
+        <!-- Tags -->
+        <template #cell(tags)="{ value }">
+          <div v-if="value && value.length > 0" class="flex flex-wrap items-center gap-1 max-w-[18rem]">
+            <span
+              v-for="(t, idx) in value.slice(0, 2)"
+              :key="idx"
+              class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[1.1rem] font-medium text-slate-700"
+            >
+              {{ t }}
+            </span>
+            <span
+              v-if="value.length > 2"
+              class="inline-flex items-center rounded-full bg-slate-200 px-1.5 py-0.5 text-[1rem] font-bold text-slate-600"
+              :title="value.slice(2).join(', ')"
+            >
+              +{{ value.length - 2 }}
+            </span>
+          </div>
+          <span v-else class="text-slate-400 text-[1.2rem]">—</span>
         </template>
 
         <!-- Stock / availableQty -->
