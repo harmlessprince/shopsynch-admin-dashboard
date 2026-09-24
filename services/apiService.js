@@ -9,6 +9,9 @@ export const useApiService = () => {
 
     const request = async (method, route, data = null, params = {}, headers = {}, options = {}) => {
         try {
+            if (!route || typeof route !== "string") {
+                throw new Error(`Invalid API endpoint: route must be a non-empty string, got ${typeof route} (${route})`);
+            }
             const { headers: optionHeaders = {}, ...fetchOptions } = options;
             const finalHeaders = { 
                 ...headers, 
