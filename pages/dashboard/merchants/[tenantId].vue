@@ -7,6 +7,7 @@ import AddBankAccountModal from "~/components/Modals/AddBankAccountModal.vue";
 import UpdateBusinessProfileModal from "~/components/Modals/UpdateBusinessProfileModal.vue";
 import UpdateBusinessContactModal from "~/components/Modals/UpdateBusinessContactModal.vue";
 import UpdateOwnerKycModal from "~/components/Modals/UpdateOwnerKycModal.vue";
+import UpdateStoreSettingsModal from "~/components/Modals/UpdateStoreSettingsModal.vue";
 import ConfirmModal from "~/components/Modals/ConfirmModal.vue";
 
 definePageMeta({
@@ -116,9 +117,10 @@ onMounted(async () => {
     await Promise.all([
       store.fetchMerchantDetail(route.params.tenantId),
       store.fetchBankAccounts(route.params.tenantId),
+      store.fetchStoreSettings(route.params.tenantId),
     ]);
   } catch (err) {
-    logger.error("Failed to load merchant detail or bank accounts", err);
+    logger.error("Failed to load merchant detail, bank accounts, or store settings", err);
   }
 });
 </script>
@@ -402,6 +404,278 @@ onMounted(async () => {
         </div>
       </div>
 
+      <!-- ===== STORE SETTINGS ===== -->
+      <div class="rounded-[8px] bg-white shadow-sm">
+        <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-[2rem] py-[1.4rem]">
+          <div class="flex items-center gap-[1rem]">
+            <span class="material-symbols-outlined text-primary">store</span>
+            <h2 class="text-[1.6rem] font-[700] text-[#000]">Store Settings</h2>
+            <span
+              v-if="store.storeSettings?.costingMethod"
+              class="inline-flex items-center rounded-full bg-slate-100 px-[1rem] py-[0.2rem] text-[1.2rem] font-[700] text-slate-700"
+            >
+              {{ store.storeSettings.costingMethod === 'WEIGHTED_AVERAGE' ? 'Weighted Average' : store.storeSettings.costingMethod }}
+            </span>
+          </div>
+          <button
+            type="button"
+            class="inline-flex items-center gap-[0.4rem] rounded-[8px] bg-primary px-[1.4rem] py-[0.6rem] text-[1.3rem] font-[700] text-white transition-colors hover:bg-primary/90 cursor-pointer"
+            @click="vfm.open('updateStoreSettingsModal')"
+          >
+            <span class="material-symbols-outlined text-[1.6rem]">edit</span>
+            Update Store Settings
+          </button>
+        </div>
+
+        <div v-if="store.storeSettingsLoading" class="flex items-center justify-center py-[4rem] text-[#616161]">
+          <span class="animate-spin material-symbols-outlined mr-[1rem] text-[2.4rem] text-primary">progress_activity</span>
+          Loading store settings...
+        </div>
+
+        <div v-else class="p-[2rem] space-y-[2.4rem]">
+          <!-- Configuration & Preferences -->
+          <div>
+            <h3 class="text-[1.3rem] font-[700] text-slate-800 uppercase tracking-wider mb-[1.2rem] flex items-center gap-[0.6rem]">
+              <span class="material-symbols-outlined text-[1.8rem] text-primary">tune</span>
+              Configuration & Regional Preferences
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-[1.2rem]">
+              <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
+                <p class="mb-[0.4rem] text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">Store Web Address (Subdomain)</p>
+                <div v-if="store.storeSettings?.slug || m.slug" class="flex items-center gap-[0.6rem]">
+                  <span class="font-[600] text-[#000]">{{ store.storeSettings?.slug || m.slug }}</span>
+                  <a
+                    :href="`https://${store.storeSettings?.slug || m.slug}.shopsynch.com`"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="inline-flex items-center text-primary hover:text-primary/80"
+                    title="Open Storefront"
+                  >
+                    <span class="material-symbols-outlined text-[1.6rem]">open_in_new</span>
+                  </a>
+                </div>
+                <p v-else class="font-[500] text-[#000]">—</p>
+              </div>
+
+              <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
+                <p class="mb-[0.4rem] text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">Currency</p>
+                <p class="font-[500] text-[#000]">{{ store.storeSettings?.currency || m.currency || "NGN" }}</p>
+              </div>
+
+              <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
+                <p class="mb-[0.4rem] text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">Timezone</p>
+                <p class="font-[500] text-[#000]">{{ store.storeSettings?.timezone || m.timezone || "Africa/Lagos" }}</p>
+              </div>
+
+              <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
+                <div class="flex items-center justify-between mb-[0.4rem]">
+                  <p class="text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">Costing Method</p>
+                  <span
+                    v-if="store.storeSettings?.costingMethodLocked"
+                    class="text-[1rem] font-[700] uppercase tracking-wider text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded"
+                  >
+                    Locked
+                  </span>
+                </div>
+                <p class="font-[500] text-[#000]">
+                  {{ store.storeSettings?.costingMethod === 'WEIGHTED_AVERAGE' ? 'Weighted Average' : (store.storeSettings?.costingMethod || 'Weighted Average') }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Branding -->
+          <div class="border-t border-slate-100 pt-[2rem]">
+            <h3 class="text-[1.3rem] font-[700] text-slate-800 uppercase tracking-wider mb-[1.2rem] flex items-center gap-[0.6rem]">
+              <span class="material-symbols-outlined text-[1.8rem] text-primary">palette</span>
+              Branding & Visual Identity
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-[1.2rem]">
+              <div class="rounded-[8px] border border-slate-100 p-[1.2rem] flex items-center gap-[1.2rem]">
+                <div class="w-[4.4rem] h-[4.4rem] rounded-[6px] border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
+                  <img
+                    v-if="store.storeSettings?.branding?.logoUrl || m.logo"
+                    :src="store.storeSettings?.branding?.logoUrl || m.logo"
+                    alt="Logo"
+                    class="w-full h-full object-contain p-1"
+                  >
+                  <span v-else class="material-symbols-outlined text-[2.4rem] text-slate-300">image</span>
+                </div>
+                <div class="min-w-0">
+                  <p class="text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">Logo</p>
+                  <p v-if="store.storeSettings?.branding?.logoUrl || m.logo" class="text-[1.2rem] text-emerald-600 font-[600] truncate">Uploaded</p>
+                  <p v-else class="text-[1.2rem] text-slate-400 italic">None</p>
+                </div>
+              </div>
+
+              <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
+                <p class="mb-[0.4rem] text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">Primary Color</p>
+                <div class="flex items-center gap-[0.8rem]">
+                  <span
+                    class="w-[2rem] h-[2rem] rounded-full border border-slate-200 shrink-0"
+                    :style="{ backgroundColor: store.storeSettings?.branding?.primaryColor || m.primaryColor || '#003366' }"
+                  />
+                  <span class="font-mono font-[600] text-[#000]">{{ store.storeSettings?.branding?.primaryColor || m.primaryColor || "#003366" }}</span>
+                </div>
+              </div>
+
+              <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
+                <p class="mb-[0.4rem] text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">Accent Color</p>
+                <div class="flex items-center gap-[0.8rem]">
+                  <span
+                    class="w-[2rem] h-[2rem] rounded-full border border-slate-200 shrink-0"
+                    :style="{ backgroundColor: store.storeSettings?.branding?.accentColor || m.accentColor || '#FF6B00' }"
+                  />
+                  <span class="font-mono font-[600] text-[#000]">{{ store.storeSettings?.branding?.accentColor || m.accentColor || "#FF6B00" }}</span>
+                </div>
+              </div>
+
+              <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
+                <p class="mb-[0.4rem] text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">Font Family</p>
+                <p class="font-[500] text-[#000]">{{ store.storeSettings?.branding?.fontFamily || m.fontFamily || "Inter" }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Social Media -->
+          <div class="border-t border-slate-100 pt-[2rem]">
+            <h3 class="text-[1.3rem] font-[700] text-slate-800 uppercase tracking-wider mb-[1.2rem] flex items-center gap-[0.6rem]">
+              <span class="material-symbols-outlined text-[1.8rem] text-primary">language</span>
+              Social Media Links
+            </h3>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-[1.2rem]">
+              <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
+                <p class="mb-[0.4rem] text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">Instagram</p>
+                <a
+                  v-if="store.storeSettings?.contact?.instagramUrl || m.instagramUrl"
+                  :href="store.storeSettings?.contact?.instagramUrl || m.instagramUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-primary hover:underline text-[1.3rem] font-[500] truncate block"
+                >
+                  View Link
+                </a>
+                <span v-else class="text-slate-400 italic text-[1.2rem]">Not set</span>
+              </div>
+
+              <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
+                <p class="mb-[0.4rem] text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">Facebook</p>
+                <a
+                  v-if="store.storeSettings?.contact?.facebookUrl || m.facebookUrl"
+                  :href="store.storeSettings?.contact?.facebookUrl || m.facebookUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-primary hover:underline text-[1.3rem] font-[500] truncate block"
+                >
+                  View Link
+                </a>
+                <span v-else class="text-slate-400 italic text-[1.2rem]">Not set</span>
+              </div>
+
+              <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
+                <p class="mb-[0.4rem] text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">X (Twitter)</p>
+                <a
+                  v-if="store.storeSettings?.contact?.twitterUrl || m.twitterUrl"
+                  :href="store.storeSettings?.contact?.twitterUrl || m.twitterUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-primary hover:underline text-[1.3rem] font-[500] truncate block"
+                >
+                  View Link
+                </a>
+                <span v-else class="text-slate-400 italic text-[1.2rem]">Not set</span>
+              </div>
+
+              <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
+                <p class="mb-[0.4rem] text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">YouTube</p>
+                <a
+                  v-if="store.storeSettings?.contact?.youtubeUrl || m.youtubeUrl"
+                  :href="store.storeSettings?.contact?.youtubeUrl || m.youtubeUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-primary hover:underline text-[1.3rem] font-[500] truncate block"
+                >
+                  View Link
+                </a>
+                <span v-else class="text-slate-400 italic text-[1.2rem]">Not set</span>
+              </div>
+
+              <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
+                <p class="mb-[0.4rem] text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">LinkedIn</p>
+                <a
+                  v-if="store.storeSettings?.contact?.linkedinUrl || m.linkedinUrl"
+                  :href="store.storeSettings?.contact?.linkedinUrl || m.linkedinUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-primary hover:underline text-[1.3rem] font-[500] truncate block"
+                >
+                  View Link
+                </a>
+                <span v-else class="text-slate-400 italic text-[1.2rem]">Not set</span>
+              </div>
+
+              <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
+                <p class="mb-[0.4rem] text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">TikTok</p>
+                <a
+                  v-if="store.storeSettings?.contact?.tiktokUrl || m.tiktokUrl"
+                  :href="store.storeSettings?.contact?.tiktokUrl || m.tiktokUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-primary hover:underline text-[1.3rem] font-[500] truncate block"
+                >
+                  View Link
+                </a>
+                <span v-else class="text-slate-400 italic text-[1.2rem]">Not set</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- SEO & Search -->
+          <div class="border-t border-slate-100 pt-[2rem]">
+            <h3 class="text-[1.3rem] font-[700] text-slate-800 uppercase tracking-wider mb-[1.2rem] flex items-center gap-[0.6rem]">
+              <span class="material-symbols-outlined text-[1.8rem] text-primary">search</span>
+              SEO & Search Crawling Metadata
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-[1.2rem]">
+              <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
+                <p class="mb-[0.4rem] text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">SEO Meta Title</p>
+                <p class="font-[500] text-[#000]">{{ store.storeSettings?.seo?.title || m.seoTitle || "—" }}</p>
+              </div>
+
+              <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
+                <p class="mb-[0.4rem] text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">Google Site Verification</p>
+                <p class="font-mono font-[500] text-[#000]">{{ store.storeSettings?.seo?.googleSiteVerification || m.googleSiteVerification || "—" }}</p>
+              </div>
+
+              <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
+                <p class="mb-[0.4rem] text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">Search Keywords</p>
+                <p class="font-[500] text-[#000]">{{ store.storeSettings?.seo?.keywords || m.seoKeywords || "—" }}</p>
+              </div>
+
+              <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
+                <p class="mb-[0.4rem] text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">Social Share Image</p>
+                <a
+                  v-if="store.storeSettings?.seo?.socialShareImage || m.socialShareImage"
+                  :href="store.storeSettings?.seo?.socialShareImage || m.socialShareImage"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="inline-flex items-center gap-[0.4rem] font-[600] text-primary underline hover:no-underline"
+                >
+                  <span class="material-symbols-outlined text-[1.6rem]">open_in_new</span>
+                  View Share Image
+                </a>
+                <p v-else class="text-slate-400 italic">Not set</p>
+              </div>
+
+              <div class="col-span-1 sm:col-span-2 rounded-[8px] border border-slate-100 p-[1.2rem]">
+                <p class="mb-[0.4rem] text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">SEO Meta Description</p>
+                <p class="font-[500] text-[#000]">{{ store.storeSettings?.seo?.description || m.seoDescription || "—" }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- ===== OWNER ===== -->
       <div class="rounded-[8px] bg-white shadow-sm">
         <div class="flex items-center gap-[1rem] border-b border-slate-100 bg-slate-50 px-[2rem] py-[1.4rem]">
@@ -663,6 +937,13 @@ onMounted(async () => {
       :tenant-id="route.params.tenantId"
       :merchant="m"
       @updated="store.fetchMerchantDetail(route.params.tenantId)"
+    />
+
+    <UpdateStoreSettingsModal
+      :tenant-id="route.params.tenantId"
+      :merchant="m"
+      :store-settings="store.storeSettings"
+      @updated="store.fetchStoreSettings(route.params.tenantId)"
     />
 
     <ConfirmModal />

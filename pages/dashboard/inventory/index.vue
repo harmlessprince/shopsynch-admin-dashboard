@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from "vue";
+import { reactive, computed, onMounted, watch } from "vue";
 import DataTable from "~/components/table/DataTable.vue";
 import SearchableSelectInput from "~/components/SearchableSelectInput.vue";
 import { useInventoryStore } from "~/stores/inventory.store.js";
@@ -160,7 +160,7 @@ onMounted(async () => {
               type="search"
               placeholder="Product, SKU, branch, code..."
               class="w-full rounded-[8px] border border-slate-200 pl-10 pr-3 py-2 text-[1.3rem] text-slate-800 placeholder-slate-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            />
+            >
           </div>
         </div>
 
@@ -211,15 +211,21 @@ onMounted(async () => {
         :pagination="inventoryStore.paginatedData"
         empty-state-title="No inventory records found"
         empty-state-description="No stock records match the selected merchant or filter criteria."
+        has-action
+        has-show
         @fetch-page="handleFetchPage"
         @change-limit="handleChangeLimit"
+        @show="(id) => $router.push('/dashboard/inventory/' + id)"
       >
         <!-- Product & SKU -->
         <template #cell(productName)="{ row }">
           <div class="py-1">
-            <p class="font-semibold text-slate-900 truncate max-w-[26rem]">
+            <NuxtLink
+              :to="'/dashboard/inventory/' + row.id"
+              class="font-semibold text-slate-900 truncate max-w-[26rem] hover:text-primary hover:underline transition-colors block"
+            >
               {{ row.productName || row.name || `Product: ${row.productId?.substring(0, 10)}...` }}
-            </p>
+            </NuxtLink>
             <div class="flex items-center gap-2 flex-wrap text-[1.1rem] mt-0.5">
               <span v-if="row.skuId || row.sku" class="text-slate-500 font-mono">
                 SKU: <strong class="text-slate-700">{{ row.skuId || row.sku }}</strong>

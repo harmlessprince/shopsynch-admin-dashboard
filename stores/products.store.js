@@ -41,19 +41,31 @@ export const useProductStore = defineStore("productsStore", () => {
   }
 
   async function getProductStats() {
-    isLoadingStats.value = true;
-    const response = await get(endpoints.productStats, {});
-    if (response && response.data) {
-      stats.value = response.data;
+    if (!endpoints.productStats) return
+    isLoadingStats.value = true
+    try {
+      const response = await get(endpoints.productStats, {})
+      if (response && response.data) {
+        stats.value = response.data
+      }
+    } finally {
+      isLoadingStats.value = false
     }
-    isLoadingStats.value = false;
   }
 
-  async function createProduct(payload) {
-    const response = await post(endpoints.createProduct, payload);
+  async function createProduct(payload, tenantId = null) {
+    const targetTenantId = tenantId || payload?.tenantId;
+    const url = targetTenantId
+      ? endpoints.admin.products.createForTenant.replace(":tenantId", targetTenantId)
+      : endpoints.createProduct;
+    const response = await post(url, payload);
     if (response && response.status) {
-      await getProducts();
-      await getProductStats();
+      try {
+        await getProducts();
+        await getProductStats();
+      } catch (e) {
+        console.warn("Background refresh after createProduct failed:", e);
+      }
     }
     return response;
   }
@@ -64,8 +76,12 @@ export const useProductStore = defineStore("productsStore", () => {
       payload,
     );
     if (response && response.status) {
-      await getProducts();
-      await getProductStats();
+      try {
+        await getProducts();
+        await getProductStats();
+      } catch (e) {
+        console.warn("Background refresh after updateProduct failed:", e);
+      }
     }
     return response;
   }
@@ -80,8 +96,12 @@ export const useProductStore = defineStore("productsStore", () => {
       endpoints.deleteProduct.replace(":id", id),
     );
     if (response && response.status) {
-      await getProducts();
-      await getProductStats();
+      try {
+        await getProducts();
+        await getProductStats();
+      } catch (e) {
+        console.warn("Background refresh after deleteProduct failed:", e);
+      }
     }
     return response;
   }
@@ -142,6 +162,33 @@ export const useProductStore = defineStore("productsStore", () => {
     }
   }
 
+  async function getUnitSuggestions(category) {
+    const response = await get(
+      endpoints.unitSuggestions,
+      category ? { category } : {},
+    );
+    return response;
+  }
+
+  async function getUnitScaffolds(category, tenantId) {
+    if (!tenantId) {
+      return getUnitSuggestions(category);
+    }
+    const url = endpoints.unitScaffolds.replace(":tenantId", tenantId);
+    const response = await get(url, category ? { category } : {});
+    return response;
+  }
+
+  async function generateSku(tenantId, payload) {
+    const url = endpoints.admin.products.generateSku.replace(":tenantId", tenantId);
+    return await post(url, payload);
+  }
+
+  async function validateSku(tenantId, params) {
+    const url = endpoints.admin.products.validateSku.replace(":tenantId", tenantId);
+    return await get(url, params);
+  }
+
   return {
     products,
     total,
@@ -157,6 +204,10 @@ export const useProductStore = defineStore("productsStore", () => {
     unarchiveProduct,
     getProductWithInventory,
     getProductInventory,
+    getUnitSuggestions,
+    getUnitScaffolds,
+    generateSku,
+    validateSku,
     isLoading,
     isLoadingStats,
   };
