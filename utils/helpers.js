@@ -300,3 +300,45 @@ export const formatDate = (val, formatType = 'standard') => {
       return date.toDate().toLocaleDateString(); // Fallback to your original logic
   }
 };
+
+export const formatUnitBreakdown = (breakdown) => {
+  if (!Array.isArray(breakdown) || !breakdown.length) return '';
+
+  return breakdown
+    .map((entry) => `${entry.quantity} ${entry.unitLabel || entry.unitKey}`)
+    .join(', ');
+};
+
+export const isSingleUnitProduct = (product) => {
+  const mode = product?.unitTrackingMode;
+  return !mode || mode === 'SINGLE_UNIT';
+};
+
+export const FIXED_UNIT_OPTIONS = {
+  FIXED_WEIGHT: [
+    { key: 'gram', label: 'Grams (g)', multiplier: 1 },
+    { key: 'kg', label: 'Kilograms (kg)', multiplier: 1000 },
+  ],
+  FIXED_VOLUME: [
+    { key: 'ml', label: 'Millilitres (ml)', multiplier: 1 },
+    { key: 'l', label: 'Litres (L)', multiplier: 1000 },
+  ],
+};
+
+export const getStockUnitOption = (trackingMode, unitKey) => {
+  const options = FIXED_UNIT_OPTIONS[trackingMode];
+  if (!options) return null;
+  return options.find((option) => option.key === unitKey) || options[options.length - 1];
+};
+
+export const stripHtmlBrowser = (html) => {
+  if (!html) return '';
+  if (typeof DOMParser === 'undefined') return stripHtmlRegex(html);
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return doc.body.textContent || '';
+};
+
+export const stripHtmlRegex = (html) => {
+  if (!html) return '';
+  return html.replace(/<[^>]*>/g, '');
+};

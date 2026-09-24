@@ -13,6 +13,8 @@ export const useAdminMerchantsStore = defineStore("adminMerchantsStore", () => {
     const paymentSecrets = ref([]);
     const bankAccounts = ref([]);
     const bankAccountsLoading = ref(false);
+    const storeSettings = ref(null);
+    const storeSettingsLoading = ref(false);
     const banks = ref([]);
     const banksLoading = ref(false);
     const loading = ref(false);
@@ -195,12 +197,41 @@ export const useAdminMerchantsStore = defineStore("adminMerchantsStore", () => {
         }
     }
 
+    async function fetchStoreSettings(tenantId) {
+        storeSettingsLoading.value = true;
+        try {
+            const url = endpoints.admin.merchants.storeSettings.replace(":tenantId", tenantId);
+            const response = await get(url, {}, { forceMode: "live" });
+            storeSettings.value = response?.data || null;
+            return storeSettings.value;
+        } catch (err) {
+            storeSettings.value = null;
+            throw err;
+        } finally {
+            storeSettingsLoading.value = false;
+        }
+    }
+
+    async function updateStoreSettings(tenantId, payload) {
+        const url = endpoints.admin.merchants.storeSettings.replace(":tenantId", tenantId);
+        const response = await patch(url, payload, { forceMode: "live" });
+        if (response) {
+            toastStore.success(response.message || "Store settings updated successfully", "");
+            if (response.data) {
+                storeSettings.value = response.data;
+            }
+        }
+        return response;
+    }
+
     return {
         merchants,
         merchant,
         paymentSecrets,
         bankAccounts,
         bankAccountsLoading,
+        storeSettings,
+        storeSettingsLoading,
         banks,
         banksLoading,
         loading,
@@ -222,5 +253,7 @@ export const useAdminMerchantsStore = defineStore("adminMerchantsStore", () => {
         fetchBankAccounts,
         addBankAccount,
         fetchBanks,
+        fetchStoreSettings,
+        updateStoreSettings,
     };
 });

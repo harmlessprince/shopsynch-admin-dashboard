@@ -20,6 +20,7 @@
     "@unhead/vue": "^2.0.0",
     "@vee-validate/zod": "^4.15.0",
     "@vue-final-modal/nuxt": "^1.0.3",
+    "@vueup/vue-quill": "^1.5.5",
     "chart.js": "^4.5.1",
     "dayjs": "^1.11.13",
     "eslint": "^9.23.0",

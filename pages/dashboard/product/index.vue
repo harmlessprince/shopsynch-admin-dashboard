@@ -225,10 +225,17 @@ onMounted(async () => {
         <div class="flex items-center gap-3">
           <NuxtLink
             to="/dashboard/product/import"
-            class="flex items-center gap-2 rounded-[8px] bg-primary px-[1.6rem] py-[1rem] font-[700] text-white hover:bg-primary/90 transition-colors"
+            class="flex items-center gap-2 rounded-[8px] border border-slate-200 bg-slate-50 px-[1.6rem] py-[1rem] font-[700] text-slate-700 hover:bg-slate-100 transition-colors"
           >
             <span class="material-symbols-outlined text-[2rem]">upload_file</span>
             <span>Import Products</span>
+          </NuxtLink>
+          <NuxtLink
+            to="/dashboard/product/create"
+            class="flex items-center gap-2 rounded-[8px] bg-primary px-[1.6rem] py-[1rem] font-[700] text-white hover:bg-primary/90 transition-colors"
+          >
+            <span class="material-symbols-outlined text-[2rem]">add</span>
+            <span>Create Product</span>
           </NuxtLink>
         </div>
       </div>
@@ -337,9 +344,13 @@ onMounted(async () => {
         empty-state-title="No products found"
         empty-state-description="No imported or merchant products match the selected criteria."
         has-action
+        has-show
+        has-edit
         has-delete
         @fetch-page="handleFetchPage"
         @change-limit="handleChangeLimit"
+        @show="(id) => $router.push('/dashboard/product/' + id)"
+        @edit="(id) => $router.push('/dashboard/product/' + id + '/edit')"
         @delete="handleDeleteProduct"
       >
         <!-- Product Name & Thumbnail -->
@@ -348,18 +359,25 @@ onMounted(async () => {
             <img
               v-if="getProductImage(row)"
               :src="getProductImage(row)"
-              class="w-[4.4rem] h-[4.4rem] rounded-xl object-cover border border-slate-100 flex-shrink-0 bg-slate-50"
+              class="w-[4.4rem] h-[4.4rem] rounded-xl object-cover border border-slate-100 flex-shrink-0 bg-slate-50 cursor-pointer"
               alt=""
+              @click="$router.push('/dashboard/product/' + row.id)"
             >
             <div
               v-else
-              class="w-[4.4rem] h-[4.4rem] rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0 border border-slate-100 text-slate-400"
+              class="w-[4.4rem] h-[4.4rem] rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0 border border-slate-100 text-slate-400 cursor-pointer"
+              @click="$router.push('/dashboard/product/' + row.id)"
             >
               <span class="material-symbols-outlined text-[2rem]">image_not_supported</span>
             </div>
 
             <div class="min-w-0 flex-1">
-              <p class="font-semibold text-slate-900 truncate max-w-[28rem]">{{ row.name }}</p>
+              <NuxtLink
+                :to="'/dashboard/product/' + row.id"
+                class="font-semibold text-slate-900 truncate max-w-[28rem] hover:text-primary hover:underline transition-colors block"
+              >
+                {{ row.name }}
+              </NuxtLink>
               <div class="flex items-center gap-2 flex-wrap text-[1.1rem] mt-0.5">
                 <span v-if="row.sku" class="text-slate-500">
                   SKU: <strong class="text-slate-700 font-mono">{{ row.sku }}</strong>
