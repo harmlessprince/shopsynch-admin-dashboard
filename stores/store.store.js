@@ -39,7 +39,7 @@ export const useStoreStore = defineStore("storeStore", () => {
 
     async function checkSlugAvailability(slug) {
         try {
-            const response = await get(`/v1/store/check-slug/${slug}`, {}, { forceMode: 'live' });
+            const response = await get(`/v1/admin/merchants/store/check-slug/${slug}`, {}, { forceMode: 'live' });
             // response.data is false if available, true if taken
             return {
                 available: response?.data === false,
