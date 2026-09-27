@@ -296,9 +296,92 @@ export const formatDate = (val, formatType = 'standard') => {
       return date.format('DD/MM/YYYY'); // "15/04/2024"
     case 'full':
       return date.format('MMMM D, YYYY'); // "April 15, 2024"
+    case 'time':
+      return date.format('hh:mm A'); // "08:23 AM"
+    case 'datetime':
+      return date.format('DD/MM/YYYY hh:mm A'); // "15/04/2024 08:23 AM"
+    case 'fullDateTime':
+      return date.format('MMMM D, YYYY h:mm A'); // "April 15, 2024 8:23 AM"
     default:
       return date.toDate().toLocaleDateString(); // Fallback to your original logic
   }
+};
+
+export const formatTime = (val) => {
+  return formatDate(val, 'time');
+};
+
+export const formatDateTime = (val, formatType = 'fullDateTime') => {
+  return formatDate(val, formatType);
+};
+
+export const formatApiErrorMessage = (msg, data = {}) => {
+  if (!msg || typeof msg !== 'string') {
+    return 'Error, please try again later';
+  }
+
+  const raw = msg.trim();
+  const code = data?.code || data?.errorCode;
+
+  // 1. JWT expired handling (extract expiration timestamp if present in raw string)
+  if (code === 'JWT_TOKEN_EXPIRED' || /JWT expired/i.test(raw)) {
+    if (data?.expiredAt) {
+      const formatted = formatDateTime(data.expiredAt);
+      if (formatted !== 'Invalid Date') {
+        return `Your session expired at ${formatted}. Please sign in again.`;
+      }
+    }
+    const match = raw.match(/JWT expired.*?at\s+([0-9T:\-.Z]+)/i);
+    if (match && match[1]) {
+      const cleanDate = match[1].replace(/[.,]+$/, '');
+      const formatted = formatDateTime(cleanDate);
+      const relative = formatDate(cleanDate, 'relative');
+      if (formatted !== 'Invalid Date') {
+        return relative !== 'Invalid Date'
+          ? `Your session expired at ${formatted} (${relative}). Please sign in again.`
+          : `Your session expired at ${formatted}. Please sign in again.`;
+      }
+    }
+    return 'Your session has expired. Please sign in again.';
+  }
+
+  // 2. JWT invalid or signature mismatch
+  if (code === 'JWT_TOKEN_INVALID' || /invalid session token/i.test(raw) || /malformed jwt/i.test(raw) || /signature/i.test(raw)) {
+    return 'Invalid session token. Please sign in again.';
+  }
+
+  // 3. JWT unsupported
+  if (code === 'JWT_TOKEN_UNSUPPORTED' || /unsupported.*token/i.test(raw)) {
+    return 'Unsupported authentication token. Please sign in again.';
+  }
+
+  // 4. General ISO-8601 timestamps in error messages: format all embedded timestamps
+  const isoTimestampRegex = /\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?\b/g;
+  if (isoTimestampRegex.test(raw)) {
+    return raw.replace(isoTimestampRegex, (isoStr) => {
+      const formatted = formatDateTime(isoStr, 'fullDateTime');
+      return formatted !== 'Invalid Date' ? formatted : isoStr;
+    });
+  }
+
+  return raw;
+};
+
+export const getAuthErrorTitle = (data = {}, message = '') => {
+  const code = data?.code || data?.errorCode;
+  if (code === 'JWT_TOKEN_EXPIRED' || /session.*expired|jwt expired/i.test(message)) {
+    return 'Session Expired';
+  }
+  if (code === 'JWT_TOKEN_INVALID' || /invalid session/i.test(message)) {
+    return 'Invalid Session';
+  }
+  if (code === 'JWT_TOKEN_UNSUPPORTED' || /unsupported.*token/i.test(message)) {
+    return 'Unsupported Token';
+  }
+  if (data?.title && data.title !== 'about:blank' && data.title !== 'Unauthorized') {
+    return data.title;
+  }
+  return 'Session Expired';
 };
 
 export const formatUnitBreakdown = (breakdown) => {
