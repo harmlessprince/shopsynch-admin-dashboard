@@ -1,9 +1,17 @@
 import {useErrorStore} from "~/stores/error.store";
 import {useAuthStore} from "~/stores/auth.store";
 import {useToastStore} from "~/stores/toast.store";
-import {logger} from "~/utils/helpers";
+import {logger, formatApiErrorMessage, getAuthErrorTitle} from "~/utils/helpers";
 
 const LONG_ERROR_MESSAGE_LIMIT = 140;
+
+type FetchInterceptorOptions = {
+    silent?: boolean;
+    skipAuthRefresh?: boolean;
+    authRetry?: boolean;
+    body?: unknown;
+    method?: string;
+};
 
 export default defineNuxtPlugin((_nuxtApp) => {
     logger.log('✅ fetch-interceptor plugin loaded');
@@ -59,10 +67,11 @@ export default defineNuxtPlugin((_nuxtApp) => {
                 return
             }
 
-            const isSilent = (options as any).silent;
+            const isSilent = (options as FetchInterceptorOptions).silent;
 
             const error = data?.error ?? 'error';
-            let message = data?.message ?? data?.detail ?? 'Error, please try again later';
+            let message = data?.description ?? data?.message ?? data?.detail ?? 'Error, please try again later';
+            message = formatApiErrorMessage(message, data);
             const errorCodeValue: string | undefined = data?.errorCode ?? data?.code;
             const resolutionValue: string | undefined = data?.resolution;
 
@@ -81,16 +90,18 @@ export default defineNuxtPlugin((_nuxtApp) => {
                     errorStore.setErrorMessage(message)
                     showErrorFeedback(message, error, { resolution: resolutionValue })
                     break;
-                case 401:
-                    if (!(options as any).skipAuthRefresh && !(options as any).authRetry && authStore.getRefreshToken()) {
+                case 401: {
+                    const trackedOptions = options as FetchInterceptorOptions;
+                    if (!trackedOptions.skipAuthRefresh && !trackedOptions.authRetry && authStore.getRefreshToken()) {
                         break;
                     }
                     authStore.clearAuthToken()
                     authStore.clearRefreshToken()
                     authStore.clearAuthUser()
-                    showErrorFeedback(message, "Unauthenticated", { resolution: resolutionValue })
+                    showErrorFeedback(message, getAuthErrorTitle(data, message), { resolution: resolutionValue })
                     navigateTo("/login")
                     break;
+                }
                 case 403:
                     showErrorFeedback(message, "Unauthorized", { resolution: resolutionValue })
                     navigateTo("/unauthorized");
