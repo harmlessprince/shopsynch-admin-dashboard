@@ -122,9 +122,9 @@
             </div>
 
             <div class="flex flex-col gap-y-[0.6rem]">
-              <label class="font-[600] text-[1.3rem] text-[#0F172A]">Storefront URL</label>
+              <label class="font-[600] text-[1.3rem] text-[#0F172A]">Website</label>
               <input
-                v-model="form.businessStorefrontUrl"
+                v-model="form.website"
                 type="text"
                 placeholder="https://..."
                 class="h-12 rounded-xl border border-slate-200 px-4 text-[1.3rem] text-[#1B1B19] focus:border-primary focus:outline-none"
@@ -214,7 +214,7 @@ const form = reactive({
   businessTradingName: '',
   businessType: 'starter',
   businessRegistrationNumber: '',
-  businessStorefrontUrl: '',
+  website: '',
   businessDescription: '',
   industry: '',
   businessTaxIdNumber: '',
@@ -228,7 +228,7 @@ function populateForm(m) {
   form.businessTradingName = m.businessTradingName || ''
   form.businessType = m.businessType ? m.businessType.toLowerCase() : 'starter'
   form.businessRegistrationNumber = m.businessRegistrationNumber || ''
-  form.businessStorefrontUrl = m.businessStorefrontUrl || ''
+  form.website = m.website || ''
   form.businessDescription = m.businessDescription || ''
   form.industry = m.industry || ''
   form.businessTaxIdNumber = m.businessTaxIdNumber || ''
@@ -283,7 +283,7 @@ async function executeSubmit(close) {
       businessTradingName: form.businessTradingName || undefined,
       businessType: form.businessType || undefined,
       businessRegistrationNumber: form.businessRegistrationNumber || undefined,
-      businessStorefrontUrl: form.businessStorefrontUrl || undefined,
+      website: form.website || undefined,
       businessDescription: form.businessDescription || undefined,
       industry: form.industry || undefined,
       businessTaxIdNumber: form.businessTaxIdNumber || undefined,
