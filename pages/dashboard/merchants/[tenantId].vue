@@ -332,9 +332,16 @@ onMounted(async () => {
             <p class="font-[500] text-[#000]">{{ m.staffSize ?? "—" }}</p>
           </div>
           <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
-            <p class="mb-[0.4rem] text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">Storefront URL</p>
-            <a v-if="m.businessStorefrontUrl" :href="m.businessStorefrontUrl" target="_blank" rel="noopener noreferrer" class="break-all font-[500] text-primary underline hover:no-underline">
-              {{ m.businessStorefrontUrl }}
+            <p class="mb-[0.4rem] text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">Store Link</p>
+            <a v-if="m.storefrontUrl" :href="m.storefrontUrl" target="_blank" rel="noopener noreferrer" class="break-all font-[500] text-primary underline hover:no-underline">
+              {{ m.storefrontUrl }}
+            </a>
+            <p v-else class="font-[500] text-[#000]">—</p>
+          </div>
+          <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
+            <p class="mb-[0.4rem] text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">Website</p>
+            <a v-if="m.website" :href="m.website" target="_blank" rel="noopener noreferrer" class="break-all font-[500] text-primary underline hover:no-underline">
+              {{ m.website }}
             </a>
             <p v-else class="font-[500] text-[#000]">—</p>
           </div>

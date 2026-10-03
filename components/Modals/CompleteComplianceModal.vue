@@ -142,9 +142,9 @@
               </div>
 
               <div class="flex flex-col gap-y-[0.6rem]">
-                <label class="font-[600] text-[1.3rem] text-[#0F172A]">Storefront URL</label>
+                <label class="font-[600] text-[1.3rem] text-[#0F172A]">Website</label>
                 <input
-                  v-model="form.businessProfile.businessStorefrontUrl"
+                  v-model="form.businessProfile.website"
                   type="text"
                   placeholder="https://..."
                   class="h-12 rounded-xl border border-slate-200 px-4 text-[1.3rem] text-[#1B1B19] focus:border-primary focus:outline-none"
@@ -521,7 +521,7 @@ const form = reactive({
     businessTradingName: '',
     businessType: 'starter',
     businessRegistrationNumber: '',
-    businessStorefrontUrl: '',
+    website: '',
     businessDescription: '',
     industry: '',
     businessTaxIdNumber: '',
@@ -563,7 +563,7 @@ function populateForm(m) {
   form.businessProfile.businessTradingName = m.businessTradingName || ''
   form.businessProfile.businessType = m.businessType ? m.businessType.toLowerCase() : 'starter'
   form.businessProfile.businessRegistrationNumber = m.businessRegistrationNumber || ''
-  form.businessProfile.businessStorefrontUrl = m.businessStorefrontUrl || ''
+  form.businessProfile.website = m.website || ''
   form.businessProfile.businessDescription = m.businessDescription || ''
   form.businessProfile.industry = m.industry || ''
   form.businessProfile.businessTaxIdNumber = m.businessTaxIdNumber || ''
@@ -672,7 +672,7 @@ async function handleSubmit(close) {
         businessTradingName: form.businessProfile.businessTradingName || undefined,
         businessType: form.businessProfile.businessType || undefined,
         businessRegistrationNumber: form.businessProfile.businessRegistrationNumber || undefined,
-        businessStorefrontUrl: form.businessProfile.businessStorefrontUrl || undefined,
+        website: form.businessProfile.website || undefined,
         businessDescription: form.businessProfile.businessDescription || undefined,
         industry: form.businessProfile.industry || undefined,
         businessTaxIdNumber: form.businessProfile.businessTaxIdNumber || undefined,
