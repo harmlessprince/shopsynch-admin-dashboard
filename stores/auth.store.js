@@ -42,6 +42,7 @@ export const useAuthStore = defineStore("authStore", () => {
     const forgotPasswordTokenEmail = ref(null);
 
     const verifyingEmail = ref(false)
+    let activeRefreshPromise = null;
     const init = async () => {
         await fetchUserProfile()
     };
@@ -234,31 +235,42 @@ export const useAuthStore = defineStore("authStore", () => {
     async function refreshAuthToken() {
         const currentRefreshToken = getRefreshToken();
         if (!currentRefreshToken) return false;
+        // Requests that hit a 401 together share one refresh: the backend rotates the refresh
+        // token, so a second call with the old one would end the session.
+        if (activeRefreshPromise) {
+            return activeRefreshPromise;
+        }
 
-        try {
-            const response = await post(
-                endpoints.refreshToken,
-                {refreshToken: currentRefreshToken},
-                {forceMode: 'live', skipAuthRefresh: true, silent: true}
-            );
-            const data = response?.data ?? response;
-            if (!data?.token) {
+        activeRefreshPromise = (async () => {
+            try {
+                const response = await post(
+                    endpoints.refreshToken,
+                    {refreshToken: currentRefreshToken},
+                    {forceMode: 'live', skipAuthRefresh: true, silent: true}
+                );
+                const data = response?.data ?? response;
+                if (!data?.token) {
+                    clearRefreshToken();
+                    return false;
+                }
+
+                useCookie('shopsynch_admin_auth_token').value = data.token;
+                setAuthToken(data.token);
+                setRefreshToken(data.refreshToken || currentRefreshToken);
+                if (data.user) {
+                    setAuthUser(data.user);
+                }
+                return true;
+            } catch (error) {
+                logger.error('Failed to refresh auth token:', error);
                 clearRefreshToken();
                 return false;
+            } finally {
+                activeRefreshPromise = null;
             }
+        })();
 
-            useCookie('shopsynch_admin_auth_token').value = data.token;
-            setAuthToken(data.token);
-            setRefreshToken(data.refreshToken || currentRefreshToken);
-            if (data.user) {
-                setAuthUser(data.user);
-            }
-            return true;
-        } catch (error) {
-            logger.error('Failed to refresh auth token:', error);
-            clearRefreshToken();
-            return false;
-        }
+        return activeRefreshPromise;
     }
 
     function initiateGoogleLogin(redirectUrl) {
