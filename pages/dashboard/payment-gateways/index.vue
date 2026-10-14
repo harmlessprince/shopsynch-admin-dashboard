@@ -16,32 +16,26 @@ const settingsStore = useAdminSettingsStore();
 const toastStore = useToastStore();
 
 const activeTab = ref("control"); // 'control' | 'health' | 'alerts'
-const selectedCountry = ref("NG");
-const countries = [
-  { code: "NG", name: "Nigeria (NG)" },
-  { code: "DEFAULT", name: "Default (Global Fallback)" },
-];
+const selectedCountry = ref("DEFAULT");
+const countries = computed(() =>
+  gatewayStore.settingsList.map((setting) => ({
+    code: setting.country,
+    name: setting.country === "DEFAULT" ? "Default (Global Fallback)" : setting.country,
+  }))
+);
 
 const availableGateways = [
-  { code: "paystack", name: "Paystack", description: "Cards, Bank Transfer, USSD" },
-  { code: "korapay", name: "Korapay", description: "Cards, Bank Transfer, Mobile Money" },
-  { code: "monnify", name: "Monnify", description: "Account Transfer, Cards, USSD" },
-  { code: "flutterwave", name: "Flutterwave", description: "Cards, Mobile Money, Bank Transfer" },
-  { code: "squad", name: "Squad", description: "Virtual Accounts, USSD, Cards" },
-  { code: "nomba", name: "Nomba", description: "POS Terminal, Cards, Transfer" },
+  { code: "PAYSTACK", name: "Paystack", description: "Cards, Bank Transfer, USSD" },
+  { code: "MONNIFY", name: "Monnify", description: "Account Transfer, Cards, USSD" },
+  { code: "FLUTTERWAVE", name: "Flutterwave", description: "Cards, Mobile Money, Bank Transfer" },
+  { code: "STRIPE", name: "Stripe", description: "International card processing (USD/EUR/GBP)" },
+  { code: "OFFLINE", name: "Offline", description: "Manual bank transfer or Cash on Delivery" },
 ];
 
 // Setting draft state
-const enabledGateways = ref(["paystack", "korapay", "monnify"]);
-const defaultGateway = ref("paystack");
-const storeUsageCounts = ref({
-  paystack: 142,
-  korapay: 58,
-  monnify: 31,
-  flutterwave: 12,
-  squad: 5,
-  nomba: 3,
-});
+const enabledGateways = ref([]);
+const defaultGateway = ref("");
+const affectedStores = ref(0);
 
 // Modals
 const showDisableModal = ref(false);
@@ -57,21 +51,22 @@ const alertSettingKey = "platformPaymentAlertEmails";
 
 const currentCountrySetting = computed(() => {
   return gatewayStore.settingsList.find(
-    (s) => (s.country || s.countryCode)?.toUpperCase() === selectedCountry.value.toUpperCase()
+    (s) => (s.country || "")?.toUpperCase() === selectedCountry.value.toUpperCase()
   );
 });
 
 function syncCountrySetting() {
   const setting = currentCountrySetting.value;
   if (setting) {
-    enabledGateways.value = Array.isArray(setting.enabledGateways) ? [...setting.enabledGateways] : ["paystack", "korapay"];
-    defaultGateway.value = setting.defaultGateway || enabledGateways.value[0] || "paystack";
-    if (setting.storeUsageCounts) {
-      storeUsageCounts.value = { ...storeUsageCounts.value, ...setting.storeUsageCounts };
-    }
+    enabledGateways.value = (setting.gateways || [])
+      .filter((gateway) => gateway.enabled)
+      .map((gateway) => gateway.gateway);
+    defaultGateway.value = setting.defaultGateway || enabledGateways.value[0] || "";
+    affectedStores.value = setting.affectedStores ?? 0;
   } else {
-    enabledGateways.value = ["paystack", "korapay", "monnify"];
-    defaultGateway.value = "paystack";
+    enabledGateways.value = [];
+    defaultGateway.value = "";
+    affectedStores.value = 0;
   }
 }
 
@@ -145,11 +140,11 @@ async function saveCountrySettings() {
 
   try {
     const payload = {
-      country: selectedCountry.value,
       enabledGateways: enabledGateways.value,
       defaultGateway: defaultGateway.value,
     };
     await gatewayStore.updateCountryGatewaySetting(selectedCountry.value, payload);
+    syncCountrySetting();
   } catch (error) {
     const msg = error?.data?.message || error?.message || "Failed to update country gateway settings.";
     toastStore.error(msg);
@@ -219,7 +214,6 @@ async function saveAlertRecipients() {
   try {
     const payloadValue = emails.join(",");
     await settingsStore.updateSettingValue(alertSettingKey, payloadValue);
-    toastStore.success("Payment alert recipients saved", "");
   } catch (err) {
     alertEmailErrors.value = err?.data?.message || err?.message || "Failed to save alert recipients.";
   } finally {
@@ -227,9 +221,24 @@ async function saveAlertRecipients() {
   }
 }
 
+const circuitByGateway = computed(() => {
+  const byGateway = {};
+  for (const circuit of gatewayStore.circuits || []) {
+    byGateway[circuit.gateway] = circuit;
+  }
+  return byGateway;
+});
+
+const metricByGateway = computed(() => {
+  const byGateway = {};
+  for (const metric of gatewayStore.metrics || []) {
+    byGateway[metric.gateway] = metric;
+  }
+  return byGateway;
+});
+
 const hasActiveCircuitsAlert = computed(() => {
-  const circuits = gatewayStore.circuits || {};
-  return Object.values(circuits).some((c) => c?.state === "OPEN" || c?.status === "OPEN");
+  return (gatewayStore.circuits || []).some((circuit) => circuit?.state === "OPEN");
 });
 
 onMounted(loadData);
@@ -344,12 +353,6 @@ onMounted(loadData);
                     :class="isGatewayEnabled(gw.code) ? 'translate-x-5' : 'translate-x-0'"
                   />
                 </button>
-              </div>
-
-              <!-- Store impact count -->
-              <div class="mt-[1.6rem] flex items-center justify-between text-[1.3rem] text-slate-600 bg-slate-50 p-[1rem] rounded-[8px]">
-                <span>Stores using gateway:</span>
-                <span class="font-[700] text-slate-900">{{ storeUsageCounts[gw.code] ?? 0 }} stores</span>
               </div>
             </div>
 
@@ -489,12 +492,12 @@ onMounted(loadData);
                 <span
                   class="rounded-full px-[1rem] py-[0.3rem] text-[1.2rem] font-[700]"
                   :class="{
-                    'bg-emerald-100 text-emerald-800': (gatewayStore.circuits[gw.code]?.state || 'CLOSED') === 'CLOSED',
-                    'bg-rose-100 text-rose-800': (gatewayStore.circuits[gw.code]?.state || '') === 'OPEN',
-                    'bg-amber-100 text-amber-800': (gatewayStore.circuits[gw.code]?.state || '') === 'HALF_OPEN',
+                    'bg-emerald-100 text-emerald-800': (circuitByGateway[gw.code]?.state || 'CLOSED') === 'CLOSED',
+                    'bg-rose-100 text-rose-800': (circuitByGateway[gw.code]?.state || '') === 'OPEN',
+                    'bg-amber-100 text-amber-800': (circuitByGateway[gw.code]?.state || '') === 'HALF_OPEN',
                   }"
                 >
-                  {{ gatewayStore.circuits[gw.code]?.state || "CLOSED" }}
+                  {{ circuitByGateway[gw.code]?.state || "CLOSED" }}
                 </span>
               </div>
 
@@ -502,40 +505,40 @@ onMounted(loadData);
                 <div class="flex justify-between text-slate-600">
                   <span>Recent Failures:</span>
                   <span class="font-[600] text-slate-900">
-                    {{ gatewayStore.circuits[gw.code]?.failureCount ?? 0 }}
+                    {{ circuitByGateway[gw.code]?.consecutiveFailures ?? 0 }}
                   </span>
                 </div>
                 <div class="flex justify-between text-slate-600">
                   <span>Success Rate:</span>
                   <span
                     class="font-[600]"
-                    :class="(gatewayStore.metrics[gw.code]?.successRate ?? 99) < 90 ? 'text-rose-600 font-[700]' : 'text-slate-900'"
+                    :class="metricByGateway[gw.code]?.successRatePercent != null && metricByGateway[gw.code].successRatePercent < 90 ? 'text-rose-600 font-[700]' : 'text-slate-900'"
                   >
-                    {{ gatewayStore.metrics[gw.code]?.successRate ?? 99.4 }}%
+                    {{ metricByGateway[gw.code]?.successRatePercent != null ? metricByGateway[gw.code].successRatePercent + '%' : '—' }}
                   </span>
                 </div>
                 <div class="flex justify-between text-slate-600">
                   <span>Average Latency:</span>
                   <span class="font-[600] text-slate-900">
-                    {{ gatewayStore.metrics[gw.code]?.latencyMs ?? 320 }}ms
+                    {{ metricByGateway[gw.code]?.averageLatencyMillis != null ? metricByGateway[gw.code].averageLatencyMillis + 'ms' : '—' }}
                   </span>
                 </div>
                 <div class="flex justify-between text-slate-600">
                   <span>Fallback Rate:</span>
                   <span class="font-[600] text-slate-900">
-                    {{ gatewayStore.metrics[gw.code]?.fallbackRate ?? 0.2 }}%
+                    {{ metricByGateway[gw.code]?.fallbackRatePercent != null ? metricByGateway[gw.code].fallbackRatePercent + '%' : '—' }}
                   </span>
                 </div>
-                <div v-if="gatewayStore.circuits[gw.code]?.openedAt" class="flex justify-between text-slate-600">
+                <div v-if="circuitByGateway[gw.code]?.openedAt" class="flex justify-between text-slate-600">
                   <span>Opened At:</span>
                   <span class="font-[600] text-slate-900">
-                    {{ new Date(gatewayStore.circuits[gw.code].openedAt).toLocaleTimeString() }}
+                    {{ new Date(circuitByGateway[gw.code].openedAt).toLocaleTimeString() }}
                   </span>
                 </div>
-                <div v-if="gatewayStore.circuits[gw.code]?.retryAt" class="flex justify-between text-slate-600">
+                <div v-if="circuitByGateway[gw.code]?.nextTrialAt" class="flex justify-between text-slate-600">
                   <span>Next Retry:</span>
                   <span class="font-[600] text-amber-700">
-                    {{ new Date(gatewayStore.circuits[gw.code].retryAt).toLocaleTimeString() }}
+                    {{ new Date(circuitByGateway[gw.code].nextTrialAt).toLocaleTimeString() }}
                   </span>
                 </div>
               </div>
@@ -638,7 +641,7 @@ onMounted(loadData);
           Are you sure you want to disable <strong>{{ pendingDisableGateway?.toUpperCase() }}</strong> for {{ selectedCountry }}?
         </p>
         <div class="mt-[1.4rem] rounded-[8px] bg-amber-50 border border-amber-200 p-[1.2rem] text-amber-900 text-[1.3rem]">
-          <strong>Impact:</strong> Approximately <strong>{{ storeUsageCounts[pendingDisableGateway] ?? 0 }} stores</strong> currently use this gateway. New checkouts will immediately failover to other enabled gateways.
+          <strong>Impact:</strong> This change affects approximately <strong>{{ affectedStores }} stores</strong> in this entry. New checkouts will immediately failover to other enabled gateways.
         </div>
         <div class="mt-[2.4rem] flex justify-end gap-[1.2rem]">
           <button

@@ -15,8 +15,8 @@ export const useAdminPaymentGatewaysStore = defineStore("adminPaymentGatewaysSto
 
     const loadingHealth = ref(false);
     const resettingCircuit = ref(false);
-    const circuits = ref({});
-    const metrics = ref({});
+    const circuits = ref([]);
+    const metrics = ref([]);
 
     const loadingAuditLogs = ref(false);
     const auditLogs = ref([]);
@@ -58,11 +58,12 @@ export const useAdminPaymentGatewaysStore = defineStore("adminPaymentGatewaysSto
         loadingHealth.value = true;
         try {
             const response = await get(endpoints.admin.paymentGatewayHealth.circuits, {}, { forceMode: "live" });
-            circuits.value = response?.data || response || {};
+            const data = response?.data || response;
+            circuits.value = Array.isArray(data) ? data : [];
             return circuits.value;
         } catch (error) {
             logger.error("Failed to load gateway circuit breakers", error);
-            return {};
+            return [];
         } finally {
             loadingHealth.value = false;
         }
@@ -71,11 +72,12 @@ export const useAdminPaymentGatewaysStore = defineStore("adminPaymentGatewaysSto
     async function fetchMetrics() {
         try {
             const response = await get(endpoints.admin.paymentGatewayHealth.metrics, {}, { forceMode: "live" });
-            metrics.value = response?.data || response || {};
+            const data = response?.data || response;
+            metrics.value = Array.isArray(data) ? data : [];
             return metrics.value;
         } catch (error) {
             logger.error("Failed to load gateway metrics", error);
-            return {};
+            return [];
         }
     }
 
@@ -95,7 +97,7 @@ export const useAdminPaymentGatewaysStore = defineStore("adminPaymentGatewaysSto
         }
     }
 
-    async function fetchAuditLogs(country = "NG") {
+    async function fetchAuditLogs(country = "DEFAULT") {
         loadingAuditLogs.value = true;
         try {
             const response = await get(

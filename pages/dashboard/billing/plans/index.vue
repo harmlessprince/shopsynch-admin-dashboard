@@ -232,10 +232,11 @@ function openEditPlan(plan) {
   planForm.value = mapPlanToForm(plan);
   const rules = plan.featureAccessRules || {};
   const nextStructured = {};
+  for (const [code, value] of Object.entries(rules)) {
+    nextStructured[code] = value;
+  }
   for (const rule of billingPlansStore.planRules || []) {
-    if (rule.code in rules) {
-      nextStructured[rule.code] = rules[rule.code];
-    } else {
+    if (!(rule.code in nextStructured)) {
       nextStructured[rule.code] = "__NOT_SET__";
     }
   }

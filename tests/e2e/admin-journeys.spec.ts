@@ -1,49 +1,66 @@
 import { expect, test, type Page } from '@playwright/test'
 
 async function mockAdminApi(page: Page) {
-  let countrySettings = {
-    countryCode: 'NG',
-    defaultGateway: 'PAYSTACK',
-    enabledGateways: ['PAYSTACK', 'KORAPAY', 'MONNIFY', 'FLUTTERWAVE', 'SQUAD', 'NOMBA'],
-    supportedGateways: ['PAYSTACK', 'KORAPAY', 'MONNIFY', 'FLUTTERWAVE', 'SQUAD', 'NOMBA'],
-    impactCounts: {
-      PAYSTACK: 120,
-      KORAPAY: 45,
-      MONNIFY: 30,
-      FLUTTERWAVE: 15,
-      SQUAD: 8,
-      NOMBA: 4,
-    },
-    updatedAt: '2026-10-14T10:00:00Z',
-    updatedBy: 'admin@shopsynch.com',
-  }
-
-  let circuitStates: Record<string, any> = {
-    PAYSTACK: { state: 'CLOSED', consecutiveFailures: 0, lastFailureAt: null, openedAt: null, nextRetryAt: null },
-    KORAPAY: { state: 'OPEN', consecutiveFailures: 5, lastFailureAt: '2026-10-14T12:00:00Z', openedAt: '2026-10-14T12:00:00Z', nextRetryAt: '2026-10-14T12:15:00Z' },
-    MONNIFY: { state: 'CLOSED', consecutiveFailures: 0, lastFailureAt: null, openedAt: null, nextRetryAt: null },
-    FLUTTERWAVE: { state: 'CLOSED', consecutiveFailures: 0, lastFailureAt: null, openedAt: null, nextRetryAt: null },
-    SQUAD: { state: 'CLOSED', consecutiveFailures: 0, lastFailureAt: null, openedAt: null, nextRetryAt: null },
-    NOMBA: { state: 'CLOSED', consecutiveFailures: 0, lastFailureAt: null, openedAt: null, nextRetryAt: null },
-  }
-
-  let gatewayMetrics = [
-    { gateway: 'PAYSTACK', totalRequests: 1500, successCount: 1470, failureCount: 30, successRate: 98.0, averageLatencyMs: 320, fallbackCount: 5, fallbackRate: 0.33 },
-    { gateway: 'KORAPAY', totalRequests: 200, successCount: 120, failureCount: 80, successRate: 60.0, averageLatencyMs: 850, fallbackCount: 45, fallbackRate: 22.5 },
-    { gateway: 'MONNIFY', totalRequests: 400, successCount: 395, failureCount: 5, successRate: 98.75, averageLatencyMs: 290, fallbackCount: 1, fallbackRate: 0.25 },
+  const defaultCountryGateways = [
+    { gateway: 'PAYSTACK', enabled: true },
+    { gateway: 'MONNIFY', enabled: true },
+    { gateway: 'FLUTTERWAVE', enabled: false },
+    { gateway: 'STRIPE', enabled: false },
+    { gateway: 'OFFLINE', enabled: true },
   ]
 
-  let gatewayAuditLogs = [
+  const countrySettings = [
+    { country: 'DEFAULT', defaultGateway: 'PAYSTACK', affectedStores: 142, gateways: defaultCountryGateways },
+    {
+      country: 'Nigeria',
+      defaultGateway: 'PAYSTACK',
+      affectedStores: 120,
+      gateways: [
+        { gateway: 'PAYSTACK', enabled: true },
+        { gateway: 'MONNIFY', enabled: true },
+        { gateway: 'FLUTTERWAVE', enabled: true },
+        { gateway: 'STRIPE', enabled: false },
+        { gateway: 'OFFLINE', enabled: false },
+      ],
+    },
+  ]
+
+  type CircuitState = {
+    gateway: string
+    tenantId: string | null
+    mode: string
+    state: string
+    consecutiveFailures: number
+    openedAt: string | null
+    nextTrialAt: string | null
+    lastFailureAt: string | null
+    lastFailureReason: string | null
+  }
+
+  const circuitStates: CircuitState[] = [
+    { gateway: 'PAYSTACK', tenantId: null, mode: 'live', state: 'CLOSED', consecutiveFailures: 0, openedAt: null, nextTrialAt: null, lastFailureAt: null, lastFailureReason: null },
+    { gateway: 'MONNIFY', tenantId: null, mode: 'live', state: 'CLOSED', consecutiveFailures: 0, openedAt: null, nextTrialAt: null, lastFailureAt: null, lastFailureReason: null },
+    { gateway: 'FLUTTERWAVE', tenantId: null, mode: 'live', state: 'OPEN', consecutiveFailures: 5, openedAt: '2026-10-14T12:00:00Z', nextTrialAt: '2026-10-14T12:15:00Z', lastFailureAt: '2026-10-14T12:00:00Z', lastFailureReason: 'Elevated error rate' },
+    { gateway: 'STRIPE', tenantId: null, mode: 'live', state: 'CLOSED', consecutiveFailures: 0, openedAt: null, nextTrialAt: null, lastFailureAt: null, lastFailureReason: null },
+    { gateway: 'OFFLINE', tenantId: null, mode: 'live', state: 'CLOSED', consecutiveFailures: 0, openedAt: null, nextTrialAt: null, lastFailureAt: null, lastFailureReason: null },
+  ]
+
+  const gatewayMetrics = [
+    { gateway: 'PAYSTACK', windowMinutes: 60, attempts: 1500, started: 1470, failed: 30, successRatePercent: 98.0, averageLatencyMillis: 320, firstChoiceAttempts: 1400, movedAway: 5, movedHere: 0, fallbackRatePercent: 0.33 },
+    { gateway: 'MONNIFY', windowMinutes: 60, attempts: 400, started: 395, failed: 5, successRatePercent: 98.75, averageLatencyMillis: 290, firstChoiceAttempts: 380, movedAway: 1, movedHere: 0, fallbackRatePercent: 0.25 },
+    { gateway: 'FLUTTERWAVE', windowMinutes: 60, attempts: 200, started: 120, failed: 80, successRatePercent: 60.0, averageLatencyMillis: 850, firstChoiceAttempts: 180, movedAway: 45, movedHere: 0, fallbackRatePercent: 22.5 },
+  ]
+
+  const gatewayAuditLogs = [
     {
       id: 'audit-log-1',
       resource: 'PAYMENT_GATEWAY_SETTING',
-      resourceId: 'NG',
-      action: 'UPDATE',
+      resourceId: 'Nigeria',
+      action: 'UPDATED',
       actorId: 'admin-usr-1',
       actorEmail: 'admin@shopsynch.com',
       actorType: 'ADMIN',
-      description: 'Disabled Squad and set Monnify as default for Nigeria',
-      details: { enabledGateways: ['PAYSTACK', 'KORAPAY', 'MONNIFY'], defaultGateway: 'MONNIFY' },
+      metadata: { enabledGateways: ['PAYSTACK', 'MONNIFY'], defaultGateway: 'MONNIFY' },
       createdAt: '2026-10-14T09:30:00Z',
     },
   ]
@@ -51,12 +68,12 @@ async function mockAdminApi(page: Page) {
   let platformAlertRecipients = 'ops@shopsynch.com, oncall@shopsynch.com'
 
   const planRules = [
-    { code: 'pos_access', name: 'POS Access', kind: 'FEATURE', description: 'Enable POS terminal sales', defaultValue: false, allowedValues: [true, false] },
-    { code: 'custom_domain', name: 'Custom Domain', kind: 'FEATURE', description: 'Bring your own custom domain', defaultValue: false, allowedValues: [true, false] },
-    { code: 'staff_limit', name: 'Staff Limit', kind: 'LIMIT', description: 'Max staff accounts permitted', defaultValue: null, allowedValues: null },
-    { code: 'products_limit', name: 'Products Limit', kind: 'LIMIT', description: 'Maximum active products allowed', defaultValue: null, allowedValues: null },
-    { code: 'area_orders', name: 'Orders Area', kind: 'AREA', description: 'Orders dashboard access level', defaultValue: 'manage', allowedValues: ['none', 'view', 'manage'] },
-    { code: 'area_branches', name: 'Branches Area', kind: 'AREA', description: 'Branches dashboard access level', defaultValue: 'manage', allowedValues: ['none', 'view', 'manage'] },
+    { code: 'pos_access', kind: 'feature', label: 'POS Access', description: 'Enable POS terminal sales', allowedValues: ['true', 'false'], missingKeyMeaning: 'not included' },
+    { code: 'custom_domain', kind: 'feature', label: 'Custom Domain', description: 'Bring your own custom domain', allowedValues: ['true', 'false'], missingKeyMeaning: 'not included' },
+    { code: 'staff_limit', kind: 'limit', label: 'Staff Limit', description: 'Max staff accounts permitted', allowedValues: [], missingKeyMeaning: 'no cap' },
+    { code: 'products_limit', kind: 'limit', label: 'Products Limit', description: 'Maximum active products allowed', allowedValues: [], missingKeyMeaning: 'no cap' },
+    { code: 'area_orders', kind: 'area', label: 'Orders Area', description: 'Orders dashboard access level', allowedValues: ['none', 'view', 'manage'], missingKeyMeaning: 'manage' },
+    { code: 'area_branches', kind: 'area', label: 'Branches Area', description: 'Branches dashboard access level', allowedValues: ['none', 'view', 'manage'], missingKeyMeaning: 'manage' },
   ]
 
   const seededPlans = [
@@ -110,53 +127,56 @@ async function mockAdminApi(page: Page) {
     businessCountry: 'NG',
   }
 
-  const merchantGateways = [
-    {
-      gateway: 'PAYSTACK',
-      available: true,
-      isStoreDefault: true,
-      countryDefault: true,
-      countryEnabled: true,
-      merchantConfigured: true,
-      reasonCode: 'AVAILABLE',
-      message: 'Gateway is ready for checkout',
-      nextStep: 'NONE',
-    },
-    {
-      gateway: 'KORAPAY',
-      available: false,
-      isStoreDefault: false,
-      countryDefault: false,
-      countryEnabled: true,
-      merchantConfigured: false,
-      reasonCode: 'MERCHANT_NOT_CONFIGURED',
-      message: 'Store has not configured credentials',
-      nextStep: 'CONFIGURE_CREDENTIALS',
-      nextStepHint: 'Merchant must add API keys in Payment Settings',
-    },
-  ]
+  const merchantGatewayCatalog = {
+    defaultGateway: 'PAYSTACK',
+    currency: 'NGN',
+    gateways: [
+      {
+        gateway: 'PAYSTACK',
+        name: 'Paystack',
+        kind: 'CARD',
+        available: true,
+        switchable: false,
+        reasonCode: null,
+        unavailableReason: null,
+        nextStep: null,
+        nextStepHint: null,
+        paymentMethods: [],
+        currencies: ['NGN'],
+      },
+      {
+        gateway: 'MONNIFY',
+        name: 'Monnify',
+        kind: 'TRANSFER',
+        available: false,
+        switchable: false,
+        reasonCode: 'MERCHANT_NOT_CONFIGURED',
+        unavailableReason: 'Store has not configured credentials',
+        nextStep: 'CONFIGURE_CREDENTIALS',
+        nextStepHint: 'Merchant must add API keys in Payment Settings',
+        paymentMethods: [],
+        currencies: ['NGN'],
+      },
+    ],
+  }
 
   const merchantBillingAccess = {
-    tenantId: 'tenant-test-123',
     planId: 'plan-pro-1',
     planCode: 'pro',
     subscriptionStatus: 'ACTIVE',
-    billingEnforced: true,
-    enforcementApplies: true,
-    enforcementStatus: 'ENFORCED',
-    enforcementReason: 'Plan rules are actively enforced for this store.',
-    features: {
-      pos_access: true,
-      custom_domain: true,
-    },
-    limits: {
-      staff_limit: 10,
-      products_limit: null,
-    },
-    areas: {
-      area_orders: 'manage',
-      area_branches: 'manage',
-    },
+    enforcement: { applies: true, reason: 'enforced', message: 'Plan rules are actively enforced for this store.' },
+    features: [
+      { code: 'pos_access', included: true },
+      { code: 'custom_domain', included: true },
+    ],
+    limits: [
+      { code: 'staff_limit', limit: 10 },
+      { code: 'products_limit', limit: null },
+    ],
+    areas: [
+      { code: 'area_orders', level: 'manage' },
+      { code: 'area_branches', level: 'manage' },
+    ],
   }
 
   const retiredPlanAuditLogs = [
@@ -204,39 +224,52 @@ async function mockAdminApi(page: Page) {
       return
     }
 
-    // Payment gateway settings
-    if (path.startsWith('/v1/admin/payment-gateways/countries/') && request.method() === 'GET') {
+    // Payment gateway settings (list + per-country update)
+    if (path === '/v1/admin/payment-gateway-settings' && request.method() === 'GET') {
       await json({ status: true, data: countrySettings })
       return
     }
 
-    if (path.startsWith('/v1/admin/payment-gateways/countries/') && request.method() === 'PUT') {
+    if (path.startsWith('/v1/admin/payment-gateway-settings/') && request.method() === 'PUT') {
       const payload = JSON.parse(request.postData() || '{}')
-      countrySettings = { ...countrySettings, ...payload, updatedAt: new Date().toISOString() }
-      await json({ status: true, message: 'Settings saved successfully', data: countrySettings })
+      const country = decodeURIComponent(path.split('/').pop() || '')
+      const entry = countrySettings.find((setting) => setting.country.toLowerCase() === country.toLowerCase())
+      if (!entry) {
+        await json({ status: false, message: `${country} isn't a supported country. Choose one from the country list.` }, 400)
+        return
+      }
+      entry.defaultGateway = payload.defaultGateway || entry.defaultGateway
+      entry.gateways = entry.gateways.map((gateway) => ({
+        ...gateway,
+        enabled: (payload.enabledGateways || []).includes(gateway.gateway),
+      }))
+      await json({ status: true, message: 'Payment gateway settings saved.', data: countrySettings })
       return
     }
 
     // Circuit states
-    if (path === '/v1/admin/payment-gateways/circuits' && request.method() === 'GET') {
+    if (path === '/v1/admin/payment-gateway-health/circuits' && request.method() === 'GET') {
       await json({ status: true, data: circuitStates })
       return
     }
 
     // Reset circuit
-    if (path.startsWith('/v1/admin/payment-gateways/circuits/') && path.endsWith('/reset') && request.method() === 'POST') {
+    if (path.startsWith('/v1/admin/payment-gateway-health/circuits/') && path.endsWith('/reset') && request.method() === 'POST') {
       const segments = path.split('/')
       const gateway = segments[segments.length - 2]
-      if (circuitStates[gateway]) {
-        circuitStates[gateway].state = 'CLOSED'
-        circuitStates[gateway].consecutiveFailures = 0
+      const circuit = circuitStates.find((item) => item.gateway.toLowerCase() === gateway.toLowerCase())
+      if (circuit) {
+        circuit.state = 'CLOSED'
+        circuit.consecutiveFailures = 0
+        circuit.openedAt = null
+        circuit.nextTrialAt = null
       }
-      await json({ status: true, message: `Circuit for ${gateway} has been reset to CLOSED`, data: circuitStates[gateway] })
+      await json({ status: true, message: 'The circuit is closed.', data: circuitStates })
       return
     }
 
     // Metrics
-    if (path === '/v1/admin/payment-gateways/metrics' && request.method() === 'GET') {
+    if (path === '/v1/admin/payment-gateway-health/metrics' && request.method() === 'GET') {
       await json({ status: true, data: gatewayMetrics })
       return
     }
@@ -281,7 +314,7 @@ async function mockAdminApi(page: Page) {
 
     // Plans list
     if (path === '/v1/admin/billing/plans' && request.method() === 'GET') {
-      await json({ status: true, data: { items: seededPlans, total: seededPlans.length, currentPage: 0, totalElements: seededPlans.length } })
+      await json({ status: true, message: 'Billing plans retrieved successfully.', data: seededPlans })
       return
     }
 
@@ -300,7 +333,7 @@ async function mockAdminApi(page: Page) {
 
     // Merchant payment gateways
     if (path === `/v1/admin/merchants/${sampleMerchant.id}/payment-gateways` && request.method() === 'GET') {
-      await json({ status: true, data: merchantGateways })
+      await json({ status: true, data: merchantGatewayCatalog })
       return
     }
 
@@ -369,19 +402,19 @@ test.describe('Admin Dashboard Journeys (01 - 09)', () => {
 
     // Tab 1: Country Routing & Audit Trail (Journeys 01 & 03)
     await expect(page.getByText('Country Routing & Audit Trail')).toBeVisible()
-    await expect(page.locator('select').first()).toHaveValue('NG')
+    await expect(page.locator('select').first()).toHaveValue('DEFAULT')
 
     // Gateways are displayed
     await expect(page.getByRole('heading', { name: /Paystack/ })).toBeVisible()
-    await expect(page.getByRole('heading', { name: /Korapay/ })).toBeVisible()
     await expect(page.getByRole('heading', { name: /Monnify/ })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Flutterwave/ })).toBeVisible()
 
     // Paystack is active default
     await expect(page.getByText('Active Default')).toBeVisible()
 
     // Journey 03: Setting change history section visible
     await expect(page.getByText('Gateway Setting Change History')).toBeVisible()
-    await expect(page.getByText('Disabled Squad and set Monnify as default for Nigeria')).toBeVisible()
+    await expect(page.getByText(/Enabled: PAYSTACK, MONNIFY/)).toBeVisible()
 
     // Journey 02: Switch to Health, Circuits & Metrics tab
     await page.getByRole('button', { name: /Health, Circuits & Metrics/ }).click()

@@ -16,6 +16,8 @@ export const useAdminMerchantsStore = defineStore("adminMerchantsStore", () => {
     const storeSettings = ref(null);
     const storeSettingsLoading = ref(false);
     const paymentGateways = ref([]);
+    const paymentGatewayDefault = ref(null);
+    const paymentGatewayCurrency = ref(null);
     const paymentGatewaysLoading = ref(false);
     const billingAccess = ref(null);
     const billingAccessLoading = ref(false);
@@ -233,8 +235,10 @@ export const useAdminMerchantsStore = defineStore("adminMerchantsStore", () => {
         try {
             const url = endpoints.admin.merchants.paymentGateways.replace(":tenantId", tenantId);
             const response = await get(url, {}, { forceMode: "live" });
-            const data = response?.data || response;
-            paymentGateways.value = Array.isArray(data) ? data : (data?.items || []);
+            const data = response?.data || {};
+            paymentGateways.value = data?.gateways || [];
+            paymentGatewayDefault.value = data?.defaultGateway || null;
+            paymentGatewayCurrency.value = data?.currency || null;
             return paymentGateways.value;
         } catch (err) {
             paymentGateways.value = [];
@@ -268,6 +272,8 @@ export const useAdminMerchantsStore = defineStore("adminMerchantsStore", () => {
         storeSettings,
         storeSettingsLoading,
         paymentGateways,
+        paymentGatewayDefault,
+        paymentGatewayCurrency,
         paymentGatewaysLoading,
         billingAccess,
         billingAccessLoading,

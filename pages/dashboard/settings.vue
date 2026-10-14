@@ -87,7 +87,6 @@ async function savePaymentAlertRecipients() {
   try {
     savingKey.value = paymentAlertEmailsKey;
     await adminSettingsStore.updateSettingValue(paymentAlertEmailsKey, emails.join(","));
-    toastStore.success("Payment alert recipients saved", "");
     syncDrafts();
   } catch (err) {
     logger.error("Failed to update payment alert recipients", err);

@@ -972,14 +972,14 @@ async function checkRetiredPlanEvent() {
                     {{ gw.available ? "Available" : "Unavailable" }}
                   </span>
                   <span
-                    v-if="gw.defaultGateway || gw.isDefault"
+                    v-if="store.paymentGatewayDefault === gw.gateway"
                     class="rounded-full bg-blue-100 text-primary px-[0.8rem] py-[0.2rem] text-[1.1rem] font-[700]"
                   >
                     Default
                   </span>
                 </div>
-                <p v-if="gw.message" class="mt-[0.4rem] text-[1.3rem] text-slate-700">
-                  {{ gw.message }}
+                <p v-if="gw.unavailableReason" class="mt-[0.4rem] text-[1.3rem] text-slate-700">
+                  {{ gw.unavailableReason }}
                 </p>
                 <div v-if="!gw.available && gw.reasonCode" class="mt-[0.4rem] flex items-center gap-[0.6rem] text-[1.2rem] text-slate-500">
                   <span>Reason code:</span>
@@ -1041,9 +1041,9 @@ async function checkRetiredPlanEvent() {
                 <div class="mt-[0.2rem] flex items-center gap-[0.6rem]">
                   <span
                     class="rounded-full px-[0.8rem] py-[0.2rem] text-[1.2rem] font-[700]"
-                    :class="store.billingAccess.enforcementApplies ? 'bg-emerald-100 text-emerald-800' : 'bg-purple-100 text-purple-800'"
+                    :class="store.billingAccess.enforcement?.applies ? 'bg-emerald-100 text-emerald-800' : 'bg-purple-100 text-purple-800'"
                   >
-                    {{ store.billingAccess.enforcementApplies ? "Enforced" : "Exempt / Off" }}
+                    {{ store.billingAccess.enforcement?.applies ? "Enforced" : "Exempt / Off" }}
                   </span>
                 </div>
               </div>
@@ -1051,15 +1051,15 @@ async function checkRetiredPlanEvent() {
 
             <!-- Enforcement Cause Banner if not applied -->
             <div
-              v-if="!store.billingAccess.enforcementApplies"
+              v-if="!store.billingAccess.enforcement?.applies"
               class="rounded-[8px] border border-purple-200 bg-purple-50 p-[1.2rem] text-[1.3rem] text-purple-900 flex items-center gap-[0.8rem]"
             >
               <span class="material-symbols-outlined text-purple-600">shield_person</span>
               <p>
                 <strong>Plan rules do NOT apply to this store:</strong>
-                {{ store.billingAccess.enforcementReasonMessage || "Enforcement is disabled for this store." }}
-                <code v-if="store.billingAccess.enforcementReasonCode" class="ml-[0.4rem] rounded bg-purple-100 px-[0.6rem] py-[0.1rem] text-[1.1rem]">
-                  {{ store.billingAccess.enforcementReasonCode }}
+                {{ store.billingAccess.enforcement?.message || "Enforcement is disabled for this store." }}
+                <code v-if="store.billingAccess.enforcement?.reason" class="ml-[0.4rem] rounded bg-purple-100 px-[0.6rem] py-[0.1rem] text-[1.1rem]">
+                  {{ store.billingAccess.enforcement?.reason }}
                 </code>
               </p>
             </div>
@@ -1071,18 +1071,18 @@ async function checkRetiredPlanEvent() {
                 <h3 class="font-[700] text-[1.4rem] text-slate-900 border-b border-slate-100 pb-[0.8rem] mb-[1rem]">
                   Features
                 </h3>
-                <div v-if="Object.keys(store.billingAccess.features || {}).length" class="space-y-[0.8rem] text-[1.3rem]">
+                <div v-if="(store.billingAccess.features || []).length" class="space-y-[0.8rem] text-[1.3rem]">
                   <div
-                    v-for="(val, feat) in store.billingAccess.features"
-                    :key="feat"
+                    v-for="feature in store.billingAccess.features"
+                    :key="feature.code"
                     class="flex items-center justify-between text-slate-700"
                   >
-                    <span>{{ feat.replace(/_/g, ' ') }}</span>
+                    <span>{{ feature.code.replace(/_/g, ' ') }}</span>
                     <span
                       class="rounded px-[0.6rem] py-[0.1rem] text-[1.1rem] font-[700]"
-                      :class="val ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'"
+                      :class="feature.included ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'"
                     >
-                      {{ val ? "Included" : "Not included" }}
+                      {{ feature.included ? "Included" : "Not included" }}
                     </span>
                   </div>
                 </div>
@@ -1094,15 +1094,15 @@ async function checkRetiredPlanEvent() {
                 <h3 class="font-[700] text-[1.4rem] text-slate-900 border-b border-slate-100 pb-[0.8rem] mb-[1rem]">
                   Limits
                 </h3>
-                <div v-if="Object.keys(store.billingAccess.limits || {}).length" class="space-y-[0.8rem] text-[1.3rem]">
+                <div v-if="(store.billingAccess.limits || []).length" class="space-y-[0.8rem] text-[1.3rem]">
                   <div
-                    v-for="(cap, lim) in store.billingAccess.limits"
-                    :key="lim"
+                    v-for="limit in store.billingAccess.limits"
+                    :key="limit.code"
                     class="flex items-center justify-between text-slate-700"
                   >
-                    <span>{{ lim.replace(/_/g, ' ') }}</span>
+                    <span>{{ limit.code.replace(/_/g, ' ') }}</span>
                     <span class="font-[700] text-slate-900">
-                      {{ cap === 0 ? "0 (left out)" : (cap !== null && cap !== undefined ? cap : "No cap / Unlimited") }}
+                      {{ limit.limit === 0 ? "0 (left out)" : (limit.limit != null ? limit.limit : "No cap / Unlimited") }}
                     </span>
                   </div>
                 </div>
@@ -1114,22 +1114,22 @@ async function checkRetiredPlanEvent() {
                 <h3 class="font-[700] text-[1.4rem] text-slate-900 border-b border-slate-100 pb-[0.8rem] mb-[1rem]">
                   Dashboard Areas
                 </h3>
-                <div v-if="Object.keys(store.billingAccess.areas || {}).length" class="space-y-[0.8rem] text-[1.3rem]">
+                <div v-if="(store.billingAccess.areas || []).length" class="space-y-[0.8rem] text-[1.3rem]">
                   <div
-                    v-for="(perm, area) in store.billingAccess.areas"
-                    :key="area"
+                    v-for="area in store.billingAccess.areas"
+                    :key="area.code"
                     class="flex items-center justify-between text-slate-700"
                   >
-                    <span>{{ area.replace(/_/g, ' ') }}</span>
+                    <span>{{ area.code.replace(/_/g, ' ') }}</span>
                     <span
                       class="rounded px-[0.6rem] py-[0.1rem] text-[1.1rem] font-[700] uppercase"
                       :class="{
-                        'bg-emerald-100 text-emerald-800': perm === 'manage',
-                        'bg-blue-100 text-blue-800': perm === 'view',
-                        'bg-rose-100 text-rose-800': perm === 'none',
+                        'bg-emerald-100 text-emerald-800': area.level === 'manage',
+                        'bg-blue-100 text-blue-800': area.level === 'view',
+                        'bg-rose-100 text-rose-800': area.level === 'none',
                       }"
                     >
-                      {{ perm || "manage" }}
+                      {{ area.level || "manage" }}
                     </span>
                   </div>
                 </div>
