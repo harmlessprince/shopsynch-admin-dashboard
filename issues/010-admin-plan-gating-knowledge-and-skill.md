@@ -2,7 +2,7 @@
 
 `ecommerceapi/agents/knowledge/plans-and-gating.md` (admin plan management)
 
-Status: start
+Status: done
 
 ## What to build
 
@@ -10,8 +10,8 @@ Plan work on the admin side has no guidance yet. Add `admin_dashboard/agents/kno
 
 ## Acceptance criteria
 
-- [ ] The knowledge note and skill exist, are accurate for the screens built by 006 to 009, and link to the backend note and skill.
-- [ ] Both are listed in `admin_dashboard/AGENTS.md` and the workspace `AGENTS.md`.
+- [x] The knowledge note and skill exist, are accurate for the screens built by 006 to 009, and link to the backend note and skill.
+- [x] Both are listed in `admin_dashboard/AGENTS.md` and the workspace `AGENTS.md`.
 
 ## Blocked by
 

@@ -12,6 +12,50 @@ useHead({
 });
 
 const billingOperationsStore = useAdminBillingOperationsStore();
+const authStore = useAuthStore();
+
+const isSuperAdmin = computed(() => {
+  const r = authStore.user?.role;
+  const name = typeof r === "string" ? r : (r?.name || r?.slug || "");
+  return name.toLowerCase().includes("super_admin") || name.toLowerCase().includes("superadmin");
+});
+
+const showResyncModal = ref(false);
+const resyncedCount = ref(null);
+
+const retiredAuditLogs = ref([]);
+const loadingRetiredLogs = ref(false);
+const retiredTenantFilter = ref("");
+
+async function loadRetiredPlanLogs() {
+  loadingRetiredLogs.value = true;
+  try {
+    const params = { reason: "plan_retired" };
+    if (retiredTenantFilter.value.trim()) {
+      params.tenantId = retiredTenantFilter.value.trim();
+    }
+    const logs = await billingOperationsStore.fetchAuditLogs(params);
+    retiredAuditLogs.value = logs || [];
+  } catch (err) {
+    logger.error("Failed to load retired plan logs", err);
+  } finally {
+    loadingRetiredLogs.value = false;
+  }
+}
+
+async function handleConfirmResync() {
+  try {
+    const count = await billingOperationsStore.resyncSubscriptionsToTest();
+    resyncedCount.value = count;
+    showResyncModal.value = false;
+  } catch (err) {
+    logger.error("Failed to resync subscriptions to test", err);
+  }
+}
+
+onMounted(async () => {
+  await loadRetiredPlanLogs();
+});
 
 const tenantId = ref("");
 const searchedTenantId = ref("");
@@ -287,6 +331,114 @@ async function confirmInvoicePayment(invoice) {
             Load tenant
           </BaseButton>
         </form>
+      </section>
+
+      <!-- Super Admin Resync Subscriptions to Test (Issue 009) -->
+      <section
+        v-if="isSuperAdmin"
+        class="rounded-[10px] border border-blue-200 bg-blue-50/60 p-[2rem] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-[1.6rem]"
+      >
+        <div>
+          <div class="flex items-center gap-[0.8rem]">
+            <span class="material-symbols-outlined text-primary text-[2rem]">sync_alt</span>
+            <h2 class="text-[1.7rem] font-[700] text-slate-900">Resync Subscriptions to Test Mode</h2>
+            <span class="rounded bg-blue-100 text-primary font-[700] text-[1.1rem] px-[0.8rem] py-[0.2rem]">
+              Super Admin Only
+            </span>
+          </div>
+          <p class="mt-[0.4rem] text-[1.3rem] text-slate-600 max-w-[65rem]">
+            Copies every store's current live subscription and plan to test mode so test mode follows the same plan as live. It is safe to run again at any time, and is needed once after deploying replication.
+            <span class="font-[600] text-slate-800">Available only on the live backend.</span>
+          </p>
+          <p v-if="resyncedCount !== null" class="mt-[0.6rem] text-[1.3rem] font-[700] text-emerald-700">
+            ✓ Successfully replicated {{ resyncedCount }} subscription(s) to test mode.
+          </p>
+        </div>
+        <button
+          type="button"
+          class="shrink-0 rounded-[8px] bg-primary px-[2rem] py-[1rem] font-[700] text-white hover:bg-primary/90 transition shadow-sm disabled:opacity-50"
+          :disabled="billingOperationsStore.resyncingToTest"
+          @click="showResyncModal = true"
+        >
+          {{ billingOperationsStore.resyncingToTest ? "Resyncing..." : "Resync to Test" }}
+        </button>
+      </section>
+
+      <!-- Retired Plan Moves Report (Issue 008) -->
+      <section class="rounded-[10px] bg-white p-[2.4rem] shadow-sm border border-slate-100">
+        <div class="flex flex-col gap-[1.2rem] sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-[1.6rem] mb-[1.6rem]">
+          <div>
+            <h2 class="text-[1.8rem] font-[700] text-slate-900">Subscriptions Moved off Retired Plans</h2>
+            <p class="text-[1.3rem] text-slate-500 mt-[0.2rem]">
+              Audit report of stores automatically moved from retired catalog plans to Pro.
+            </p>
+          </div>
+          <div class="flex items-center gap-[1rem]">
+            <input
+              v-model="retiredTenantFilter"
+              type="text"
+              placeholder="Filter by Tenant ID"
+              class="rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.7rem] text-[1.3rem]"
+              @keyup.enter="loadRetiredPlanLogs"
+            >
+            <button
+              class="rounded-[8px] border border-slate-300 px-[1.4rem] py-[0.7rem] font-[600] text-slate-700 hover:bg-slate-50 text-[1.3rem]"
+              @click="loadRetiredPlanLogs"
+            >
+              Filter
+            </button>
+          </div>
+        </div>
+
+        <div v-if="loadingRetiredLogs" class="py-[3rem] text-center text-slate-400 text-[1.3rem]">
+          Loading retired plan moves...
+        </div>
+
+        <div v-else-if="!retiredAuditLogs || retiredAuditLogs.length === 0" class="rounded-[8px] border border-dashed border-slate-200 p-[3rem] text-center text-slate-500 text-[1.3rem]">
+          No stores have been moved off retired plans.
+        </div>
+
+        <div v-else class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-[1.3rem]">
+            <thead>
+              <tr class="border-b border-slate-200 text-slate-500 font-[600]">
+                <th class="py-[1.2rem] px-[1rem]">Store (Tenant ID)</th>
+                <th class="py-[1.2rem] px-[1rem]">Previous Plan</th>
+                <th class="py-[1.2rem] px-[1rem]">New Plan</th>
+                <th class="py-[1.2rem] px-[1rem]">Date &amp; Time</th>
+                <th class="py-[1.2rem] px-[1rem]">Actor / Reason</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-slate-800">
+              <tr v-for="log in retiredAuditLogs" :key="log.id || log._id" class="hover:bg-slate-50/60">
+                <td class="py-[1.2rem] px-[1rem] font-mono">
+                  <NuxtLink
+                    :to="`/dashboard/merchants/${log.tenantId}`"
+                    class="text-primary font-[700] hover:underline"
+                  >
+                    {{ log.tenantId }}
+                  </NuxtLink>
+                </td>
+                <td class="py-[1.2rem] px-[1rem]">
+                  <span class="rounded bg-rose-50 px-[0.8rem] py-[0.2rem] text-rose-800 font-[700]">
+                    {{ log.previousValue || log.metadata?.previousPlanCode || "retired" }}
+                  </span>
+                </td>
+                <td class="py-[1.2rem] px-[1rem]">
+                  <span class="rounded bg-emerald-50 px-[0.8rem] py-[0.2rem] text-emerald-800 font-[700]">
+                    {{ log.newValue || log.metadata?.newPlanCode || "pro" }}
+                  </span>
+                </td>
+                <td class="py-[1.2rem] px-[1rem] whitespace-nowrap text-slate-500">
+                  {{ log.timestamp || log.createdAt ? new Date(log.timestamp || log.createdAt).toLocaleString() : "—" }}
+                </td>
+                <td class="py-[1.2rem] px-[1rem] text-slate-600">
+                  {{ log.reason || "plan_retired" }} ({{ log.actorId || "system" }})
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <section
@@ -637,6 +789,44 @@ async function confirmInvoicePayment(invoice) {
           </div>
         </section>
       </template>
+
+      <!-- Confirmation Modal for Resyncing to Test -->
+      <div
+        v-if="showResyncModal"
+        class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-[1.6rem]"
+        role="dialog"
+        aria-modal="true"
+      >
+        <div class="w-full max-w-[48rem] rounded-[12px] bg-white p-[2.4rem] shadow-xl border border-slate-200">
+          <h3 class="text-[1.8rem] font-[700] text-slate-900 flex items-center gap-[0.8rem]">
+            <span class="material-symbols-outlined text-primary">sync_alt</span>
+            Resync Subscriptions to Test Mode?
+          </h3>
+          <p class="mt-[1.2rem] text-[1.4rem] text-slate-600 leading-relaxed">
+            This action will replicate all merchant subscriptions and current plan assignments from the live database to test mode via the live-to-test event stream.
+          </p>
+          <div class="mt-[1.4rem] rounded-[8px] bg-blue-50 border border-blue-200 p-[1.2rem] text-blue-900 text-[1.3rem]">
+            <strong>Note:</strong> Safe to run again at any time. It should be run once following replication deployments so test stores reflect their live plan tier.
+          </div>
+          <div class="mt-[2.4rem] flex justify-end gap-[1.2rem]">
+            <button
+              type="button"
+              class="rounded-[8px] border border-slate-300 px-[1.6rem] py-[0.8rem] font-[600] text-slate-700 hover:bg-slate-50 transition"
+              @click="showResyncModal = false"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="rounded-[8px] bg-primary px-[1.8rem] py-[0.8rem] font-[700] text-white hover:bg-primary/90 transition shadow-sm"
+              :disabled="billingOperationsStore.resyncingToTest"
+              @click="handleConfirmResync"
+            >
+              {{ billingOperationsStore.resyncingToTest ? "Resyncing..." : "Confirm & Resync" }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </DashboardContainer>
 </template>

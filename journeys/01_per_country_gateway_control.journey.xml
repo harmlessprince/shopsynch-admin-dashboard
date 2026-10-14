@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<journey name="Per-Country Payment Gateway Control" id="per-country-gateway-control">
+    <description>
+        Validates that an administrator can view all payment gateways configured for a country (Nigeria), enable or
+        disable individual gateways with impact confirmation, choose the country default gateway, and save the settings.
+    </description>
+    <stories>
+        <story id="US-01" title="Per-country gateway enablement" />
+        <story id="US-03" title="Select primary country default gateway" />
+        <story id="US-04" title="Store impact count before gateway disable" />
+        <story id="US-06" title="Save country gateway settings" />
+    </stories>
+    <actions>
+        <action>Sign in to the Admin Dashboard and navigate to '/dashboard/payment-gateways'.</action>
+        <action>Verify the page title reads 'Payment Gateway Management' and the 'Country Routing &amp; Audit Trail' tab is active by default.</action>
+        <action>Verify the country selector shows 'Nigeria (NG)' selected and displays cards for Paystack, Korapay, Monnify, Flutterwave, Squad, and Nomba.</action>
+        <action>Verify each gateway card displays its name, supported payment methods, an enabled toggle switch, the number of stores currently using it, and a 'Make Default' or 'Active Default' button.</action>
+        <action>Verify Paystack is marked with the 'Default' badge and 'Active Default' indicator.</action>
+        <action>Click the toggle switch on an enabled gateway (e.g. Korapay) to disable it.</action>
+        <action>Verify a confirmation modal appears with title 'Disable Payment Gateway?' explaining the store impact count and stating that new checkouts will failover to other enabled gateways.</action>
+        <action>Click 'Confirm &amp; Disable' in the modal and verify the toggle switch updates to disabled state.</action>
+        <action>Click 'Make Default' on Monnify and verify Monnify becomes the active default gateway.</action>
+        <action>Click 'Save NG Settings' and verify a success toast confirms the settings were saved.</action>
+    </actions>
+</journey>

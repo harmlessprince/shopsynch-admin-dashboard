@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<journey name="Resync Subscriptions to Test Mode" id="resync-subscriptions-to-test">
+    <description>
+        Validates that a Super Admin can trigger a live-to-test subscription resync from the billing operations page,
+        view the live mode notice and confirmation prompt, and inspect the count of resynced subscriptions.
+    </description>
+    <stories>
+        <story id="US-RESYNC-01" title="Super admin trigger subscription replication to test backend" />
+        <story id="US-RESYNC-02" title="Display resynced count and handle errors" />
+    </stories>
+    <actions>
+        <action>Sign in to the Admin Dashboard as a Super Admin and navigate to '/dashboard/billing/operations'.</action>
+        <action>Verify the 'Resync Subscriptions to Test Mode' card is visible (and hidden for non-super admins).</action>
+        <action>Verify the informational notice explains that this replicates active live subscription records to the test database so sandbox storefronts mirror production plans.</action>
+        <action>Click 'Resync Now'.</action>
+        <action>Verify a confirmation modal appears with a warning that the action contacts the test backend and replicates store plans.</action>
+        <action>Click 'Confirm Resync' in the modal.</action>
+        <action>Verify a success alert or toast reports the number of merchant subscriptions replicated.</action>
+    </actions>
+</journey>

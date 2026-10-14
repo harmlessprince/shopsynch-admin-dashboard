@@ -53,6 +53,8 @@ watch(
       currentPageTitle.value = "Notification Operations";
     } else if (newPath.includes("/dashboard/schedulers")) {
       currentPageTitle.value = "Scheduler Operations";
+    } else if (newPath.includes("/dashboard/payment-gateways")) {
+      currentPageTitle.value = "Payment Gateways";
     } else if (newPath.includes("/dashboard/analytics")) {
       currentPageTitle.value = "Analytics";
     }
@@ -131,6 +133,14 @@ const dashboardSidebarMenu = [
     icon: "settings",
     activeIcon: "settings",
     link: "/dashboard/settings",
+    comingSoon: false,
+  },
+  {
+    key: "payment-gateways",
+    name: "Payment Gateways",
+    icon: "account_balance",
+    activeIcon: "account_balance",
+    link: "/dashboard/payment-gateways",
     comingSoon: false,
   },
   {

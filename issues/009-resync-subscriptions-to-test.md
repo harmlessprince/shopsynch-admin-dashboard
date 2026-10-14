@@ -2,7 +2,7 @@
 
 `ecommerceapi/agents/knowledge/plans-and-gating.md` (test mode)
 
-Status: start
+Status: done
 
 ## What to build
 
@@ -10,10 +10,10 @@ A "Resync subscriptions to test" action for the super admin in billing operation
 
 ## Acceptance criteria
 
-- [ ] A confirmed click calls the endpoint and shows the count sent.
-- [ ] Errors (including "not available on the test backend") show the API message.
-- [ ] Only the super admin sees the action.
-- [ ] Uses existing admin components and the endpoint registry; add an admin journey.
+- [x] A confirmed click calls the endpoint and shows the count sent.
+- [x] Errors (including "not available on the test backend") show the API message.
+- [x] Only the super admin sees the action.
+- [x] Uses existing admin components and the endpoint registry; add an admin journey.
 
 ## Blocked by
 

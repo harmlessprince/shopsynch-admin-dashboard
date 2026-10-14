@@ -59,6 +59,44 @@ const askAnalyticsLimitDraft = computed({
   },
 });
 
+const paymentAlertEmailsKey = "platformPaymentAlertEmails";
+const paymentAlertEmailError = ref("");
+
+const paymentAlertDraft = computed({
+  get() {
+    return drafts.value[paymentAlertEmailsKey] ?? "";
+  },
+  set(value) {
+    drafts.value[paymentAlertEmailsKey] = value;
+  },
+});
+
+async function savePaymentAlertRecipients() {
+  paymentAlertEmailError.value = "";
+  const emails = (paymentAlertDraft.value || "")
+    .split(",")
+    .map((e) => e.trim())
+    .filter(Boolean);
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  for (const email of emails) {
+    if (!emailRegex.test(email)) {
+      paymentAlertEmailError.value = `"${email}" is not a valid email address.`;
+      return;
+    }
+  }
+  try {
+    savingKey.value = paymentAlertEmailsKey;
+    await adminSettingsStore.updateSettingValue(paymentAlertEmailsKey, emails.join(","));
+    toastStore.success("Payment alert recipients saved", "");
+    syncDrafts();
+  } catch (err) {
+    logger.error("Failed to update payment alert recipients", err);
+    paymentAlertEmailError.value = err?.data?.message || err?.message || "Unable to update setting value";
+  } finally {
+    savingKey.value = "";
+  }
+}
+
 function valueToDraft(setting) {
   if (setting.valueType === "JSON") {
     return setting.value ? JSON.stringify(setting.value, null, 2) : "";
@@ -245,6 +283,50 @@ onMounted(fetchSettings);
         <p v-else class="rounded-[8px] bg-amber-50 px-[1.2rem] py-[0.9rem] text-[1.2rem] font-[700] text-amber-700">
           Setting will appear after backend settings are seeded.
         </p>
+      </div>
+    </section>
+
+    <!-- Platform Payment Alert Recipients Card (Issue 005) -->
+    <section class="rounded-[8px] bg-white p-[2rem] shadow-sm">
+      <div class="flex flex-col gap-[1.2rem] lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <h2 class="text-[1.6rem] font-[700] text-[#000]">Platform Payment Alert Recipients</h2>
+          <p class="mt-[0.4rem] text-[1.2rem] text-slate-600">
+            Who is emailed when ShopSynch's platform gateway credentials fail or become valid again.
+            <NuxtLink to="/dashboard/payment-gateways" class="text-primary font-[600] ml-[0.4rem] hover:underline">
+              View Payment Gateways &rarr;
+            </NuxtLink>
+          </p>
+          <p v-if="!paymentAlertDraft" class="mt-[0.6rem] text-[1.2rem] text-amber-700 bg-amber-50 p-[0.6rem] rounded-[6px] inline-block font-[500]">
+            No recipients configured. Nobody is emailed while this setting is empty.
+          </p>
+        </div>
+        <div class="flex w-full flex-col gap-[0.8rem] sm:w-auto sm:min-w-[36rem]">
+          <label class="text-[1.2rem] font-[700] text-[#000]" for="platformPaymentAlertEmails">
+            Recipient emails (comma-separated)
+          </label>
+          <div class="flex flex-col gap-[0.6rem]">
+            <div class="flex gap-[1rem]">
+              <input
+                id="platformPaymentAlertEmails"
+                v-model="paymentAlertDraft"
+                type="text"
+                placeholder="alerts@shopsynch.com, devops@shopsynch.com"
+                class="w-full rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem]"
+              />
+              <button
+                class="rounded-[8px] bg-primary px-[1.4rem] py-[0.9rem] font-[700] text-white disabled:cursor-not-allowed disabled:opacity-60"
+                :disabled="savingKey === paymentAlertEmailsKey"
+                @click="savePaymentAlertRecipients"
+              >
+                {{ savingKey === paymentAlertEmailsKey ? "Saving..." : "Save" }}
+              </button>
+            </div>
+            <p v-if="paymentAlertEmailError" class="text-[1.2rem] font-[600] text-rose-600">
+              {{ paymentAlertEmailError }}
+            </p>
+          </div>
+        </div>
       </div>
     </section>
 

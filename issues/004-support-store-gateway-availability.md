@@ -2,7 +2,7 @@
 
 `ecommerceapi/docs/prds/payment-gateway-availability-and-control.md`
 
-Status: start
+Status: done
 
 ## What to build
 
@@ -10,10 +10,10 @@ On a merchant's detail page, support sees every payment gateway for that store w
 
 ## Acceptance criteria
 
-- [ ] The merchant detail page has a payment gateways section listing each gateway with available or unavailable, reason code, message, next step and next-step hint, and which gateway is the store's default.
-- [ ] Loading and error states are handled; a store not found shows the API message.
-- [ ] A note explains that platform credentials are checked in test mode.
-- [ ] Uses the existing admin components and the endpoint registry; add an admin journey.
+- [x] The merchant detail page has a payment gateways section listing each gateway with available or unavailable, reason code, message, next step and next-step hint, and which gateway is the store's default.
+- [x] Loading and error states are handled; a store not found shows the API message.
+- [x] A note explains that platform credentials are checked in test mode.
+- [x] Uses the existing admin components and the endpoint registry; add an admin journey.
 
 ## Blocked by
 

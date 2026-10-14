@@ -2,7 +2,7 @@
 
 `ecommerceapi/docs/prds/payment-gateway-availability-and-control.md`
 
-Status: start
+Status: done
 
 ## What to build
 
@@ -10,10 +10,10 @@ The admin dashboard shows each gateway's health: circuit state, recent failures,
 
 ## Acceptance criteria
 
-- [ ] A gateway health view lists platform circuits and metrics per gateway.
-- [ ] A reset action closes the circuit after confirmation and refreshes the view.
-- [ ] Alert states are shown clearly (open circuit, low success rate).
-- [ ] Uses existing admin components; add an admin journey.
+- [x] A gateway health view lists platform circuits and metrics per gateway.
+- [x] A reset action closes the circuit after confirmation and refreshes the view.
+- [x] Alert states are shown clearly (open circuit, low success rate).
+- [x] Uses existing admin components; add an admin journey.
 
 ## Blocked by
 

@@ -88,6 +88,8 @@ export const endpoints = {
             businessContact: "/v1/admin/merchants/:tenantId/business-contact",
             ownerKyc: "/v1/admin/merchants/:tenantId/owner-kyc",
             storeSettings: "/v1/admin/merchants/:tenantId/store-settings",
+            paymentGateways: "/v1/admin/merchants/:tenantId/payment-gateways",
+            billingAccess: "/v1/admin/merchants/:tenantId/billing/access",
         },
         products: {
             list: "/v1/admin/products",
@@ -147,6 +149,16 @@ export const endpoints = {
             updateValue: "/v1/admin/settings/:key/value",
             delete: "/v1/admin/settings/:key",
         },
+        paymentGatewaySettings: {
+            list: "/v1/admin/payment-gateway-settings",
+            update: "/v1/admin/payment-gateway-settings/:country",
+        },
+        paymentGatewayHealth: {
+            circuits: "/v1/admin/payment-gateway-health/circuits",
+            reset: "/v1/admin/payment-gateway-health/circuits/:gateway/reset",
+            metrics: "/v1/admin/payment-gateway-health/metrics",
+        },
+        auditLogs: "/v1/admin/audit-logs",
         cache: {
             list: "/v1/admin/cache",
             clearAll: "/v1/admin/cache",
@@ -178,6 +190,7 @@ export const endpoints = {
             promote: "/v1/admin/categories/custom-review/:id/promote",
         },
         billing: {
+            planRules: "/v1/admin/billing/plan-rules",
             plans: {
                 list: "/v1/admin/billing/plans",
                 create: "/v1/admin/billing/plans",
@@ -190,6 +203,8 @@ export const endpoints = {
                 list: "/v1/admin/billing/subscriptions",
                 tenantSnapshot: "/v1/admin/billing/subscriptions/tenants/:tenantId",
                 tenantAuditLogs: "/v1/admin/billing/subscriptions/tenants/:tenantId/audit-logs",
+                auditLogs: "/v1/admin/billing/subscriptions/audit-logs",
+                resyncToTest: "/v1/admin/billing/subscriptions/resync-to-test",
             },
             overrides: {
                 apply: "/v1/admin/billing/overrides",
