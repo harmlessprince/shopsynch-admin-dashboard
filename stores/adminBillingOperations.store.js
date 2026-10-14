@@ -202,7 +202,8 @@ export const useAdminBillingOperationsStore = defineStore("adminBillingOperation
         resyncingToTest.value = true;
         try {
             const response = await post(endpoints.admin.billing.subscriptions.resyncToTest, {}, { forceMode: "live" });
-            const count = response?.data ?? response ?? 0;
+            const data = response?.data ?? response;
+            const count = typeof data === "object" && data !== null ? (data.replicatedCount ?? data.count ?? 0) : (data ?? 0);
             toastStore.success(`Resynced ${count} subscription(s) to test mode`, "");
             return count;
         } catch (error) {

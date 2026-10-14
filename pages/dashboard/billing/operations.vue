@@ -17,7 +17,8 @@ const authStore = useAuthStore();
 const isSuperAdmin = computed(() => {
   const r = authStore.user?.role;
   const name = typeof r === "string" ? r : (r?.name || r?.slug || "");
-  return name.toLowerCase().includes("super_admin") || name.toLowerCase().includes("superadmin");
+  const normalized = name.toLowerCase().replace(/[\s_-]+/g, "");
+  return normalized.includes("superadmin");
 });
 
 const showResyncModal = ref(false);
