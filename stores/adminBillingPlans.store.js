@@ -16,6 +16,20 @@ export const useAdminBillingPlansStore = defineStore("adminBillingPlansStore", (
     const plans = ref([]);
     const selectedPlan = ref(null);
     const prices = ref([]);
+    const planRules = ref([]);
+    const rulesLoading = ref(false);
+
+    async function fetchPlanRules() {
+        rulesLoading.value = true;
+        try {
+            const response = await get(endpoints.admin.billing.planRules, {}, { forceMode: "live" });
+            const data = response?.data || response;
+            planRules.value = Array.isArray(data) ? data : (data?.items || []);
+            return planRules.value;
+        } finally {
+            rulesLoading.value = false;
+        }
+    }
 
     async function fetchPlans(params = {}) {
         loading.value = true;
@@ -127,6 +141,9 @@ export const useAdminBillingPlansStore = defineStore("adminBillingPlansStore", (
         plans,
         selectedPlan,
         prices,
+        planRules,
+        rulesLoading,
+        fetchPlanRules,
         fetchPlans,
         createPlan,
         updatePlan,

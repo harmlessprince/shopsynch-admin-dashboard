@@ -16,6 +16,9 @@ export const useAdminBillingOperationsStore = defineStore("adminBillingOperation
     const extendingSubscription = ref(false);
     const loadingInvoices = ref(false);
     const confirmingInvoice = ref(false);
+    const loadingAuditLogs = ref(false);
+    const auditLogs = ref([]);
+    const resyncingToTest = ref(false);
     const snapshotError = ref("");
     const actionError = ref("");
     const invoicesError = ref("");
@@ -179,6 +182,40 @@ export const useAdminBillingOperationsStore = defineStore("adminBillingOperation
         }
     }
 
+    async function fetchAuditLogs(params = {}) {
+        loadingAuditLogs.value = true;
+        try {
+            const response = await get(endpoints.admin.billing.subscriptions.auditLogs, params, { forceMode: "live" });
+            const data = normalizeData(response);
+            auditLogs.value = Array.isArray(data) ? data : (data?.items || data?.content || []);
+            return auditLogs.value;
+        } catch (error) {
+            logger.error("Failed to load subscription audit logs", error);
+            auditLogs.value = [];
+            return [];
+        } finally {
+            loadingAuditLogs.value = false;
+        }
+    }
+
+    async function resyncSubscriptionsToTest() {
+        resyncingToTest.value = true;
+        try {
+            const response = await post(endpoints.admin.billing.subscriptions.resyncToTest, {}, { forceMode: "live" });
+            const data = response?.data ?? response;
+            const count = typeof data === "object" && data !== null ? (data.replicatedCount ?? data.count ?? 0) : (data ?? 0);
+            toastStore.success(`Resynced ${count} subscription(s) to test mode`, "");
+            return count;
+        } catch (error) {
+            logger.error("Failed to resync subscriptions to test mode", error);
+            const msg = error?.data?.message || error?.message || "Failed to resync subscriptions to test mode.";
+            toastStore.error(msg, "");
+            throw error;
+        } finally {
+            resyncingToTest.value = false;
+        }
+    }
+
     function resetActionState() {
         actionError.value = "";
         invoicesError.value = "";
@@ -195,6 +232,9 @@ export const useAdminBillingOperationsStore = defineStore("adminBillingOperation
         extendingSubscription,
         loadingInvoices,
         confirmingInvoice,
+        loadingAuditLogs,
+        auditLogs,
+        resyncingToTest,
         snapshotError,
         actionError,
         invoicesError,
@@ -210,6 +250,8 @@ export const useAdminBillingOperationsStore = defineStore("adminBillingOperation
         applyExtensionCode,
         extendSubscriptionDirectly,
         confirmInvoicePayment,
+        fetchAuditLogs,
+        resyncSubscriptionsToTest,
         resetActionState,
     };
 });

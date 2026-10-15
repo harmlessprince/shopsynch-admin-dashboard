@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<journey name="Support Store Gateway Availability Inspection" id="support-store-gateway-availability">
+    <description>
+        Validates that support agents inspecting a merchant's detail page can view the payment gateways available to that store,
+        including availability status, plain message, reason codes, next steps, store default gateway, and test mode notice.
+    </description>
+    <stories>
+        <story id="US-32" title="Inspect merchant payment gateway catalogue and reasons" />
+    </stories>
+    <actions>
+        <action>Sign in to the Admin Dashboard, navigate to '/dashboard/merchants', and select a merchant to view '/dashboard/merchants/{tenantId}'.</action>
+        <action>Scroll down to the 'Payment Gateways Availability' section.</action>
+        <action>Verify the section header contains the notice 'Platform credentials are checked in test mode.'</action>
+        <action>Verify each gateway displays its name, an 'Available' (green) or 'Unavailable' (rose) status badge, and an indicator if it is the store's default gateway.</action>
+        <action>Verify any unavailable gateway clearly surfaces its plain message, reason code (e.g. credentials_missing, circuit_open), and actionable next step with hint.</action>
+    </actions>
+</journey>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<journey name="Payment Gateway Setting Change History" id="gateway-setting-change-history">
+    <description>
+        Validates that administrators can inspect the chronological audit trail of gateway configuration changes
+        filtered by country (NG) right next to the routing controls, and that saving a change immediately updates the log.
+    </description>
+    <stories>
+        <story id="US-07" title="Gateway setting audit history by country" />
+    </stories>
+    <actions>
+        <action>Sign in to the Admin Dashboard and navigate to '/dashboard/payment-gateways'.</action>
+        <action>Ensure the 'Country Routing &amp; Audit Trail' tab is active and scroll to 'Gateway Setting Change History'.</action>
+        <action>Verify the audit log table lists columns: Timestamp, Actor, Action, and Details.</action>
+        <action>Verify changes show the admin email or actor, the updated enabled gateways list, and the new default gateway.</action>
+        <action>Change an enablement setting and click 'Save NG Settings'.</action>
+        <action>Verify the audit trail automatically refreshes and displays a new audit entry at the top of the table.</action>
+    </actions>
+</journey>

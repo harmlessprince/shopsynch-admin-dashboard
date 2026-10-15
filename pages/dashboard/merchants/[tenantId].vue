@@ -112,17 +112,34 @@ async function toggleStatus() {
   }
 }
 
+const billingOpsStore = useAdminBillingOperationsStore();
+const retiredPlanEvent = ref(null);
+
 onMounted(async () => {
   try {
     await Promise.all([
       store.fetchMerchantDetail(route.params.tenantId),
       store.fetchBankAccounts(route.params.tenantId),
       store.fetchStoreSettings(route.params.tenantId),
+      store.fetchMerchantPaymentGateways(route.params.tenantId),
+      store.fetchMerchantBillingAccess(route.params.tenantId),
+      checkRetiredPlanEvent(),
     ]);
   } catch (err) {
     logger.error("Failed to load merchant detail, bank accounts, or store settings", err);
   }
 });
+
+async function checkRetiredPlanEvent() {
+  try {
+    const logs = await billingOpsStore.fetchAuditLogs({ tenantId: route.params.tenantId, reason: "plan_retired" });
+    if (logs && logs.length > 0) {
+      retiredPlanEvent.value = logs[0];
+    }
+  } catch (err) {
+    logger.error("Failed to check retired plan logs", err);
+  }
+}
 </script>
 
 <template>
@@ -142,6 +159,21 @@ onMounted(async () => {
     </div>
 
     <template v-else-if="m">
+      <!-- Retired Plan Notice Banner (Issue 008) -->
+      <div
+        v-if="retiredPlanEvent"
+        class="flex items-center gap-[1rem] rounded-[8px] border border-amber-200 bg-amber-50 p-[1.4rem] text-[1.3rem] text-amber-900"
+      >
+        <span class="material-symbols-outlined text-amber-700">history_edu</span>
+        <p>
+          <strong>Notice:</strong> This store was automatically moved from retired plan
+          <strong class="font-mono text-amber-950">"{{ retiredPlanEvent.previousValue }}"</strong> to
+          <strong class="font-mono text-amber-950">"{{ retiredPlanEvent.newValue || 'pro' }}"</strong>
+          on {{ new Date(retiredPlanEvent.timestamp || retiredPlanEvent.createdAt).toLocaleDateString() }}
+          due to plan retirement.
+        </p>
+      </div>
+
       <!-- ===== HEADER ===== -->
       <div class="rounded-[8px] bg-white p-[2rem] shadow-sm">
         <div class="flex flex-wrap items-start justify-between gap-[1.6rem]">
@@ -905,6 +937,207 @@ onMounted(async () => {
             </div>
           </div>
           <p v-else class="italic text-slate-400">No settlement bank accounts configured for this merchant.</p>
+        </div>
+      </div>
+
+      <!-- ===== PAYMENT GATEWAYS CATALOGUE (Issue 004) ===== -->
+      <div class="rounded-[8px] bg-white shadow-sm">
+        <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-[2rem] py-[1.4rem]">
+          <div class="flex items-center gap-[1rem]">
+            <span class="material-symbols-outlined text-primary">credit_card</span>
+            <h2 class="text-[1.6rem] font-[700] text-[#000]">Payment Gateways Availability</h2>
+          </div>
+          <span class="text-[1.2rem] text-slate-500 italic">
+            Platform credentials are checked in test mode.
+          </span>
+        </div>
+        <div class="p-[1.6rem]">
+          <div v-if="store.paymentGatewaysLoading" class="py-[2rem] text-center text-slate-500">
+            <span class="animate-spin material-symbols-outlined mr-[0.8rem] text-[2rem] text-primary">progress_activity</span>
+            Loading gateway availability...
+          </div>
+          <div v-else-if="store.paymentGateways.length" class="space-y-[1.2rem]">
+            <div
+              v-for="gw in store.paymentGateways"
+              :key="gw.code || gw.gateway"
+              class="rounded-[8px] border border-slate-100 p-[1.4rem] flex flex-col md:flex-row md:items-center justify-between gap-[1.2rem]"
+            >
+              <div>
+                <div class="flex items-center gap-[0.8rem]">
+                  <h3 class="font-[700] text-[1.5rem] text-slate-900">{{ gw.name || gw.gateway }}</h3>
+                  <span
+                    class="rounded-full px-[0.8rem] py-[0.2rem] text-[1.1rem] font-[700]"
+                    :class="gw.available ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'"
+                  >
+                    {{ gw.available ? "Available" : "Unavailable" }}
+                  </span>
+                  <span
+                    v-if="store.paymentGatewayDefault === gw.gateway"
+                    class="rounded-full bg-blue-100 text-primary px-[0.8rem] py-[0.2rem] text-[1.1rem] font-[700]"
+                  >
+                    Default
+                  </span>
+                </div>
+                <p v-if="gw.unavailableReason" class="mt-[0.4rem] text-[1.3rem] text-slate-700">
+                  {{ gw.unavailableReason }}
+                </p>
+                <div v-if="!gw.available && gw.reasonCode" class="mt-[0.4rem] flex items-center gap-[0.6rem] text-[1.2rem] text-slate-500">
+                  <span>Reason code:</span>
+                  <code class="rounded bg-slate-100 px-[0.6rem] py-[0.2rem] font-mono text-[1.1rem] text-slate-700">
+                    {{ gw.reasonCode }}
+                  </code>
+                </div>
+              </div>
+
+              <!-- Next step helper -->
+              <div v-if="gw.nextStep || gw.nextStepHint" class="rounded-[6px] bg-slate-50 p-[1rem] max-w-[36rem] border border-slate-100 text-[1.2rem]">
+                <p v-if="gw.nextStep" class="font-[600] text-slate-800">
+                  Next step: {{ gw.nextStep }}
+                </p>
+                <p v-if="gw.nextStepHint" class="text-slate-500 mt-[0.2rem]">
+                  {{ gw.nextStepHint }}
+                </p>
+              </div>
+            </div>
+          </div>
+          <p v-else class="italic text-slate-400">No payment gateways available for this merchant.</p>
+        </div>
+      </div>
+
+      <!-- ===== PLAN AND EFFECTIVE ACCESS (Issue 007) ===== -->
+      <div class="rounded-[8px] bg-white shadow-sm">
+        <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-[2rem] py-[1.4rem]">
+          <div class="flex items-center gap-[1rem]">
+            <span class="material-symbols-outlined text-primary">workspace_premium</span>
+            <h2 class="text-[1.6rem] font-[700] text-[#000]">Plan and Effective Access</h2>
+          </div>
+          <span class="text-[1.2rem] text-slate-500">
+            Dashboard areas restrict dashboard requests only; API is governed by entitlements.
+          </span>
+        </div>
+
+        <div class="p-[1.6rem]">
+          <div v-if="store.billingAccessLoading" class="py-[2rem] text-center text-slate-500">
+            <span class="animate-spin material-symbols-outlined mr-[0.8rem] text-[2rem] text-primary">progress_activity</span>
+            Loading store plan and effective access...
+          </div>
+          <div v-else-if="store.billingAccess" class="space-y-[1.6rem]">
+            <!-- Plan & Enforcement Status summary -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-[1.2rem] bg-slate-50 p-[1.4rem] rounded-[8px] border border-slate-100">
+              <div>
+                <p class="text-[1.1rem] font-[600] uppercase tracking-wider text-slate-500">Assigned Plan</p>
+                <p class="mt-[0.2rem] text-[1.6rem] font-[700] text-slate-900 uppercase">
+                  {{ store.billingAccess.planCode || "No Plan" }}
+                </p>
+              </div>
+              <div>
+                <p class="text-[1.1rem] font-[600] uppercase tracking-wider text-slate-500">Subscription Status</p>
+                <p class="mt-[0.2rem] text-[1.5rem] font-[700] text-slate-800 capitalize">
+                  {{ store.billingAccess.subscriptionStatus || "—" }}
+                </p>
+              </div>
+              <div>
+                <p class="text-[1.1rem] font-[600] uppercase tracking-wider text-slate-500">Plan Rules Enforcement</p>
+                <div class="mt-[0.2rem] flex items-center gap-[0.6rem]">
+                  <span
+                    class="rounded-full px-[0.8rem] py-[0.2rem] text-[1.2rem] font-[700]"
+                    :class="store.billingAccess.enforcement?.applies ? 'bg-emerald-100 text-emerald-800' : 'bg-purple-100 text-purple-800'"
+                  >
+                    {{ store.billingAccess.enforcement?.applies ? "Enforced" : "Exempt / Off" }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Enforcement Cause Banner if not applied -->
+            <div
+              v-if="!store.billingAccess.enforcement?.applies"
+              class="rounded-[8px] border border-purple-200 bg-purple-50 p-[1.2rem] text-[1.3rem] text-purple-900 flex items-center gap-[0.8rem]"
+            >
+              <span class="material-symbols-outlined text-purple-600">shield_person</span>
+              <p>
+                <strong>Plan rules do NOT apply to this store:</strong>
+                {{ store.billingAccess.enforcement?.message || "Enforcement is disabled for this store." }}
+                <code v-if="store.billingAccess.enforcement?.reason" class="ml-[0.4rem] rounded bg-purple-100 px-[0.6rem] py-[0.1rem] text-[1.1rem]">
+                  {{ store.billingAccess.enforcement?.reason }}
+                </code>
+              </p>
+            </div>
+
+            <!-- Grouped Feature Access Breakdown -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-[1.6rem]">
+              <!-- Features -->
+              <div class="rounded-[8px] border border-slate-200 p-[1.4rem]">
+                <h3 class="font-[700] text-[1.4rem] text-slate-900 border-b border-slate-100 pb-[0.8rem] mb-[1rem]">
+                  Features
+                </h3>
+                <div v-if="(store.billingAccess.features || []).length" class="space-y-[0.8rem] text-[1.3rem]">
+                  <div
+                    v-for="feature in store.billingAccess.features"
+                    :key="feature.code"
+                    class="flex items-center justify-between text-slate-700"
+                  >
+                    <span>{{ feature.code.replace(/_/g, ' ') }}</span>
+                    <span
+                      class="rounded px-[0.6rem] py-[0.1rem] text-[1.1rem] font-[700]"
+                      :class="feature.included ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'"
+                    >
+                      {{ feature.included ? "Included" : "Not included" }}
+                    </span>
+                  </div>
+                </div>
+                <p v-else class="text-slate-400 italic text-[1.2rem]">No feature rules specified.</p>
+              </div>
+
+              <!-- Limits -->
+              <div class="rounded-[8px] border border-slate-200 p-[1.4rem]">
+                <h3 class="font-[700] text-[1.4rem] text-slate-900 border-b border-slate-100 pb-[0.8rem] mb-[1rem]">
+                  Limits
+                </h3>
+                <div v-if="(store.billingAccess.limits || []).length" class="space-y-[0.8rem] text-[1.3rem]">
+                  <div
+                    v-for="limit in store.billingAccess.limits"
+                    :key="limit.code"
+                    class="flex items-center justify-between text-slate-700"
+                  >
+                    <span>{{ limit.code.replace(/_/g, ' ') }}</span>
+                    <span class="font-[700] text-slate-900">
+                      {{ limit.limit === 0 ? "0 (left out)" : (limit.limit != null ? limit.limit : "No cap / Unlimited") }}
+                    </span>
+                  </div>
+                </div>
+                <p v-else class="text-slate-400 italic text-[1.2rem]">No limits specified (all unlimited).</p>
+              </div>
+
+              <!-- Dashboard Areas -->
+              <div class="rounded-[8px] border border-slate-200 p-[1.4rem]">
+                <h3 class="font-[700] text-[1.4rem] text-slate-900 border-b border-slate-100 pb-[0.8rem] mb-[1rem]">
+                  Dashboard Areas
+                </h3>
+                <div v-if="(store.billingAccess.areas || []).length" class="space-y-[0.8rem] text-[1.3rem]">
+                  <div
+                    v-for="area in store.billingAccess.areas"
+                    :key="area.code"
+                    class="flex items-center justify-between text-slate-700"
+                  >
+                    <span>{{ area.code.replace(/_/g, ' ') }}</span>
+                    <span
+                      class="rounded px-[0.6rem] py-[0.1rem] text-[1.1rem] font-[700] uppercase"
+                      :class="{
+                        'bg-emerald-100 text-emerald-800': area.level === 'manage',
+                        'bg-blue-100 text-blue-800': area.level === 'view',
+                        'bg-rose-100 text-rose-800': area.level === 'none',
+                      }"
+                    >
+                      {{ area.level || "manage" }}
+                    </span>
+                  </div>
+                </div>
+                <p v-else class="text-slate-400 italic text-[1.2rem]">All dashboard areas: manage.</p>
+              </div>
+            </div>
+          </div>
+          <p v-else class="italic text-slate-400">No plan access information available for this store.</p>
         </div>
       </div>
     </template>

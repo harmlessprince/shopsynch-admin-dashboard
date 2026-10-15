@@ -15,6 +15,12 @@ export const useAdminMerchantsStore = defineStore("adminMerchantsStore", () => {
     const bankAccountsLoading = ref(false);
     const storeSettings = ref(null);
     const storeSettingsLoading = ref(false);
+    const paymentGateways = ref([]);
+    const paymentGatewayDefault = ref(null);
+    const paymentGatewayCurrency = ref(null);
+    const paymentGatewaysLoading = ref(false);
+    const billingAccess = ref(null);
+    const billingAccessLoading = ref(false);
     const banks = ref([]);
     const banksLoading = ref(false);
     const loading = ref(false);
@@ -224,6 +230,39 @@ export const useAdminMerchantsStore = defineStore("adminMerchantsStore", () => {
         return response;
     }
 
+    async function fetchMerchantPaymentGateways(tenantId) {
+        paymentGatewaysLoading.value = true;
+        try {
+            const url = endpoints.admin.merchants.paymentGateways.replace(":tenantId", tenantId);
+            const response = await get(url, {}, { forceMode: "live" });
+            const data = response?.data || {};
+            paymentGateways.value = data?.gateways || [];
+            paymentGatewayDefault.value = data?.defaultGateway || null;
+            paymentGatewayCurrency.value = data?.currency || null;
+            return paymentGateways.value;
+        } catch (err) {
+            paymentGateways.value = [];
+            throw err;
+        } finally {
+            paymentGatewaysLoading.value = false;
+        }
+    }
+
+    async function fetchMerchantBillingAccess(tenantId) {
+        billingAccessLoading.value = true;
+        try {
+            const url = endpoints.admin.merchants.billingAccess.replace(":tenantId", tenantId);
+            const response = await get(url, {}, { forceMode: "live" });
+            billingAccess.value = response?.data || response || null;
+            return billingAccess.value;
+        } catch (err) {
+            billingAccess.value = null;
+            throw err;
+        } finally {
+            billingAccessLoading.value = false;
+        }
+    }
+
     return {
         merchants,
         merchant,
@@ -232,6 +271,12 @@ export const useAdminMerchantsStore = defineStore("adminMerchantsStore", () => {
         bankAccountsLoading,
         storeSettings,
         storeSettingsLoading,
+        paymentGateways,
+        paymentGatewayDefault,
+        paymentGatewayCurrency,
+        paymentGatewaysLoading,
+        billingAccess,
+        billingAccessLoading,
         banks,
         banksLoading,
         loading,
@@ -255,5 +300,7 @@ export const useAdminMerchantsStore = defineStore("adminMerchantsStore", () => {
         fetchBanks,
         fetchStoreSettings,
         updateStoreSettings,
+        fetchMerchantPaymentGateways,
+        fetchMerchantBillingAccess,
     };
 });
