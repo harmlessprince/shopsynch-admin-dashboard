@@ -4,6 +4,7 @@ import { useVfm } from "vue-final-modal";
 import DataTable from "~/components/table/DataTable.vue";
 import SendReminderModal from "~/components/Modals/SendReminderModal.vue";
 import RegisterMerchantModal from "~/components/Modals/RegisterMerchantModal.vue";
+import ResetMerchantPasswordModal from "~/components/Modals/ResetMerchantPasswordModal.vue";
 
 definePageMeta({
   layout: "dashboard",
@@ -21,6 +22,7 @@ const status = ref("");
 const page = ref(1);
 const limit = ref(50);
 const selectedMerchantForReminder = ref(null);
+const selectedMerchantForReset = ref(null);
 
 const tableHeader = [
   { title: "Merchant", accessor: "businessTradingName" },
@@ -186,6 +188,12 @@ onMounted(fetchMerchants);
             </span>
             <p>Send Reminder</p>
           </div>
+          <div class="dt-action-item" @click="selectedMerchantForReset = data; vfm.open('resetMerchantPasswordModal')">
+            <span class="material-symbols-outlined">
+              password
+            </span>
+            <p>Reset Password</p>
+          </div>
           <div class="dt-action-item" @click="updateMerchantStatus(data)">
             <span class="material-symbols-outlined">
               {{ data.status ? "toggle_off" : "toggle_on" }}
@@ -201,6 +209,12 @@ onMounted(fetchMerchants);
         :merchant="selectedMerchantForReminder"
         @sent="fetchMerchants()"
         @closed="selectedMerchantForReminder = null"
+      />
+
+      <ResetMerchantPasswordModal
+        :merchant="selectedMerchantForReset"
+        @reset="fetchMerchants()"
+        @closed="selectedMerchantForReset = null"
       />
 
       <RegisterMerchantModal
