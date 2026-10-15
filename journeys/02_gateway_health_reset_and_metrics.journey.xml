@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<journey name="Gateway Health, Circuit Reset and Metrics" id="gateway-health-reset-and-metrics">
+    <description>
+        Validates that an administrator can inspect real-time payment gateway health including circuit breaker states,
+        success rates, latency, failure counts, and manually reset an open circuit breaker after confirmation.
+    </description>
+    <stories>
+        <story id="US-38" title="Inspect gateway circuit breaker status" />
+        <story id="US-39" title="View gateway performance metrics and latency" />
+        <story id="US-40" title="Gateway alert states on degraded health" />
+        <story id="US-50" title="Manual circuit breaker reset action" />
+    </stories>
+    <actions>
+        <action>Sign in to the Admin Dashboard and navigate to '/dashboard/payment-gateways'.</action>
+        <action>Click the 'Health, Circuits &amp; Metrics' tab.</action>
+        <action>Verify the gateway cards show circuit states ('CLOSED', 'OPEN', or 'HALF_OPEN') with color-coded badges.</action>
+        <action>Verify each card displays recent failure count, success rate percentage, average latency in milliseconds, and fallback rate.</action>
+        <action>Verify an open circuit displays the time it opened and next retry timestamp, alongside a top warning alert banner.</action>
+        <action>Click 'Reset Circuit' on a gateway card and verify the confirmation modal opens with details about resuming live transaction attempts.</action>
+        <action>Click 'Confirm Reset' and verify the circuit breaker status refreshes to CLOSED with a success confirmation toast.</action>
+    </actions>
+</journey>

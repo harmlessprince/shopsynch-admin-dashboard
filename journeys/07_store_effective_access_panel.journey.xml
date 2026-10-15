@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<journey name="Store Effective Access Panel" id="store-effective-access-panel">
+    <description>
+        Validates that support operators can view a store's subscription status, billing enforcement state,
+        enforcement bypass reasons, and the full effective access breakdown (features, limits, and areas) on the merchant details page.
+    </description>
+    <stories>
+        <story id="US-ACCESS-01" title="Merchant detail plan and effective access section" />
+        <story id="US-ACCESS-02" title="Billing enforcement status and bypass reason" />
+        <story id="US-ACCESS-03" title="Effective features, limits, and dashboard areas breakdown" />
+    </stories>
+    <actions>
+        <action>Sign in to the Admin Dashboard and navigate to '/dashboard/merchants'.</action>
+        <action>Select a merchant to open '/dashboard/merchants/{tenantId}'.</action>
+        <action>Scroll to the 'Plan and Effective Access' card.</action>
+        <action>Verify the card displays the current plan name, billing interval, subscription status, and billing enforcement badge.</action>
+        <action>If billing enforcement is disabled, verify the banner displays the plain enforcement reason (e.g. override active or subscription exempt).</action>
+        <action>Verify the effective access breakdown tabs or groups display Features (included / not included), Limits (numeric cap or unlimited), and Dashboard Areas (none, view, or manage).</action>
+        <action>Verify the informational notice confirms that dashboard areas restrict dashboard operations only, not raw API calls.</action>
+    </actions>
+</journey>

@@ -2,7 +2,7 @@
 
 `ecommerceapi/agents/knowledge/plans-and-gating.md` (retired plans move to Pro)
 
-Status: start
+Status: done
 
 ## What to build
 
@@ -12,10 +12,10 @@ In the billing operations area, add a filter or a short list for the reason `pla
 
 ## Acceptance criteria
 
-- [ ] The admin can list subscriptions moved off retired plans with store, previous plan, new plan and date.
-- [ ] An empty result says nothing was moved rather than showing a blank table.
-- [ ] A moved store's detail page shows a line saying it was moved and when.
-- [ ] Uses the existing data table, store and endpoint registry; add an admin journey.
+- [x] The admin can list subscriptions moved off retired plans with store, previous plan, new plan and date.
+- [x] An empty result says nothing was moved rather than showing a blank table.
+- [x] A moved store's detail page shows a line saying it was moved and when.
+- [x] Uses the existing data table, store and endpoint registry; add an admin journey.
 
 ## Blocked by
 

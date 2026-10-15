@@ -2,7 +2,7 @@
 
 `ecommerceapi/agents/knowledge/plans-and-gating.md` (admin plan management)
 
-Status: start
+Status: done
 
 ## What to build
 
@@ -15,10 +15,10 @@ On a merchant's detail page (`pages/dashboard/merchants/[tenantId].vue`), add a 
 
 ## Acceptance criteria
 
-- [ ] The section shows plan, subscription status, enforcement state with reason, and effective features, limits and areas.
-- [ ] A store with enforcement off clearly says rules do not apply and why, instead of looking like a plan that includes everything.
-- [ ] A store with no plan says so.
-- [ ] Uses existing admin components and the endpoint registry; add an admin journey.
+- [x] The section shows plan, subscription status, enforcement state with reason, and effective features, limits and areas.
+- [x] A store with enforcement off clearly says rules do not apply and why, instead of looking like a plan that includes everything.
+- [x] A store with no plan says so.
+- [x] Uses existing admin components and the endpoint registry; add an admin journey.
 
 ## Blocked by
 

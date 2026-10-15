@@ -1,0 +1,503 @@
+import { expect, test, type Page } from '@playwright/test'
+
+async function mockAdminApi(page: Page) {
+  const defaultCountryGateways = [
+    { gateway: 'PAYSTACK', enabled: true },
+    { gateway: 'MONNIFY', enabled: true },
+    { gateway: 'FLUTTERWAVE', enabled: false },
+    { gateway: 'STRIPE', enabled: false },
+    { gateway: 'OFFLINE', enabled: true },
+  ]
+
+  const countrySettings = [
+    { country: 'DEFAULT', defaultGateway: 'PAYSTACK', affectedStores: 142, gateways: defaultCountryGateways },
+    {
+      country: 'Nigeria',
+      defaultGateway: 'PAYSTACK',
+      affectedStores: 120,
+      gateways: [
+        { gateway: 'PAYSTACK', enabled: true },
+        { gateway: 'MONNIFY', enabled: true },
+        { gateway: 'FLUTTERWAVE', enabled: true },
+        { gateway: 'STRIPE', enabled: false },
+        { gateway: 'OFFLINE', enabled: false },
+      ],
+    },
+  ]
+
+  type CircuitState = {
+    gateway: string
+    tenantId: string | null
+    mode: string
+    state: string
+    consecutiveFailures: number
+    openedAt: string | null
+    nextTrialAt: string | null
+    lastFailureAt: string | null
+    lastFailureReason: string | null
+  }
+
+  const circuitStates: CircuitState[] = [
+    { gateway: 'PAYSTACK', tenantId: null, mode: 'live', state: 'CLOSED', consecutiveFailures: 0, openedAt: null, nextTrialAt: null, lastFailureAt: null, lastFailureReason: null },
+    { gateway: 'MONNIFY', tenantId: null, mode: 'live', state: 'CLOSED', consecutiveFailures: 0, openedAt: null, nextTrialAt: null, lastFailureAt: null, lastFailureReason: null },
+    { gateway: 'FLUTTERWAVE', tenantId: null, mode: 'live', state: 'OPEN', consecutiveFailures: 5, openedAt: '2026-10-14T12:00:00Z', nextTrialAt: '2026-10-14T12:15:00Z', lastFailureAt: '2026-10-14T12:00:00Z', lastFailureReason: 'Elevated error rate' },
+    { gateway: 'STRIPE', tenantId: null, mode: 'live', state: 'CLOSED', consecutiveFailures: 0, openedAt: null, nextTrialAt: null, lastFailureAt: null, lastFailureReason: null },
+    { gateway: 'OFFLINE', tenantId: null, mode: 'live', state: 'CLOSED', consecutiveFailures: 0, openedAt: null, nextTrialAt: null, lastFailureAt: null, lastFailureReason: null },
+  ]
+
+  const gatewayMetrics = [
+    { gateway: 'PAYSTACK', windowMinutes: 60, attempts: 1500, started: 1470, failed: 30, successRatePercent: 98.0, averageLatencyMillis: 320, firstChoiceAttempts: 1400, movedAway: 5, movedHere: 0, fallbackRatePercent: 0.33 },
+    { gateway: 'MONNIFY', windowMinutes: 60, attempts: 400, started: 395, failed: 5, successRatePercent: 98.75, averageLatencyMillis: 290, firstChoiceAttempts: 380, movedAway: 1, movedHere: 0, fallbackRatePercent: 0.25 },
+    { gateway: 'FLUTTERWAVE', windowMinutes: 60, attempts: 200, started: 120, failed: 80, successRatePercent: 60.0, averageLatencyMillis: 850, firstChoiceAttempts: 180, movedAway: 45, movedHere: 0, fallbackRatePercent: 22.5 },
+  ]
+
+  const gatewayAuditLogs = [
+    {
+      id: 'audit-log-1',
+      resource: 'PAYMENT_GATEWAY_SETTING',
+      resourceId: 'Nigeria',
+      action: 'UPDATED',
+      actorId: 'admin-usr-1',
+      actorEmail: 'admin@shopsynch.com',
+      actorType: 'ADMIN',
+      metadata: { enabledGateways: ['PAYSTACK', 'MONNIFY'], defaultGateway: 'MONNIFY' },
+      createdAt: '2026-10-14T09:30:00Z',
+    },
+  ]
+
+  let platformAlertRecipients = 'ops@shopsynch.com, oncall@shopsynch.com'
+
+  const planRules = [
+    { code: 'pos_access', kind: 'feature', label: 'POS Access', description: 'Enable POS terminal sales', allowedValues: ['true', 'false'], missingKeyMeaning: 'not included' },
+    { code: 'custom_domain', kind: 'feature', label: 'Custom Domain', description: 'Bring your own custom domain', allowedValues: ['true', 'false'], missingKeyMeaning: 'not included' },
+    { code: 'staff_limit', kind: 'limit', label: 'Staff Limit', description: 'Max staff accounts permitted', allowedValues: [], missingKeyMeaning: 'no cap' },
+    { code: 'products_limit', kind: 'limit', label: 'Products Limit', description: 'Maximum active products allowed', allowedValues: [], missingKeyMeaning: 'no cap' },
+    { code: 'area_orders', kind: 'area', label: 'Orders Area', description: 'Orders dashboard access level', allowedValues: ['none', 'view', 'manage'], missingKeyMeaning: 'manage' },
+    { code: 'area_branches', kind: 'area', label: 'Branches Area', description: 'Branches dashboard access level', allowedValues: ['none', 'view', 'manage'], missingKeyMeaning: 'manage' },
+  ]
+
+  const seededPlans = [
+    {
+      id: 'plan-starter-1',
+      code: 'starter',
+      name: 'Starter Plan',
+      description: 'Perfect for small shops getting started',
+      seeded: true,
+      featureAccessRules: {
+        pos_access: false,
+        custom_domain: false,
+        staff_limit: 2,
+        products_limit: 50,
+        area_orders: 'manage',
+        area_branches: 'none',
+      },
+      usageLimits: {},
+      scaleLimits: {},
+      prices: [{ periodUnit: 'MONTH', periodUnitCount: 1, amount: 5000, currency: 'NGN' }],
+    },
+    {
+      id: 'plan-pro-1',
+      code: 'pro',
+      name: 'Pro Plan',
+      description: 'For growing businesses',
+      seeded: true,
+      featureAccessRules: {
+        pos_access: true,
+        custom_domain: true,
+        staff_limit: 10,
+        area_orders: 'manage',
+        area_branches: 'manage',
+      },
+      usageLimits: {},
+      scaleLimits: {},
+      prices: [{ periodUnit: 'MONTH', periodUnitCount: 1, amount: 15000, currency: 'NGN' }],
+    },
+  ]
+
+  const sampleMerchant = {
+    id: 'tenant-test-123',
+    businessTradingName: 'Lagos Trends Boutique',
+    code: 'LAGTRENDS',
+    ownerFullName: 'Chidi Okonkwo',
+    ownerEmail: 'chidi@lagostrends.ng',
+    currentMode: 'TEST_MODE',
+    complianceReviewStatus: 'APPROVED',
+    status: true,
+    createdAt: '2026-08-01T10:00:00Z',
+    businessCountry: 'NG',
+  }
+
+  const merchantGatewayCatalog = {
+    defaultGateway: 'PAYSTACK',
+    currency: 'NGN',
+    gateways: [
+      {
+        gateway: 'PAYSTACK',
+        name: 'Paystack',
+        kind: 'CARD',
+        available: true,
+        switchable: false,
+        reasonCode: null,
+        unavailableReason: null,
+        nextStep: null,
+        nextStepHint: null,
+        paymentMethods: [],
+        currencies: ['NGN'],
+      },
+      {
+        gateway: 'MONNIFY',
+        name: 'Monnify',
+        kind: 'TRANSFER',
+        available: false,
+        switchable: false,
+        reasonCode: 'MERCHANT_NOT_CONFIGURED',
+        unavailableReason: 'Store has not configured credentials',
+        nextStep: 'CONFIGURE_CREDENTIALS',
+        nextStepHint: 'Merchant must add API keys in Payment Settings',
+        paymentMethods: [],
+        currencies: ['NGN'],
+      },
+    ],
+  }
+
+  const merchantBillingAccess = {
+    planId: 'plan-pro-1',
+    planCode: 'pro',
+    subscriptionStatus: 'ACTIVE',
+    enforcement: { applies: true, reason: 'enforced', message: 'Plan rules are actively enforced for this store.' },
+    features: [
+      { code: 'pos_access', included: true },
+      { code: 'custom_domain', included: true },
+    ],
+    limits: [
+      { code: 'staff_limit', limit: 10 },
+      { code: 'products_limit', limit: null },
+    ],
+    areas: [
+      { code: 'area_orders', level: 'manage' },
+      { code: 'area_branches', level: 'manage' },
+    ],
+  }
+
+  const retiredPlanAuditLogs = [
+    {
+      id: 'sub-audit-1',
+      tenantId: 'tenant-test-123',
+      previousValue: 'starter-legacy',
+      newValue: 'pro',
+      reason: 'plan_retired',
+      actorId: 'system_seeder',
+      timestamp: '2026-10-14T08:00:00Z',
+      createdAt: '2026-10-14T08:00:00Z',
+    },
+  ]
+
+  await page.route('**/*', async (route) => {
+    const request = route.request()
+    const url = new URL(request.url())
+    const path = url.pathname
+
+    if (!path.startsWith('/v1/') && !path.startsWith('/v2/')) {
+      await route.continue()
+      return
+    }
+
+    const json = (body: any, status = 200) =>
+      route.fulfill({
+        status,
+        contentType: 'application/json',
+        body: JSON.stringify(body),
+      })
+
+    // Auth profile
+    if (path === '/v1/admin/auth/profile') {
+      await json({
+        status: true,
+        data: {
+          id: 'admin-usr-1',
+          email: 'admin@shopsynch.com',
+          fullName: 'Super Admin',
+          role: { name: 'Super Admin', slug: 'super_admin' },
+          currentMode: 'live',
+        },
+      })
+      return
+    }
+
+    // Payment gateway settings (list + per-country update)
+    if (path === '/v1/admin/payment-gateway-settings' && request.method() === 'GET') {
+      await json({ status: true, data: countrySettings })
+      return
+    }
+
+    if (path.startsWith('/v1/admin/payment-gateway-settings/') && request.method() === 'PUT') {
+      const payload = JSON.parse(request.postData() || '{}')
+      const country = decodeURIComponent(path.split('/').pop() || '')
+      const entry = countrySettings.find((setting) => setting.country.toLowerCase() === country.toLowerCase())
+      if (!entry) {
+        await json({ status: false, message: `${country} isn't a supported country. Choose one from the country list.` }, 400)
+        return
+      }
+      entry.defaultGateway = payload.defaultGateway || entry.defaultGateway
+      entry.gateways = entry.gateways.map((gateway) => ({
+        ...gateway,
+        enabled: (payload.enabledGateways || []).includes(gateway.gateway),
+      }))
+      await json({ status: true, message: 'Payment gateway settings saved.', data: countrySettings })
+      return
+    }
+
+    // Circuit states
+    if (path === '/v1/admin/payment-gateway-health/circuits' && request.method() === 'GET') {
+      await json({ status: true, data: circuitStates })
+      return
+    }
+
+    // Reset circuit
+    if (path.startsWith('/v1/admin/payment-gateway-health/circuits/') && path.endsWith('/reset') && request.method() === 'POST') {
+      const segments = path.split('/')
+      const gateway = segments[segments.length - 2]
+      const circuit = circuitStates.find((item) => item.gateway.toLowerCase() === gateway.toLowerCase())
+      if (circuit) {
+        circuit.state = 'CLOSED'
+        circuit.consecutiveFailures = 0
+        circuit.openedAt = null
+        circuit.nextTrialAt = null
+      }
+      await json({ status: true, message: 'The circuit is closed.', data: circuitStates })
+      return
+    }
+
+    // Metrics
+    if (path === '/v1/admin/payment-gateway-health/metrics' && request.method() === 'GET') {
+      await json({ status: true, data: gatewayMetrics })
+      return
+    }
+
+    // Audit logs
+    if (path === '/v1/admin/audit-logs' && request.method() === 'GET') {
+      await json({
+        status: true,
+        data: {
+          items: gatewayAuditLogs,
+          total: gatewayAuditLogs.length,
+          currentPage: 0,
+          totalElements: gatewayAuditLogs.length,
+        },
+      })
+      return
+    }
+
+    // Platform settings
+    if (path === '/v1/admin/settings' && request.method() === 'GET') {
+      await json({
+        status: true,
+        data: [
+          { key: 'platformPaymentAlertEmails', value: platformAlertRecipients, type: 'STRING', description: 'Alert recipient emails' },
+        ],
+      })
+      return
+    }
+
+    if (path.startsWith('/v1/admin/settings/platformPaymentAlertEmails/value') && request.method() === 'PATCH') {
+      const payload = JSON.parse(request.postData() || '{}')
+      platformAlertRecipients = payload.value
+      await json({ status: true, message: 'Setting updated successfully', data: { key: 'platformPaymentAlertEmails', value: platformAlertRecipients } })
+      return
+    }
+
+    // Plan rules catalog
+    if (path === '/v1/admin/billing/plan-rules' && request.method() === 'GET') {
+      await json({ status: true, message: 'Plan rules retrieved successfully', data: planRules })
+      return
+    }
+
+    // Plans list
+    if (path === '/v1/admin/billing/plans' && request.method() === 'GET') {
+      await json({ status: true, message: 'Billing plans retrieved successfully.', data: seededPlans })
+      return
+    }
+
+    // Plan update
+    if (path.startsWith('/v1/admin/billing/plans/') && (request.method() === 'PUT' || request.method() === 'PATCH')) {
+      const payload = JSON.parse(request.postData() || '{}')
+      await json({ status: true, message: 'Plan updated successfully', data: { ...seededPlans[0], ...payload } })
+      return
+    }
+
+    // Merchant details
+    if (path === `/v1/admin/merchants/${sampleMerchant.id}` && request.method() === 'GET') {
+      await json({ status: true, data: sampleMerchant })
+      return
+    }
+
+    // Merchant payment gateways
+    if (path === `/v1/admin/merchants/${sampleMerchant.id}/payment-gateways` && request.method() === 'GET') {
+      await json({ status: true, data: merchantGatewayCatalog })
+      return
+    }
+
+    // Merchant billing access
+    if (path === `/v1/admin/merchants/${sampleMerchant.id}/billing/access` && request.method() === 'GET') {
+      await json({ status: true, data: merchantBillingAccess })
+      return
+    }
+
+    // Billing subscription audit logs
+    if (path === '/v1/admin/billing/subscriptions/audit-logs' && request.method() === 'GET') {
+      await json({
+        status: true,
+        data: {
+          items: retiredPlanAuditLogs,
+          total: retiredPlanAuditLogs.length,
+          currentPage: 0,
+          totalElements: retiredPlanAuditLogs.length,
+        },
+      })
+      return
+    }
+
+    // Resync subscriptions to test
+    if (path === '/v1/admin/billing/subscriptions/resync-to-test' && request.method() === 'POST') {
+      await json({
+        status: true,
+        message: 'Replicated 15 subscriptions to test mode successfully',
+        data: { replicatedCount: 15 },
+      })
+      return
+    }
+
+    // Fallback empty
+    await json({ status: true, data: [] })
+  })
+
+  await page.context().addCookies([
+    {
+      name: 'shopsynch_admin_auth_token',
+      value: 'mock-admin-token',
+      url: 'http://localhost:3019',
+    },
+    {
+      name: 'shopsynch_cookie_consent',
+      value: encodeURIComponent(JSON.stringify({
+        version: '2026-05-14',
+        necessary: true,
+        analytics: false,
+        marketing: false,
+      })),
+      url: 'http://localhost:3019',
+    },
+  ])
+}
+
+test.describe('Admin Dashboard Journeys (01 - 09)', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAdminApi(page)
+  })
+
+  test('Journey 01, 02, 03, 05: Payment Gateways Control, Health, History, and Alert Recipients', async ({ page }) => {
+    // 1. Visit Payment Gateways Page
+    await page.goto('/dashboard/payment-gateways')
+    await expect(page.getByText('Payment Gateway Management')).toBeVisible()
+
+    // Tab 1: Country Routing & Audit Trail (Journeys 01 & 03)
+    await expect(page.getByText('Country Routing & Audit Trail')).toBeVisible()
+    await expect(page.locator('select').first()).toHaveValue('DEFAULT')
+
+    // Gateways are displayed
+    await expect(page.getByRole('heading', { name: /Paystack/ })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Monnify/ })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Flutterwave/ })).toBeVisible()
+
+    // Paystack is active default
+    await expect(page.getByText('Active Default')).toBeVisible()
+
+    // Journey 03: Setting change history section visible
+    await expect(page.getByText('Gateway Setting Change History')).toBeVisible()
+    await expect(page.getByText(/Enabled: PAYSTACK, MONNIFY/)).toBeVisible()
+
+    // Journey 02: Switch to Health, Circuits & Metrics tab
+    await page.getByRole('button', { name: /Health, Circuits & Metrics/ }).click()
+    await expect(page.getByText('Live Gateway Circuit Breakers')).toBeVisible()
+
+    // Reset circuit modal
+    await page.getByRole('button', { name: 'Reset Circuit' }).first().click()
+    await expect(page.getByText('Reset Circuit Breaker?')).toBeVisible()
+    await page.getByRole('button', { name: 'Confirm Reset' }).click()
+
+    // Journey 05: Switch to Alert Recipients tab
+    await page.getByRole('button', { name: 'Alert Recipients' }).click()
+    await expect(page.getByText('Platform Payment Incident Alert Recipients')).toBeVisible()
+    const emailInput = page.locator('#alertEmailsInput')
+    await expect(emailInput).toBeVisible()
+    await emailInput.fill('ops@shopsynch.com, alerts@shopsynch.com')
+    await page.getByRole('button', { name: 'Save Alert Recipients' }).click()
+    await expect(page.getByText('ops@shopsynch.com').first()).toBeVisible()
+  })
+
+  test('Journey 04 & 07: Merchant Detail Gateway Availability and Effective Access Panel', async ({ page }) => {
+    await page.goto('/dashboard/merchants/tenant-test-123')
+
+    // Merchant details loaded
+    await expect(page.getByRole('heading', { name: 'Lagos Trends Boutique' })).toBeVisible()
+
+    // Journey 08: Retired plan notice check
+    await expect(page.getByText('This store was automatically moved from retired plan')).toBeVisible()
+
+    // Journey 04: Payment Gateway Availability
+    await expect(page.getByText('Payment Gateways Availability')).toBeVisible()
+    await expect(page.getByText('Platform credentials are checked in test mode.')).toBeVisible()
+    await expect(page.getByText('Available', { exact: true }).first()).toBeVisible()
+
+    // Journey 07: Plan and Effective Access Panel
+    await expect(page.getByText('Plan and Effective Access')).toBeVisible()
+    await expect(page.getByText('Enforced')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Features' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Limits' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Dashboard Areas' })).toBeVisible()
+  })
+
+  test('Journey 06: Structured Plan Rule Editor with Seeded Guard and JSON Debug', async ({ page }) => {
+    await page.goto('/dashboard/billing/plans')
+    await expect(page.getByText('Billing Plans')).toBeVisible()
+
+    // Edit Starter plan
+    await page.getByRole('button', { name: 'Edit', exact: true }).first().click()
+    await expect(page.getByRole('heading', { name: 'Edit Billing Plan' })).toBeVisible()
+
+    // Seeded notice appears
+    await expect(page.getByText('This plan is part of the catalog.')).toBeVisible()
+
+    // Unlock temporary editing
+    await page.getByRole('button', { name: 'I understand, allow temporary editing' }).click()
+    await expect(page.getByText('Temporary editing enabled for this session.')).toBeVisible()
+
+    // Sections for Features, Usage Limits, Dashboard Areas
+    await expect(page.getByRole('heading', { name: 'Features (Boolean Entitlements)' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Limits (Numeric Caps)' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Dashboard Areas (Navigation Access)' })).toBeVisible()
+
+    // Debug JSON toggle
+    await page.getByRole('button', { name: /Show JSON Preview/ }).click()
+    await expect(page.getByRole('button', { name: 'Hide JSON Preview' })).toBeVisible()
+  })
+
+  test('Journey 08 & 09: Billing Operations Retired Plan Moves and Resync to Test Mode', async ({ page }) => {
+    await page.goto('/dashboard/billing/operations')
+    await expect(page.getByText('Billing operations')).toBeVisible()
+
+    // Journey 09: Super Admin Resync to Test Mode
+    await expect(page.getByText('Resync Subscriptions to Test Mode')).toBeVisible()
+    await page.getByRole('button', { name: 'Resync to Test' }).click()
+
+    // Confirmation modal
+    await expect(page.getByText('Resync Subscriptions to Test Mode?')).toBeVisible()
+    await page.getByRole('button', { name: 'Confirm & Resync' }).click()
+    await expect(page.getByText(/Successfully replicated 15 subscription\(s\) to test mode/)).toBeVisible()
+
+    // Journey 08: Subscriptions Moved off Retired Plans Report
+    await expect(page.getByText('Subscriptions Moved off Retired Plans')).toBeVisible()
+    await expect(page.getByText('tenant-test-123')).toBeVisible()
+    await expect(page.getByText('starter-legacy')).toBeVisible()
+  })
+})

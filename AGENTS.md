@@ -56,9 +56,14 @@ All stores live in `stores/`. Key stores:
 
 All endpoint paths are centralized in `utils/endpoints.js`. Endpoints that include route parameters use `:param` placeholders and must be interpolated before use (e.g. `url.replace(':id', id)`). The `appSettings` endpoints are functions that take `tenantId`.
 
-### 4. API Documentation**:
+### 4. API Documentation:
   - Consulting internal API documentation at `/Users/harmlessprince/webprojects/shopsync/shopsynch_internall_docs/AllInOne.md`.
   - Reviewing `utils/endpoints.js` for a quick reference to all API routes and their purposes.
+
+### Knowledge Base & Skills
+- Plan management & gating: `admin_dashboard/agents/knowledge/plan-management.md`
+- Plan management skill: `admin_dashboard/agents/skills/manage-plans/SKILL.md`
+- Form components rule: `admin_dashboard/agents/knowledge/form-components-rule.md`
 
 
 ### Routing & Layouts

@@ -2,7 +2,7 @@
 
 `ecommerceapi/docs/prds/payment-gateway-availability-and-control.md`
 
-Status: start
+Status: done
 
 ## What to build
 
@@ -10,10 +10,10 @@ The per-country gateway view shows who changed which gateway setting and when, s
 
 ## Acceptance criteria
 
-- [ ] Backend: the admin audit log read accepts a resource filter (and optional resource id) so only `PAYMENT_GATEWAY_SETTING` entries for a country are returned; targeted Java 17 test; internal API docs and `features.json` updated.
-- [ ] The gateway-by-country view lists the latest changes for the selected country: admin, time, gateways switched on or off and default change.
-- [ ] The list refreshes after the admin saves a change.
-- [ ] Uses the existing admin components and endpoint registry; add an admin journey.
+- [x] Backend: the admin audit log read accepts a resource filter (and optional resource id) so only `PAYMENT_GATEWAY_SETTING` entries for a country are returned; targeted Java 17 test; internal API docs and `features.json` updated.
+- [x] The gateway-by-country view lists the latest changes for the selected country: admin, time, gateways switched on or off and default change.
+- [x] The list refreshes after the admin saves a change.
+- [x] Uses the existing admin components and endpoint registry; add an admin journey.
 
 ## Blocked by
 

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<journey name="Retired Plan Moves Report" id="retired-plan-moves-report">
+    <description>
+        Validates that administrators can inspect an audit report of stores migrated off retired plans to Pro,
+        filter by store ID, view transition timestamps, and follow links from the merchant details page.
+    </description>
+    <stories>
+        <story id="US-RETIRED-01" title="List subscriptions moved off retired plans" />
+        <story id="US-RETIRED-02" title="Filter retired plan audit entries by store" />
+        <story id="US-RETIRED-03" title="Merchant detail link to retired plan move record" />
+    </stories>
+    <actions>
+        <action>Sign in to the Admin Dashboard and navigate to '/dashboard/billing/operations'.</action>
+        <action>Scroll to the 'Subscriptions Moved off Retired Plans' section.</action>
+        <action>Verify the audit table displays columns for Merchant ID, Previous Plan, New Plan, Date, and Actions.</action>
+        <action>Verify that when no subscriptions have been moved, the empty state displays 'No subscriptions moved off retired plans' rather than a blank table.</action>
+        <action>Enter a Tenant ID in the search input and click 'Filter' to filter records for that merchant.</action>
+        <action>Navigate to '/dashboard/merchants/{tenantId}' for a migrated merchant.</action>
+        <action>Verify a notice banner informs support that the store was moved from a retired plan, with a link to view the move record in Billing Operations.</action>
+    </actions>
+</journey>

@@ -2,7 +2,7 @@
 
 `ecommerceapi/docs/prds/payment-gateway-availability-and-control.md`
 
-Status: start
+Status: done
 
 ## What to build
 
@@ -10,9 +10,9 @@ The super admin can see and edit who is emailed when ShopSynch's own credentials
 
 ## Acceptance criteria
 
-- [ ] The form shows the current recipients and says that no one is alerted while it is empty.
-- [ ] Saving validates each email, writes the setting through the admin settings endpoint, and shows API validation errors beside the field.
-- [ ] Uses the existing admin form components, the endpoint registry and the settings store; add an admin journey.
+- [x] The form shows the current recipients and says that no one is alerted while it is empty.
+- [x] Saving validates each email, writes the setting through the admin settings endpoint, and shows API validation errors beside the field.
+- [x] Uses the existing admin form components, the endpoint registry and the settings store; add an admin journey.
 
 ## Blocked by
 

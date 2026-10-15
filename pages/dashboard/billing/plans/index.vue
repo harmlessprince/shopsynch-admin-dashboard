@@ -21,6 +21,38 @@ const planJsonError = ref("");
 const priceJsonError = ref("");
 const editingPrice = ref(null);
 
+const structuredRules = ref({});
+const fieldErrors = ref({});
+const confirmedSeededEdit = ref(false);
+const showRawJson = ref(false);
+
+const featureRules = computed(() => (billingPlansStore.planRules || []).filter((r) => r.kind === "feature"));
+const limitRules = computed(() => (billingPlansStore.planRules || []).filter((r) => r.kind === "limit"));
+const areaRules = computed(() => (billingPlansStore.planRules || []).filter((r) => r.kind === "area"));
+
+const isSeededPlan = computed(() => Boolean(editingPlan.value?.seeded));
+const isRulesReadOnly = computed(() => isSeededPlan.value && !confirmedSeededEdit.value);
+
+const currentRulesPayload = computed(() => {
+  const rules = {};
+  for (const [key, val] of Object.entries(structuredRules.value)) {
+    if (val === "__NOT_SET__" || val === "" || val === undefined || val === null) {
+      continue;
+    }
+    const def = (billingPlansStore.planRules || []).find((r) => r.code === key);
+    if (def?.kind === "feature") {
+      rules[key] = val === true || val === "true";
+    } else if (def?.kind === "limit") {
+      rules[key] = Number(val);
+    } else if (def?.kind === "area") {
+      rules[key] = String(val);
+    } else {
+      rules[key] = val;
+    }
+  }
+  return rules;
+});
+
 const planStatuses = ["ACTIVE", "INACTIVE", "ARCHIVED"];
 const statusOptions = planStatuses.map((status) => ({ label: status.replace(/_/g, " "), value: status }));
 const statusFilterOptions = [{ label: "All statuses", value: "" }, ...statusOptions];
@@ -176,7 +208,7 @@ function buildPlanPayload() {
     adminOnly: planForm.value.adminOnly,
     sortOrder: normalizeOptionalInteger(planForm.value.sortOrder),
     featureEntitlements: parseJsonArrayField(planForm.value.featureEntitlementsJson, "Feature entitlements"),
-    featureAccessRules: parseJsonObjectField(planForm.value.featureAccessRulesJson, "Feature access rules"),
+    featureAccessRules: currentRulesPayload.value,
     usageLimits: parseJsonObjectField(planForm.value.usageLimitsJson, "Usage limits"),
     checkoutFeePolicy: parseJsonObjectField(planForm.value.checkoutFeePolicyJson, "Checkout fee policy"),
     apiUsagePolicy: parseJsonObjectField(planForm.value.apiUsagePolicyJson, "API usage policy"),
@@ -188,6 +220,9 @@ function buildPlanPayload() {
 function openCreatePlan() {
   editingPlan.value = null;
   planForm.value = emptyPlanForm();
+  structuredRules.value = {};
+  fieldErrors.value = {};
+  confirmedSeededEdit.value = false;
   planJsonError.value = "";
   showPlanModal.value = true;
 }
@@ -195,6 +230,19 @@ function openCreatePlan() {
 function openEditPlan(plan) {
   editingPlan.value = plan;
   planForm.value = mapPlanToForm(plan);
+  const rules = plan.featureAccessRules || {};
+  const nextStructured = {};
+  for (const [code, value] of Object.entries(rules)) {
+    nextStructured[code] = value;
+  }
+  for (const rule of billingPlansStore.planRules || []) {
+    if (!(rule.code in nextStructured)) {
+      nextStructured[rule.code] = "__NOT_SET__";
+    }
+  }
+  structuredRules.value = nextStructured;
+  fieldErrors.value = {};
+  confirmedSeededEdit.value = false;
   planJsonError.value = "";
   showPlanModal.value = true;
 }
@@ -211,6 +259,7 @@ async function selectPlan(plan) {
 
 async function savePlan() {
   planJsonError.value = "";
+  fieldErrors.value = {};
   try {
     const payload = buildPlanPayload();
     const response = editingPlan.value
@@ -226,7 +275,12 @@ async function savePlan() {
       }
     }
   } catch (err) {
-    planJsonError.value = err?.message || "Unable to save billing plan.";
+    if (err?.data?.errors) {
+      fieldErrors.value = err.data.errors;
+    } else if (err?.errors) {
+      fieldErrors.value = err.errors;
+    }
+    planJsonError.value = err?.data?.message || err?.message || "Unable to save billing plan.";
     logger.error("Failed to save billing plan", err);
   }
 }
@@ -303,12 +357,15 @@ async function savePrice() {
 
 onMounted(async () => {
   try {
-    await billingPlansStore.fetchPlans();
+    await Promise.all([
+      billingPlansStore.fetchPlans(),
+      billingPlansStore.fetchPlanRules(),
+    ]);
     if (billingPlansStore.plans.length) {
       await selectPlan(billingPlansStore.plans[0]);
     }
   } catch (err) {
-    logger.error("Failed to load billing plans", err);
+    logger.error("Failed to load billing plans or plan rules", err);
   }
 });
 </script>
@@ -706,14 +763,200 @@ onMounted(async () => {
             </label>
           </div>
 
+          <!-- Structured Feature Access Rules Editor (Issue 006) -->
+          <div class="rounded-[10px] border border-slate-200 bg-slate-50/50 p-[1.6rem] space-y-[1.6rem]">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-[1rem] border-b border-slate-200 pb-[1.2rem]">
+              <div>
+                <h3 class="text-[1.6rem] font-[700] text-slate-900">Feature Access Rules &amp; Entitlements</h3>
+                <p class="text-[1.2rem] text-slate-500 mt-[0.2rem]">
+                  Configure feature flags, usage limits, and dashboard area permissions dynamically.
+                </p>
+              </div>
+              <button
+                type="button"
+                class="text-[1.2rem] font-[600] text-primary hover:underline self-start sm:self-auto"
+                @click="showRawJson = !showRawJson"
+              >
+                {{ showRawJson ? "Hide JSON Preview" : "Show JSON Preview (read-only)" }}
+              </button>
+            </div>
+
+            <!-- Seeded Catalog Warning Notice -->
+            <div
+              v-if="isSeededPlan"
+              class="rounded-[8px] border border-amber-300 bg-amber-50 p-[1.4rem] text-amber-900"
+            >
+              <div class="flex items-start gap-[1rem]">
+                <span class="material-symbols-outlined text-amber-600 mt-[0.2rem]">warning</span>
+                <div class="flex-1">
+                  <p class="text-[1.3rem] font-[600]">
+                    This plan is part of the catalog. ShopSynch rewrites these rules every time the backend starts, so changes made here will be lost. Change the catalog in code instead.
+                  </p>
+                  <div v-if="!confirmedSeededEdit" class="mt-[0.8rem]">
+                    <button
+                      type="button"
+                      class="rounded-[6px] bg-amber-600 px-[1.2rem] py-[0.5rem] text-[1.2rem] font-[700] text-white hover:bg-amber-700 transition"
+                      @click="confirmedSeededEdit = true"
+                    >
+                      I understand, allow temporary editing
+                    </button>
+                  </div>
+                  <p v-else class="text-[1.2rem] text-amber-800 font-[500] mt-[0.6rem]">
+                    ✓ Temporary editing enabled for this session.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Read-only JSON Preview for Debugging -->
+            <div v-if="showRawJson" class="rounded-[8px] bg-slate-900 p-[1.2rem] text-[1.2rem] font-mono text-emerald-400 overflow-x-auto max-h-[16rem]">
+              <pre>{{ JSON.stringify(currentRulesPayload, null, 2) }}</pre>
+            </div>
+
+            <fieldset :disabled="isRulesReadOnly" class="space-y-[1.6rem] disabled:opacity-60">
+              <!-- 1. Features Section -->
+              <div class="rounded-[8px] bg-white border border-slate-200 p-[1.4rem]">
+                <div class="mb-[1.2rem]">
+                  <h4 class="text-[1.5rem] font-[700] text-slate-900">Features (Boolean Entitlements)</h4>
+                  <p class="text-[1.2rem] text-slate-500">
+                    Leaving a feature rule not set means <em>not included</em> on this plan.
+                  </p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-[1.2rem]">
+                  <div
+                    v-for="rule in featureRules"
+                    :key="rule.code"
+                    class="rounded-[8px] border border-slate-100 p-[1.2rem] bg-slate-50/50 flex flex-col justify-between"
+                  >
+                    <div>
+                      <div class="flex items-center justify-between">
+                        <span class="font-[700] text-[1.3rem] text-slate-800">{{ rule.label || rule.code }}</span>
+                        <code class="text-[1.1rem] text-slate-400">{{ rule.code }}</code>
+                      </div>
+                      <p v-if="rule.description" class="text-[1.2rem] text-slate-500 mt-[0.2rem]">
+                        {{ rule.description }}
+                      </p>
+                    </div>
+
+                    <div class="mt-[1rem]">
+                      <select
+                        v-model="structuredRules[rule.code]"
+                        class="w-full rounded-[6px] border border-slate-300 px-[1rem] py-[0.6rem] text-[1.3rem] bg-white"
+                      >
+                        <option value="__NOT_SET__">Not set (default: not included)</option>
+                        <option :value="true">Enabled (true)</option>
+                        <option :value="false">Disabled (false)</option>
+                      </select>
+                      <p v-if="fieldErrors[rule.code]" class="mt-[0.4rem] text-[1.2rem] font-[600] text-rose-600">
+                        {{ fieldErrors[rule.code] }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. Limits Section -->
+              <div class="rounded-[8px] bg-white border border-slate-200 p-[1.4rem]">
+                <div class="mb-[1.2rem]">
+                  <h4 class="text-[1.5rem] font-[700] text-slate-900">Limits (Numeric Caps)</h4>
+                  <p class="text-[1.2rem] text-slate-500">
+                    Leaving a limit not set means <em>no cap (unlimited)</em>. A cap of <code>0</code> means disabled / 0 permitted.
+                  </p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-[1.2rem]">
+                  <div
+                    v-for="rule in limitRules"
+                    :key="rule.code"
+                    class="rounded-[8px] border border-slate-100 p-[1.2rem] bg-slate-50/50 flex flex-col justify-between"
+                  >
+                    <div>
+                      <div class="flex items-center justify-between">
+                        <span class="font-[700] text-[1.3rem] text-slate-800">{{ rule.label || rule.code }}</span>
+                        <code class="text-[1.1rem] text-slate-400">{{ rule.code }}</code>
+                      </div>
+                      <p v-if="rule.description" class="text-[1.2rem] text-slate-500 mt-[0.2rem]">
+                        {{ rule.description }}
+                      </p>
+                    </div>
+
+                    <div class="mt-[1rem] space-y-[0.6rem]">
+                      <div class="flex items-center gap-[0.8rem]">
+                        <input
+                          v-model="structuredRules[rule.code]"
+                          type="text"
+                          class="w-full rounded-[6px] border border-slate-300 px-[1rem] py-[0.6rem] text-[1.3rem] bg-white"
+                          placeholder="e.g. 5, 0 (or leave blank for no cap)"
+                        >
+                        <button
+                          type="button"
+                          class="shrink-0 text-[1.1rem] text-slate-500 hover:text-slate-800 underline"
+                          @click="structuredRules[rule.code] = '__NOT_SET__'"
+                        >
+                          Clear (No cap)
+                        </button>
+                      </div>
+                      <p class="text-[1.1rem] text-slate-400">
+                        {{ structuredRules[rule.code] === '__NOT_SET__' || !structuredRules[rule.code] && structuredRules[rule.code] !== 0 ? 'Current: No cap (unlimited)' : (structuredRules[rule.code] == 0 ? 'Current: 0 (disabled)' : `Current cap: ${structuredRules[rule.code]}`) }}
+                      </p>
+                      <p v-if="fieldErrors[rule.code]" class="mt-[0.4rem] text-[1.2rem] font-[600] text-rose-600">
+                        {{ fieldErrors[rule.code] }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3. Dashboard Areas Section -->
+              <div class="rounded-[8px] bg-white border border-slate-200 p-[1.4rem]">
+                <div class="mb-[1.2rem]">
+                  <h4 class="text-[1.5rem] font-[700] text-slate-900">Dashboard Areas (Navigation Access)</h4>
+                  <p class="text-[1.2rem] text-slate-500">
+                    Controls merchant dashboard area permissions (none, view, manage). Leaving not set defaults to <em>manage</em>.
+                  </p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-[1.2rem]">
+                  <div
+                    v-for="rule in areaRules"
+                    :key="rule.code"
+                    class="rounded-[8px] border border-slate-100 p-[1.2rem] bg-slate-50/50 flex flex-col justify-between"
+                  >
+                    <div>
+                      <div class="flex items-center justify-between">
+                        <span class="font-[700] text-[1.3rem] text-slate-800">{{ rule.label || rule.code }}</span>
+                        <code class="text-[1.1rem] text-slate-400">{{ rule.code }}</code>
+                      </div>
+                      <p v-if="rule.description" class="text-[1.2rem] text-slate-500 mt-[0.2rem]">
+                        {{ rule.description }}
+                      </p>
+                    </div>
+
+                    <div class="mt-[1rem]">
+                      <select
+                        v-model="structuredRules[rule.code]"
+                        class="w-full rounded-[6px] border border-slate-300 px-[1rem] py-[0.6rem] text-[1.3rem] bg-white"
+                      >
+                        <option value="__NOT_SET__">Not set (default: manage)</option>
+                        <option value="none">None (No access)</option>
+                        <option value="view">View (Read-only)</option>
+                        <option value="manage">Manage (Full control)</option>
+                      </select>
+                      <p v-if="fieldErrors[rule.code]" class="mt-[0.4rem] text-[1.2rem] font-[600] text-rose-600">
+                        {{ fieldErrors[rule.code] }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </fieldset>
+          </div>
+
           <div class="grid grid-cols-1 gap-[1.2rem] lg:grid-cols-2">
-            <BaseTextArea v-model="planForm.featureEntitlementsJson" label="Feature entitlements JSON array" :rows="5" />
-            <BaseTextArea v-model="planForm.featureAccessRulesJson" label="Feature access rules JSON" :rows="5" />
-            <BaseTextArea v-model="planForm.usageLimitsJson" label="Usage limits JSON" :rows="5" />
-            <BaseTextArea v-model="planForm.checkoutFeePolicyJson" label="Checkout fee policy JSON" :rows="5" />
-            <BaseTextArea v-model="planForm.apiUsagePolicyJson" label="API usage policy JSON" :rows="5" />
-            <BaseTextArea v-model="planForm.trialPolicyJson" label="Trial policy JSON" :rows="5" />
-            <BaseTextArea v-model="planForm.renewalPolicyJson" label="Renewal policy JSON" :rows="5" />
+            <BaseTextArea v-model="planForm.featureEntitlementsJson" label="Feature entitlements JSON array" :rows="4" />
+            <BaseTextArea v-model="planForm.usageLimitsJson" label="Usage limits JSON" :rows="4" />
+            <BaseTextArea v-model="planForm.checkoutFeePolicyJson" label="Checkout fee policy JSON" :rows="4" />
+            <BaseTextArea v-model="planForm.apiUsagePolicyJson" label="API usage policy JSON" :rows="4" />
+            <BaseTextArea v-model="planForm.trialPolicyJson" label="Trial policy JSON" :rows="4" />
+            <BaseTextArea v-model="planForm.renewalPolicyJson" label="Renewal policy JSON" :rows="4" />
           </div>
 
           <p v-if="planJsonError" class="rounded-[8px] bg-red-50 p-[1rem] text-red-600">

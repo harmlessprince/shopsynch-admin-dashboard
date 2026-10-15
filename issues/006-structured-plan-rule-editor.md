@@ -2,7 +2,7 @@
 
 `ecommerceapi/agents/knowledge/plans-and-gating.md` (admin plan management)
 
-Status: start
+Status: done
 
 ## What to build
 
@@ -16,11 +16,11 @@ Status: start
 
 ## Acceptance criteria
 
-- [ ] Rules are listed from the backend, not hard-coded; a rule added on the backend appears without a dashboard change.
-- [ ] Saving writes only valid values; a 422 shows per-rule messages beside the field.
-- [ ] "Not set" removes the key; the form explains what that means for each kind.
-- [ ] A seeded plan shows the notice and needs confirmation to edit.
-- [ ] Uses existing admin components, the endpoint registry and a store; add an admin journey.
+- [x] Rules are listed from the backend, not hard-coded; a rule added on the backend appears without a dashboard change.
+- [x] Saving writes only valid values; a 422 shows per-rule messages beside the field.
+- [x] "Not set" removes the key; the form explains what that means for each kind.
+- [x] A seeded plan shows the notice and needs confirmation to edit.
+- [x] Uses existing admin components, the endpoint registry and a store; add an admin journey.
 
 ## Blocked by
 

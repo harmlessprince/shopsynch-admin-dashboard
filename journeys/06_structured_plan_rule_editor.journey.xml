@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<journey name="Structured Plan Rule Editor" id="structured-plan-rule-editor">
+    <description>
+        Validates that administrators can edit billing plan feature access rules through a structured editor dynamically
+        loaded from the backend catalog, with sections for features, limits, and dashboard areas, missing-key semantics,
+        seeded catalog protection, and JSON preview.
+    </description>
+    <stories>
+        <story id="US-PLAN-01" title="Structured rule editor from backend catalog" />
+        <story id="US-PLAN-02" title="Missing key defaults and not-set semantics" />
+        <story id="US-PLAN-03" title="Seeded plan safeguard warning and edit lock" />
+        <story id="US-PLAN-04" title="Debug JSON preview" />
+    </stories>
+    <actions>
+        <action>Sign in to the Admin Dashboard and navigate to '/dashboard/billing/plans'.</action>
+        <action>Click 'Edit Plan' on a seeded plan (e.g. 'Starter' or 'Pro').</action>
+        <action>Verify the modal opens with a warning banner indicating that this plan is part of the seeded catalog and changes will be overwritten on backend restart.</action>
+        <action>Verify form rule inputs are disabled until 'Enable Editing Seeded Plan' is clicked and confirmed.</action>
+        <action>Click 'Enable Editing Seeded Plan' and verify rule inputs become interactive.</action>
+        <action>Verify rules are grouped into Features, Usage Limits, and Dashboard Areas with labels and descriptions fetched from '/v1/admin/billing/plan-rules'.</action>
+        <action>Verify each rule explains its missing key default (Features: Not included; Limits: No limit; Areas: Full control / manage) and offers a 'Not set' option.</action>
+        <action>Adjust a limit value (e.g. max products) and toggle a feature (e.g. custom domain).</action>
+        <action>Click 'Show JSON' under the debug section and verify the rendered JSON reflects the updated rule keys.</action>
+        <action>Click 'Save Plan' and verify rules are persisted.</action>
+    </actions>
+</journey>
