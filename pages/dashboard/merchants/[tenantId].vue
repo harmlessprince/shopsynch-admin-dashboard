@@ -2,6 +2,7 @@
 import { logger, formatDate, formatToMoney } from "~/utils/helpers.js";
 import { useVfm } from "vue-final-modal";
 import SendReminderModal from "~/components/Modals/SendReminderModal.vue";
+import ResetMerchantPasswordModal from "~/components/Modals/ResetMerchantPasswordModal.vue";
 import CompleteComplianceModal from "~/components/Modals/CompleteComplianceModal.vue";
 import AddBankAccountModal from "~/components/Modals/AddBankAccountModal.vue";
 import UpdateBusinessProfileModal from "~/components/Modals/UpdateBusinessProfileModal.vue";
@@ -210,6 +211,14 @@ async function checkRetiredPlanEvent() {
             >
               <span class="material-symbols-outlined text-[1.6rem]">forward_to_inbox</span>
               Send Reminder
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center gap-[0.4rem] rounded-[8px] border border-amber-600 px-[1.6rem] py-[0.8rem] text-[1.3rem] font-[700] text-amber-700 transition-colors hover:bg-amber-50 cursor-pointer"
+              @click="vfm.open('resetMerchantPasswordModal')"
+            >
+              <span class="material-symbols-outlined text-[1.6rem]">password</span>
+              Reset Password
             </button>
             <button
               v-if="['NOT_SUBMITTED', 'REJECTED'].includes(m.complianceReviewStatus)"
@@ -1147,6 +1156,11 @@ async function checkRetiredPlanEvent() {
     <SendReminderModal
       :merchant="m"
       @sent="store.fetchMerchantDetail(route.params.tenantId)"
+    />
+
+    <ResetMerchantPasswordModal
+      :merchant="m"
+      @reset="store.fetchMerchantDetail(route.params.tenantId)"
     />
 
     <CompleteComplianceModal

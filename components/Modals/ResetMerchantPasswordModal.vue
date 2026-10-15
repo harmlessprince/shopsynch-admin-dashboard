@@ -33,9 +33,14 @@
         <div class="p-[2.4rem] flex flex-col gap-y-[2rem]">
           <div class="p-3 rounded-[8px] bg-amber-50 border border-amber-200 text-amber-900 text-[1.3rem] flex items-start gap-2.5">
             <span class="material-symbols-outlined text-amber-600 text-[1.8rem] shrink-0 mt-0.5">warning</span>
-            <p class="font-[500] leading-[1.7rem]">
-              The merchant will be required to set a new password the next time they log in. Type the merchant's email below to confirm.
-            </p>
+            <div>
+              <p class="font-[500] leading-[1.7rem]">
+                Type <strong class="font-mono text-amber-950">{{ expectedEmail }}</strong> to initiate password reset for this merchant.
+              </p>
+              <p class="mt-1 text-[1.2rem] text-amber-800 leading-[1.7rem]">
+                The merchant will be required to set a new password the next time they log in.
+              </p>
+            </div>
           </div>
 
           <div>
@@ -64,7 +69,7 @@
             <button
               type="button"
               data-testid="confirm-reset-merchant-password"
-              :disabled="isSubmitting || !email.trim()"
+              :disabled="isSubmitting || !emailMatches"
               class="px-[2.2rem] py-[1rem] rounded-[8px] bg-amber-600 text-white text-[1.4rem] font-[700] hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center gap-2"
               @click="submit(close)"
             >
@@ -92,20 +97,16 @@ const adminMerchantsStore = useAdminMerchantsStore();
 const toastStore = useToastStore();
 const vfm = useVfm();
 
-const email = ref(props.merchant?.ownerEmail || "");
+const email = ref("");
 const isSubmitting = ref(false);
 const error = ref("");
 
-// The modal stays mounted; sync the email when a different merchant row is chosen.
-watch(
-  () => props.merchant,
-  (merchant) => {
-    email.value = merchant?.ownerEmail || "";
-  }
-);
+const expectedEmail = computed(() => props.merchant?.owner?.email || "");
+const emailMatches = computed(() => email.value.trim().toLowerCase() === expectedEmail.value.trim().toLowerCase());
 
 function handleClose(close) {
   error.value = "";
+  email.value = "";
   if (typeof close === "function") {
     close();
   } else {
@@ -115,7 +116,7 @@ function handleClose(close) {
 }
 
 async function submit(close) {
-  if (isSubmitting.value || !email.value.trim()) return;
+  if (isSubmitting.value || !emailMatches.value) return;
 
   isSubmitting.value = true;
   error.value = "";
@@ -123,7 +124,6 @@ async function submit(close) {
   try {
     await adminMerchantsStore.resetMerchantPassword(email.value.trim());
     toastStore.success("Password reset email sent to the merchant.", "");
-    email.value = "";
     emit("reset");
     handleClose(close);
   } catch (err) {
