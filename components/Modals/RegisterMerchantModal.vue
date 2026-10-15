@@ -36,7 +36,7 @@
             <span class="material-symbols-outlined text-blue-600 text-[1.8rem] shrink-0 mt-0.5">info</span>
             <div>
               <p class="font-[500] leading-[1.7rem]">
-                Minimal registration creates the merchant and store immediately. A temporary password is generated and the merchant will be required to reset it upon first login.
+                Minimal registration creates the merchant and store immediately. Set an initial password or generate one below — the merchant will be required to reset it on first login.
               </p>
             </div>
           </div>
@@ -84,7 +84,39 @@
             </div>
           </div>
 
+          <div
+            v-if="outcome === 'CREATED'"
+            class="p-4 rounded-[8px] bg-green-50 border border-green-300 text-green-950 text-[1.3rem] flex items-start gap-3"
+            data-testid="outcome-created-alert"
+          >
+            <span class="material-symbols-outlined text-green-600 text-[2rem] shrink-0 mt-0.5">check_circle</span>
+            <div class="flex-1">
+              <h4 class="font-[700] text-green-950 text-[1.4rem]">Merchant Registered</h4>
+              <p class="mt-1 text-green-800 leading-[1.8rem]">
+                The merchant account was created successfully. Share the password below with the merchant so they can sign in.
+              </p>
+              <div v-if="createdPassword" class="mt-3 flex items-center gap-2">
+                <code class="flex-1 rounded-[8px] bg-white border border-green-300 px-[1.2rem] py-[0.9rem] text-[1.4rem] font-[600] text-[#1B1B19] break-all">{{ createdPassword }}</code>
+                <button
+                  type="button"
+                  @click="copyPassword"
+                  class="px-[1.4rem] py-[0.9rem] rounded-[8px] bg-green-600 text-white text-[1.3rem] font-[600] hover:bg-green-700 transition-colors cursor-pointer shrink-0"
+                >
+                  {{ copied ? "Copied" : "Copy" }}
+                </button>
+              </div>
+              <button
+                type="button"
+                @click="handleClose(close)"
+                class="mt-4 px-[2rem] py-[0.9rem] rounded-[8px] bg-primary text-white text-[1.4rem] font-[700] hover:bg-primary/90 transition-colors cursor-pointer"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+
           <Form
+            v-if="outcome !== 'CREATED'"
             :validation-schema="registerMerchantSchema"
             @submit="(values, actions) => handleSubmit(values, actions, close)"
             class="flex flex-col gap-y-[1.6rem]"
@@ -140,6 +172,29 @@
               </Field>
             </div>
 
+            <!-- Password (optional) -->
+            <div>
+              <label class="block font-[600] text-[1.4rem] text-[#1B1B19] mb-[0.6rem]">
+                Initial Password
+                <span class="text-[1.2rem] text-[#616161] font-[400]">(optional — leave blank to auto-generate)</span>
+              </label>
+              <div class="flex items-stretch gap-[0.8rem]">
+                <input
+                  v-model="password"
+                  type="text"
+                  placeholder="Set a password or click Generate"
+                  class="flex-1 h-[44px] rounded-[8px] border border-[#E0E0E0] px-[1.4rem] text-[1.4rem] text-[#1B1B19] outline-none transition-colors focus:border-primary"
+                />
+                <button
+                  type="button"
+                  @click="generatePassword"
+                  class="px-[1.4rem] rounded-[8px] border border-primary text-primary text-[1.3rem] font-[600] hover:bg-primary/5 transition-colors cursor-pointer"
+                >
+                  Generate
+                </button>
+              </div>
+            </div>
+
             <!-- Footer Buttons -->
             <div class="flex items-center justify-end gap-[1.2rem] pt-[1.6rem] border-t border-[#E0E0E0] mt-[0.8rem]">
               <button
@@ -182,16 +237,45 @@ const vfm = useVfm();
 const isSubmitting = ref(false);
 const outcome = ref(null);
 const outcomeMessage = ref("");
+const password = ref("");
+const createdPassword = ref("");
+const copied = ref(false);
 
 function handleClose(close) {
   outcome.value = null;
   outcomeMessage.value = "";
+  password.value = "";
+  createdPassword.value = "";
+  copied.value = false;
   if (typeof close === "function") {
     close();
   } else {
     vfm.close("registerMerchantModal");
   }
   emit("closed");
+}
+
+function generatePassword() {
+  const characters = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%&*";
+  const values = new Uint32Array(16);
+  crypto.getRandomValues(values);
+  let generated = "";
+  for (const value of values) {
+    generated += characters[value % characters.length];
+  }
+  password.value = generated;
+}
+
+async function copyPassword() {
+  try {
+    await navigator.clipboard.writeText(createdPassword.value);
+    copied.value = true;
+    setTimeout(() => {
+      copied.value = false;
+    }, 2000);
+  } catch {
+    // Clipboard access can be denied; the password stays visible to copy manually.
+  }
 }
 
 async function handleSubmit(values, { resetForm } = {}, close) {
@@ -206,16 +290,18 @@ async function handleSubmit(values, { resetForm } = {}, close) {
       ownerName: values.ownerName.trim(),
       ownerEmail: values.ownerEmail.trim(),
       businessName: values.businessName.trim(),
+      password: password.value.trim() || undefined,
     });
 
     const result = response?.data;
     if (result?.outcome === "CREATED") {
       toastStore.success(result.message || "Merchant registered successfully", "");
+      outcome.value = "CREATED";
+      createdPassword.value = result.password || password.value || "";
       emit("registered", result);
       if (typeof resetForm === "function") {
         resetForm();
       }
-      handleClose(close);
     } else if (result?.outcome === "EMAIL_ALREADY_REGISTERED_UNVERIFIED") {
       outcome.value = "EMAIL_ALREADY_REGISTERED_UNVERIFIED";
       outcomeMessage.value = result.message;

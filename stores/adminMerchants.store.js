@@ -128,6 +128,10 @@ export const useAdminMerchantsStore = defineStore("adminMerchantsStore", () => {
         return await post(endpoints.admin.merchants.register, payload, { forceMode: "live" });
     }
 
+    async function resetMerchantPassword(email) {
+        return await post(endpoints.admin.merchants.resetPassword, { email }, { forceMode: "live" });
+    }
+
     async function completeCompliance(tenantId, payload) {
         const url = endpoints.admin.merchants.completeCompliance.replace(":tenantId", tenantId);
         const response = await post(url, payload, { forceMode: "live" });
@@ -291,6 +295,7 @@ export const useAdminMerchantsStore = defineStore("adminMerchantsStore", () => {
         fetchMerchantDeliveryLogs,
         sendOnboardingReminder,
         registerMerchant,
+        resetMerchantPassword,
         completeCompliance,
         updateBusinessProfile,
         updateBusinessContact,
