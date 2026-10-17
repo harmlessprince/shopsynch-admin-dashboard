@@ -228,7 +228,7 @@ onMounted(loadFunnel);
           </p>
           <p class="mt-[0.6rem] text-[2.8rem] font-[800] text-amber-700">{{ funnel.stalledRealMerchantsCount }}</p>
           <p class="mt-[0.3rem] text-[1.25rem] text-slate-600">
-            Incomplete activation &amp; idle {{ minStalledDays }}+ days
+            No funnel progress for {{ minStalledDays }}+ days
           </p>
         </div>
 
@@ -353,7 +353,7 @@ onMounted(loadFunnel);
               Stalled Real Merchants — Direct Outreach List ({{ filteredStalledMerchants.length }})
             </h2>
             <p class="text-[1.25rem] text-slate-600">
-              Real merchants who have not reached their first paid order and have been stuck on the same step for at least {{ minStalledDays }} days.
+              Real merchants who have not reached their first paid order and have made no funnel progress for at least {{ minStalledDays }} days. Stores waiting on our compliance review are not listed.
             </p>
           </div>
 
