@@ -252,6 +252,9 @@ export const useAdminMerchantsStore = defineStore("adminMerchantsStore", () => {
         }
     }
 
+    const funnel = ref(null);
+    const funnelLoading = ref(false);
+
     async function fetchMerchantBillingAccess(tenantId) {
         billingAccessLoading.value = true;
         try {
@@ -267,9 +270,65 @@ export const useAdminMerchantsStore = defineStore("adminMerchantsStore", () => {
         }
     }
 
+    async function updateMerchantClassification(tenantId, payload) {
+        const url = endpoints.admin.merchants.updateClassification.replace(":tenantId", tenantId);
+        const response = await patch(url, payload, { forceMode: "live" });
+        if (response) {
+            toastStore.success(response.message || "Merchant classification updated", "");
+        }
+        return response;
+    }
+
+    async function backfillMerchantClassifications() {
+        const response = await post(endpoints.admin.merchants.classifyBackfill, {}, { forceMode: "live" });
+        if (response) {
+            toastStore.success(response.message || "Merchant classifications backfilled", "");
+        }
+        return response?.data || response;
+    }
+
+    async function fetchMerchantFunnel(params = {}) {
+        funnelLoading.value = true;
+        error.value = "";
+        try {
+            const response = await get(endpoints.admin.merchants.funnel, params, { forceMode: "live" });
+            funnel.value = response?.data || null;
+            return funnel.value;
+        } catch (err) {
+            error.value = "Unable to load merchant activation funnel.";
+            throw err;
+        } finally {
+            funnelLoading.value = false;
+        }
+    }
+
+    async function runMerchantFunnelSnapshot(sendEmail = false) {
+        const url = `${endpoints.admin.merchants.runFunnel}?sendEmail=${sendEmail ? "true" : "false"}`;
+        const response = await post(url, {}, { forceMode: "live" });
+        if (response) {
+            toastStore.success(response.message || "Merchant funnel snapshot captured", "");
+        }
+        return response?.data || response;
+    }
+
+    async function exportStalledMerchantsCsv(params = {}) {
+        const csvContent = await get(
+            endpoints.admin.merchants.exportStalledCsv,
+            params,
+            {
+                forceMode: "live",
+                responseType: "text",
+                headers: { Accept: "text/csv" },
+            },
+        );
+        return csvContent;
+    }
+
     return {
         merchants,
         merchant,
+        funnel,
+        funnelLoading,
         paymentSecrets,
         bankAccounts,
         bankAccountsLoading,
@@ -291,6 +350,11 @@ export const useAdminMerchantsStore = defineStore("adminMerchantsStore", () => {
         fetchMerchants,
         fetchMerchantDetail,
         updateMerchantStatus,
+        updateMerchantClassification,
+        backfillMerchantClassifications,
+        fetchMerchantFunnel,
+        runMerchantFunnelSnapshot,
+        exportStalledMerchantsCsv,
         fetchReminderTemplates,
         fetchMerchantDeliveryLogs,
         sendOnboardingReminder,

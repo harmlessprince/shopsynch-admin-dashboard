@@ -31,6 +31,8 @@ watch(
       currentPageTitle.value = "Products";
     } else if (newPath.includes("/dashboard/inventory")) {
       currentPageTitle.value = "Inventory";
+    } else if (newPath.includes("/dashboard/merchants/funnel")) {
+      currentPageTitle.value = "Activation Funnel";
     } else if (newPath.includes("/dashboard/merchants")) {
       currentPageTitle.value = "Merchants";
     } else if (newPath.includes("/dashboard/compliance")) {
