@@ -22,8 +22,35 @@ const store = useAdminMerchantsStore();
 const vfm = useVfm();
 
 const statusToggleLoading = ref(false);
+const classificationUpdating = ref(false);
 
 const m = computed(() => store.merchant);
+
+const classificationBadgeConfig = {
+  REAL: { label: "Real Merchant", class: "bg-emerald-100 text-emerald-800" },
+  INTERNAL: { label: "Internal Store", class: "bg-purple-100 text-purple-800" },
+  TEST: { label: "Test / Smoke Store", class: "bg-slate-200 text-slate-700" },
+};
+
+function classificationBadge(value) {
+  return classificationBadgeConfig[value] || classificationBadgeConfig.REAL;
+}
+
+async function changeClassification(nextClassification) {
+  if (!m.value || m.value.classification === nextClassification) return;
+  classificationUpdating.value = true;
+  try {
+    await store.updateMerchantClassification(route.params.tenantId, {
+      classification: nextClassification,
+      reason: `Manual classification override from merchant detail page (${nextClassification})`,
+    });
+    await store.fetchMerchantDetail(route.params.tenantId);
+  } catch (err) {
+    logger.error("Failed to update merchant classification", err);
+  } finally {
+    classificationUpdating.value = false;
+  }
+}
 
 const complianceStatusConfig = {
   NOT_SUBMITTED: { label: "Not Submitted", class: "bg-slate-100 text-slate-600" },
@@ -183,8 +210,16 @@ async function checkRetiredPlanEvent() {
               <span class="material-symbols-outlined text-[3rem] text-primary">storefront</span>
             </div>
             <div>
-              <h1 class="text-[2.2rem] font-[700] text-[#000]">{{ m.businessTradingName || "Untitled Merchant" }}</h1>
-              <p class="mt-[0.2rem] text-[1.2rem] text-[#616161]">{{ m.code }}</p>
+              <div class="flex items-center gap-[0.8rem] flex-wrap">
+                <h1 class="text-[2.2rem] font-[700] text-[#000]">{{ m.businessTradingName || "Untitled Merchant" }}</h1>
+                <span :class="['inline-flex items-center rounded-full px-[1rem] py-[0.3rem] text-[1.2rem] font-[700]', classificationBadge(m.classification).class]">
+                  {{ classificationBadge(m.classification).label }}
+                </span>
+              </div>
+              <p class="mt-[0.2rem] text-[1.2rem] text-[#616161]">
+                {{ m.code }}
+                <span v-if="m.classificationReason" class="ml-2 text-slate-400">• {{ m.classificationReason }}</span>
+              </p>
             </div>
           </div>
           <div class="flex flex-wrap items-center gap-[1rem]">
@@ -267,6 +302,83 @@ async function checkRetiredPlanEvent() {
           <div class="rounded-[8px] border border-slate-100 p-[1.4rem]">
             <p class="text-[1.2rem] font-[600] uppercase tracking-wider text-[#616161]">Member Since</p>
             <p class="mt-[0.4rem] font-[700] text-[#000]">{{ formatDate(m.createdAt) }}</p>
+          </div>
+        </div>
+
+        <!-- Activation Funnel & Store Classification Row -->
+        <div class="mt-[1.4rem] grid grid-cols-1 gap-[1.2rem] md:grid-cols-2">
+          <div class="rounded-[8px] border border-slate-200 bg-slate-50/70 p-[1.4rem]">
+            <p class="text-[1.2rem] font-[600] uppercase tracking-wider text-[#616161]">Activation Funnel Step</p>
+            <div class="mt-[0.6rem] flex items-center gap-[0.8rem] flex-wrap">
+              <span class="inline-flex items-center rounded-full bg-blue-100 px-[1rem] py-[0.3rem] text-[1.3rem] font-[700] text-blue-900">
+                {{ m.currentFunnelStepLabel || m.currentFunnelStep || "Signed Up" }}
+              </span>
+              <span
+                v-if="m.daysInCurrentStep >= 3 && m.nextFunnelStep"
+                class="inline-flex items-center rounded-full bg-amber-100 px-[0.9rem] py-[0.2rem] text-[1.2rem] font-[700] text-amber-800"
+              >
+                Stalled {{ m.daysInCurrentStep }} days
+              </span>
+            </div>
+            <p v-if="m.nextFunnelStepLabel" class="mt-[0.5rem] text-[1.25rem] text-slate-600">
+              Next Blocker: <strong class="text-slate-900">{{ m.nextFunnelStepLabel }}</strong>
+            </p>
+            <p v-else class="mt-[0.5rem] text-[1.25rem] font-[700] text-emerald-700">
+              Fully Activated (First Paid Order completed)
+            </p>
+          </div>
+
+          <div class="rounded-[8px] border border-slate-200 bg-slate-50/70 p-[1.4rem] flex flex-col justify-between">
+            <div>
+              <p class="text-[1.2rem] font-[600] uppercase tracking-wider text-[#616161]">
+                Store Classification
+                <span v-if="m.classificationManualOverride" class="ml-1 text-[1.1rem] text-purple-700">(Manual Override)</span>
+              </p>
+              <p class="mt-[0.3rem] text-[1.2rem] text-slate-500">
+                Internal and Test stores are excluded from the real merchant funnel and weekly digest.
+              </p>
+            </div>
+            <div class="mt-[0.8rem] flex flex-wrap gap-[0.8rem]">
+              <button
+                type="button"
+                :disabled="classificationUpdating || m.classification === 'REAL'"
+                :class="[
+                  'rounded-[6px] px-[1.2rem] py-[0.5rem] text-[1.2rem] font-[700] transition-colors',
+                  m.classification === 'REAL'
+                    ? 'bg-emerald-600 text-white'
+                    : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-100',
+                ]"
+                @click="changeClassification('REAL')"
+              >
+                Real
+              </button>
+              <button
+                type="button"
+                :disabled="classificationUpdating || m.classification === 'INTERNAL'"
+                :class="[
+                  'rounded-[6px] px-[1.2rem] py-[0.5rem] text-[1.2rem] font-[700] transition-colors',
+                  m.classification === 'INTERNAL'
+                    ? 'bg-purple-600 text-white'
+                    : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-100',
+                ]"
+                @click="changeClassification('INTERNAL')"
+              >
+                Internal
+              </button>
+              <button
+                type="button"
+                :disabled="classificationUpdating || m.classification === 'TEST'"
+                :class="[
+                  'rounded-[6px] px-[1.2rem] py-[0.5rem] text-[1.2rem] font-[700] transition-colors',
+                  m.classification === 'TEST'
+                    ? 'bg-slate-700 text-white'
+                    : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-100',
+                ]"
+                @click="changeClassification('TEST')"
+              >
+                Test
+              </button>
+            </div>
           </div>
         </div>
 
