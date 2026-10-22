@@ -543,6 +543,14 @@ async function mockAdminApi(page: Page) {
     }
 
     if (path === '/v1/admin/billing/offers/founding' && request.method() === 'PUT') {
+      if (!request.postDataJSON().code) {
+        await route.fulfill({
+          status: 422,
+          contentType: 'application/json',
+          body: JSON.stringify({ status: false, message: 'Validation failed', errors: { code: 'The offer code is required.' } }),
+        })
+        return
+      }
       pricingOffer = { ...pricingOffer, ...request.postDataJSON(), slotsRemaining: request.postDataJSON().maxRedemptions - pricingOffer.redemptionCount }
       await json({ status: true, message: 'pricing offer updated', data: pricingOffer })
       return

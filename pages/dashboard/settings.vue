@@ -405,6 +405,7 @@ onMounted(fetchSettings);
           <div class="grid grid-cols-1 gap-[1.2rem] xl:grid-cols-2">
             <article
               v-for="setting in settingsByCategory[group]"
+              :id="`setting-${setting.key}`"
               :key="setting.key"
               class="rounded-[8px] border border-slate-100 p-[1.4rem]"
             >

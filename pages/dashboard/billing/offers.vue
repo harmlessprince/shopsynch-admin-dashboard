@@ -125,8 +125,10 @@ function noteDraft(row) {
   return noteDrafts.value[row.tenantId] ?? row.commitmentNotes ?? "";
 }
 
+// The backend ignores a blank note, so a note can be replaced but not cleared: never offer Save for a blank draft.
 function noteChanged(row) {
-  return noteDraft(row) !== (row.commitmentNotes ?? "");
+  const draft = noteDraft(row).trim();
+  return draft !== "" && draft !== (row.commitmentNotes ?? "");
 }
 
 function toggleCommitment(row, field, event) {
@@ -393,6 +395,9 @@ onMounted(async () => {
                   placeholder="Add a note"
                   @update:model-value="noteDrafts[row.tenantId] = $event"
                 />
+                <p v-if="row.commitmentNotes" class="mt-[0.3rem] text-[1.1rem] text-[#9CA3AF]">
+                  A note can be replaced but not cleared.
+                </p>
               </div>
               <BaseButton
                 v-if="noteChanged(row)"

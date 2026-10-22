@@ -103,14 +103,20 @@ const addPerk = () => form.perks.push({ perkCode: "", quantity: "", description:
 const removePerk = (index) => form.perks.splice(index, 1);
 
 const toNumber = (value) => (String(value ?? "").trim() === "" ? null : Number(value));
-const toInstant = (date) => (date ? `${date}T00:00:00Z` : null);
+// An unchanged date keeps the original timestamp, so editing other fields never shifts the offer's times.
+const toInstant = (date, original) => {
+  if (!date) return null;
+  return original && dateOnly(original) === date ? original : `${date}T00:00:00Z`;
+};
 
 function submit() {
+  // The backend validates the code on update too (it ignores it), so it is always sent.
   const payload = {
+    code: form.code.trim(),
     name: form.name.trim(),
     description: form.description.trim() || null,
-    startsAt: toInstant(form.startsAt),
-    endsAt: toInstant(form.endsAt),
+    startsAt: toInstant(form.startsAt, props.offer?.startsAt),
+    endsAt: toInstant(form.endsAt, props.offer?.endsAt),
     publicVisible: form.publicVisible,
     eligiblePlanCodes: form.eligiblePlanCodes,
     trialDays: toNumber(form.trialDays),
@@ -127,11 +133,8 @@ function submit() {
       description: perk.description.trim() || null,
     })),
   };
-  // The code and status are only read on create.
-  if (!isEdit.value) {
-    payload.code = form.code.trim();
-    payload.status = form.status;
-  }
+  // The status is only read on create; pause, resume and end have their own endpoints.
+  if (!isEdit.value) payload.status = form.status;
   emit("submit", payload);
 }
 </script>
