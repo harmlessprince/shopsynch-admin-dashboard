@@ -67,6 +67,37 @@ async function mockAdminApi(page: Page) {
 
   let platformAlertRecipients = 'ops@shopsynch.com, oncall@shopsynch.com'
 
+  const shadowDuplicates = [
+    {
+      id: 'shadow-1',
+      tenantId: 'tenant-test-789',
+      slotKey: 'tenant-test-789:2026-10',
+      type: 'WOULD_BE_DUPLICATE',
+      paymentId: 'pay-dup-3',
+      providerReference: 'PSK_REF_3',
+      provider: 'PAYSTACK',
+      channel: 'CARD',
+      amount: 15000,
+      currency: 'NGN',
+      firstPaymentId: 'pay-first-3',
+      createdAt: '2026-10-22T09:00:00Z',
+    },
+    {
+      id: 'shadow-2',
+      tenantId: 'tenant-test-123',
+      slotKey: 'tenant-test-123:2026-10',
+      type: 'WOULD_BE_DUPLICATE',
+      paymentId: 'pay-dup-1',
+      providerReference: 'PSK_REF_1',
+      provider: 'PAYSTACK',
+      channel: 'BANK_TRANSFER',
+      amount: 15000,
+      currency: 'NGN',
+      firstPaymentId: 'pay-first-1',
+      createdAt: '2026-10-21T09:00:00Z',
+    },
+  ]
+
   let subscriptionRefunds = [
     {
       id: 'refund-pending',
@@ -397,6 +428,33 @@ async function mockAdminApi(page: Page) {
       return
     }
 
+    // Shadow mode duplicate payments
+    if (path === '/v1/admin/billing/shadow/summary' && request.method() === 'GET') {
+      await json({ status: true, data: { ATTEMPT: 12, WOULD_APPLY: 9, WOULD_BE_DUPLICATE: 3 } })
+      return
+    }
+
+    if (path === '/v1/admin/billing/shadow/entries' && request.method() === 'GET') {
+      await json({ status: true, data: shadowDuplicates })
+      return
+    }
+
+    if (path === '/v1/admin/billing/refunds' && request.method() === 'POST') {
+      const payload = request.postDataJSON()
+      if (!payload.note?.trim()) {
+        await route.fulfill({
+          status: 422,
+          contentType: 'application/json',
+          body: JSON.stringify({ status: false, message: 'Validation failed', errors: { note: 'note is required' } }),
+        })
+        return
+      }
+      const created = { id: 'refund-new', tenantId: 'tenant-test-789', paymentId: payload.paymentId, provider: 'PAYSTACK', transactionReference: 'PSK_REF_3', amount: 15000, currency: 'NGN', status: 'PENDING', active: true, reason: payload.note, requestedAt: '2026-10-22T12:00:00Z' }
+      subscriptionRefunds = [created, ...subscriptionRefunds]
+      await json({ status: true, message: 'refund pending', data: created })
+      return
+    }
+
     // Subscription refunds
     if (path === '/v1/admin/billing/refunds' && request.method() === 'GET') {
       await json({ status: true, data: subscriptionRefunds })
@@ -436,7 +494,7 @@ async function mockAdminApi(page: Page) {
   ])
 }
 
-test.describe('Admin Dashboard Journeys (01 - 10)', () => {
+test.describe('Admin Dashboard Journeys (01 - 11)', () => {
   test.beforeEach(async ({ page }) => {
     await mockAdminApi(page)
   })
@@ -575,6 +633,31 @@ test.describe('Admin Dashboard Journeys (01 - 10)', () => {
     await page.getByRole('button', { name: 'Refresh' }).click()
     await expect(page.getByText('Removed 30 days from the subscription')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Refresh' })).toHaveCount(0)
+  })
+
+  test('Journey 11: Duplicate payments review and Refund action', async ({ page }) => {
+    await page.goto('/dashboard/billing/duplicate-payments')
+    await expect(page.getByRole('heading', { name: 'Duplicate Subscription Payments' })).toBeVisible()
+    await expect(page.getByText('This is observation only today.')).toBeVisible()
+    await expect(page.getByText('PSK_REF_3')).toBeVisible()
+    await expect(page.getByText('Period first paid by payment pay-first-3')).toBeVisible()
+
+    // pay-dup-1 already has an active refund, so its status replaces the button
+    await expect(page.getByText('Refund pending')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Refund', exact: true })).toHaveCount(1)
+
+    await page.getByRole('button', { name: 'Refund', exact: true }).click()
+    await expect(page.getByText('Refund this duplicate payment?')).toBeVisible()
+    await expect(page.getByText(/provider keeps its processing fee/)).toBeVisible()
+
+    // A missing reason shows the 422 beside the field
+    await page.getByRole('button', { name: 'Refund payment' }).click()
+    await expect(page.getByText('note is required')).toBeVisible()
+
+    await page.getByPlaceholder('Why is this payment being refunded?').fill('Paid twice for October')
+    await page.getByRole('button', { name: 'Refund payment' }).click()
+    await expect(page.getByText('Refund this duplicate payment?')).toBeHidden()
+    await expect(page.getByRole('button', { name: 'Refund', exact: true })).toHaveCount(0)
   })
 
 })

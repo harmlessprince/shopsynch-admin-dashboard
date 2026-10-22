@@ -397,6 +397,11 @@ onMounted(async () => {
               Refunds
             </BaseButton>
           </NuxtLink>
+          <NuxtLink to="/dashboard/billing/duplicate-payments">
+            <BaseButton radius="8px" variant="outline">
+              Duplicate payments
+            </BaseButton>
+          </NuxtLink>
           <BaseButton radius="8px" bold @click="openCreatePlan">
             New Plan
           </BaseButton>

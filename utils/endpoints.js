@@ -232,6 +232,10 @@ export const endpoints = {
                 create: "/v1/admin/billing/refunds",
                 refresh: "/v1/admin/billing/refunds/:refundId/refresh",
             },
+            shadow: {
+                summary: "/v1/admin/billing/shadow/summary",
+                entries: "/v1/admin/billing/shadow/entries",
+            },
         },
         analytics: {
             summary: "/v1/admin/analytics/summary",
