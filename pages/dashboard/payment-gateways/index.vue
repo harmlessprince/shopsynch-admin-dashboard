@@ -246,6 +246,8 @@ onMounted(loadData);
 
 <template>
   <div class="space-y-[2rem] text-[1.4rem] text-dashboard_text_color">
+    <DashboardPaymentAlertEmailsWarning />
+
     <!-- Header -->
     <section class="rounded-[12px] bg-white p-[2.4rem] shadow-sm border border-slate-100">
       <div class="flex flex-col gap-[1.6rem] lg:flex-row lg:items-center lg:justify-between">

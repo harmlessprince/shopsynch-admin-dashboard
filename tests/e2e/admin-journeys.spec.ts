@@ -399,6 +399,7 @@ test.describe('Admin Dashboard Journeys (01 - 09)', () => {
     // 1. Visit Payment Gateways Page
     await page.goto('/dashboard/payment-gateways')
     await expect(page.getByText('Payment Gateway Management')).toBeVisible()
+    await expect(page.getByTestId('payment-alert-emails-warning')).toBeHidden()
 
     // Tab 1: Country Routing & Audit Trail (Journeys 01 & 03)
     await expect(page.getByText('Country Routing & Audit Trail')).toBeVisible()
@@ -433,6 +434,23 @@ test.describe('Admin Dashboard Journeys (01 - 09)', () => {
     await emailInput.fill('ops@shopsynch.com, alerts@shopsynch.com')
     await page.getByRole('button', { name: 'Save Alert Recipients' }).click()
     await expect(page.getByText('ops@shopsynch.com').first()).toBeVisible()
+  })
+
+  test('Journey 05: warns on payment pages when alert recipients are empty', async ({ page }) => {
+    await page.route('**/v1/admin/settings?*', async (route) => {
+      await route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({
+          status: true,
+          data: [{ key: 'platformPaymentAlertEmails', value: '', valueType: 'STRING', category: 'PAYMENT' }],
+        }),
+      })
+    })
+    await page.goto('/dashboard/payment-gateways')
+    const warning = page.getByTestId('payment-alert-emails-warning')
+    await expect(warning).toBeVisible()
+    await warning.getByRole('link', { name: /Set the recipients in Settings/ }).click()
+    await expect(page).toHaveURL(/\/dashboard\/settings#platformPaymentAlertEmails/)
   })
 
   test('Journey 04 & 07: Merchant Detail Gateway Availability and Effective Access Panel', async ({ page }) => {
@@ -500,4 +518,5 @@ test.describe('Admin Dashboard Journeys (01 - 09)', () => {
     await expect(page.getByText('tenant-test-123')).toBeVisible()
     await expect(page.getByText('starter-legacy')).toBeVisible()
   })
+
 })

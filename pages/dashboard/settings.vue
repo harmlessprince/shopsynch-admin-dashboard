@@ -291,7 +291,11 @@ onMounted(fetchSettings);
         <div>
           <h2 class="text-[1.6rem] font-[700] text-[#000]">Platform Payment Alert Recipients</h2>
           <p class="mt-[0.4rem] text-[1.2rem] text-slate-600">
-            Who is emailed when ShopSynch's platform gateway credentials fail or become valid again.
+            Who is emailed about payment problems: platform gateway credentials rejected or valid again, a gateway
+            circuit opening or closing, a low payment success rate, a signed webhook that matched no payment
+            (<code>WEBHOOK_UNMATCHED</code>), a webhook that failed three times (<code>WEBHOOK_PROCESSING_FAILED</code>),
+            and a subscription refund that needs a person (<code>REFUND_NEEDS_ATTENTION</code>). Alerts are only sent
+            from the live backend.
             <NuxtLink to="/dashboard/payment-gateways" class="text-primary font-[600] ml-[0.4rem] hover:underline">
               View Payment Gateways &rarr;
             </NuxtLink>
