@@ -140,6 +140,7 @@ onMounted(() => refundsStore.fetchRefunds({ page: 0 }));
           >
             Refresh
           </BaseButton>
+          <span v-else class="text-[#9CA3AF]">&mdash;</span>
         </template>
       </DataTable>
     </section>

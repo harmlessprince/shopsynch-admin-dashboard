@@ -381,24 +381,24 @@ onMounted(async () => {
           </p>
         </div>
 
-        <div class="flex flex-col gap-[1rem] sm:flex-row sm:items-center">
+        <div class="flex flex-col gap-[1rem] sm:flex-row sm:flex-wrap sm:items-center lg:justify-end">
           <BaseSelectInput
             v-model="statusFilter"
             :options="statusFilterOptions"
             input-class="min-w-[18rem]"
           />
           <NuxtLink to="/dashboard/billing/operations">
-            <BaseButton radius="8px" variant="outline">
+            <BaseButton radius="8px" variant="outline" class="whitespace-nowrap">
               Overrides & extensions
             </BaseButton>
           </NuxtLink>
           <NuxtLink to="/dashboard/billing/refunds">
-            <BaseButton radius="8px" variant="outline">
+            <BaseButton radius="8px" variant="outline" class="whitespace-nowrap">
               Refunds
             </BaseButton>
           </NuxtLink>
           <NuxtLink to="/dashboard/billing/duplicate-payments">
-            <BaseButton radius="8px" variant="outline">
+            <BaseButton radius="8px" variant="outline" class="whitespace-nowrap">
               Duplicate payments
             </BaseButton>
           </NuxtLink>
