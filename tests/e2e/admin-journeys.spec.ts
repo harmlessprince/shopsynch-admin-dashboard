@@ -67,6 +67,36 @@ async function mockAdminApi(page: Page) {
 
   let platformAlertRecipients = 'ops@shopsynch.com, oncall@shopsynch.com'
 
+  let subscriptionRefunds = [
+    {
+      id: 'refund-pending',
+      tenantId: 'tenant-test-123',
+      paymentId: 'pay-dup-1',
+      provider: 'PAYSTACK',
+      transactionReference: 'PSK_REF_1',
+      amount: 15000,
+      currency: 'NGN',
+      status: 'PENDING',
+      active: true,
+      reason: 'Paid twice for October',
+      requestedAt: '2026-10-22T10:00:00Z',
+    },
+    {
+      id: 'refund-failed',
+      tenantId: 'tenant-test-456',
+      paymentId: 'pay-dup-2',
+      provider: 'PAYSTACK',
+      transactionReference: 'PSK_REF_2',
+      amount: 15000,
+      currency: 'NGN',
+      status: 'FAILED',
+      active: false,
+      providerMessage: 'Refund refused by provider',
+      reason: 'Duplicate card charge',
+      requestedAt: '2026-10-21T10:00:00Z',
+    },
+  ]
+
   const planRules = [
     { code: 'pos_access', kind: 'feature', label: 'POS Access', description: 'Enable POS terminal sales', allowedValues: ['true', 'false'], missingKeyMeaning: 'not included' },
     { code: 'custom_domain', kind: 'feature', label: 'Custom Domain', description: 'Bring your own custom domain', allowedValues: ['true', 'false'], missingKeyMeaning: 'not included' },
@@ -367,6 +397,22 @@ async function mockAdminApi(page: Page) {
       return
     }
 
+    // Subscription refunds
+    if (path === '/v1/admin/billing/refunds' && request.method() === 'GET') {
+      await json({ status: true, data: subscriptionRefunds })
+      return
+    }
+
+    if (path === '/v1/admin/billing/refunds/refund-pending/refresh' && request.method() === 'POST') {
+      subscriptionRefunds = subscriptionRefunds.map((refund) =>
+        refund.id === 'refund-pending'
+          ? { ...refund, status: 'PROCESSED', periodDaysReversed: 30, periodReversedAt: '2026-10-22T11:00:00Z', periodReversalNote: 'Removed 30 days from the subscription' }
+          : refund,
+      )
+      await json({ status: true, data: subscriptionRefunds[0] })
+      return
+    }
+
     // Fallback empty
     await json({ status: true, data: [] })
   })
@@ -390,7 +436,7 @@ async function mockAdminApi(page: Page) {
   ])
 }
 
-test.describe('Admin Dashboard Journeys (01 - 09)', () => {
+test.describe('Admin Dashboard Journeys (01 - 10)', () => {
   test.beforeEach(async ({ page }) => {
     await mockAdminApi(page)
   })
@@ -517,6 +563,18 @@ test.describe('Admin Dashboard Journeys (01 - 09)', () => {
     await expect(page.getByText('Subscriptions Moved off Retired Plans')).toBeVisible()
     await expect(page.getByText('tenant-test-123')).toBeVisible()
     await expect(page.getByText('starter-legacy')).toBeVisible()
+  })
+
+  test('Journey 10: Subscription Refunds list and Refresh', async ({ page }) => {
+    await page.goto('/dashboard/billing/refunds')
+    await expect(page.getByRole('heading', { name: 'Subscription Refunds' })).toBeVisible()
+    await expect(page.getByText('Paid twice for October')).toBeVisible()
+    await expect(page.getByText('Refund refused by provider')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Refresh' })).toHaveCount(1)
+
+    await page.getByRole('button', { name: 'Refresh' }).click()
+    await expect(page.getByText('Removed 30 days from the subscription')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Refresh' })).toHaveCount(0)
   })
 
 })

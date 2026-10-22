@@ -392,6 +392,11 @@ onMounted(async () => {
               Overrides & extensions
             </BaseButton>
           </NuxtLink>
+          <NuxtLink to="/dashboard/billing/refunds">
+            <BaseButton radius="8px" variant="outline">
+              Refunds
+            </BaseButton>
+          </NuxtLink>
           <BaseButton radius="8px" bold @click="openCreatePlan">
             New Plan
           </BaseButton>
