@@ -67,6 +67,28 @@ async function mockAdminApi(page: Page) {
 
   let platformAlertRecipients = 'ops@shopsynch.com, oncall@shopsynch.com'
 
+  let pricingOffer = {
+    id: 'offer-1',
+    code: 'founding',
+    name: 'Founding Merchant',
+    description: '30 days of Pro free and a locked 3-month price.',
+    status: 'ACTIVE',
+    startsAt: '2026-10-11T00:00:00Z',
+    endsAt: '2027-01-09T00:00:00Z',
+    publicVisible: true,
+    eligiblePlanCodes: ['pro'],
+    trialDays: 30,
+    priceOverrides: [{ planCode: 'pro', periodUnitCount: 3, amount: 10000, currency: 'NGN', lockedForLife: true }],
+    perks: [{ perkCode: 'WHATSAPP_UTILITY_CREDITS', quantity: 50, description: 'Free WhatsApp utility test credits' }],
+    maxRedemptions: 50,
+    redemptionCount: 5,
+    slotsRemaining: 45,
+  }
+
+  let offerRedemptions = [
+    { id: 'red-1', offerCode: 'founding', tenantId: 'tenant-test-123', planCode: 'pro', redeemedAt: '2026-10-18T10:00:00Z', setupCallCompleted: false, reviewReceived: false, commitmentNotes: '' },
+  ]
+
   const incomingWebhooks = [
     {
       id: 'hook-1',
@@ -499,6 +521,43 @@ async function mockAdminApi(page: Page) {
       return
     }
 
+    // Pricing offers
+    if (path === '/v1/admin/billing/offers' && request.method() === 'GET') {
+      await json({ status: true, data: [pricingOffer] })
+      return
+    }
+
+    if (path === '/v1/admin/billing/offers/founding/pause' && request.method() === 'POST') {
+      pricingOffer = { ...pricingOffer, status: 'PAUSED' }
+      await json({ status: true, message: 'pricing offer paused', data: pricingOffer })
+      return
+    }
+
+    if (path === '/v1/admin/billing/offers/founding/resume' && request.method() === 'POST') {
+      pricingOffer = { ...pricingOffer, status: 'ACTIVE' }
+      await json({ status: true, message: 'pricing offer resumed', data: pricingOffer })
+      return
+    }
+
+    if (path === '/v1/admin/billing/offers/founding/end' && request.method() === 'POST') {
+      pricingOffer = { ...pricingOffer, status: 'ENDED' }
+      await json({ status: true, message: 'pricing offer ended', data: pricingOffer })
+      return
+    }
+
+    if (path === '/v1/admin/billing/offers/founding/redemptions' && request.method() === 'GET') {
+      await json({ status: true, data: offerRedemptions })
+      return
+    }
+
+    if (path === '/v1/admin/billing/offers/founding/redemptions/tenant-test-123/commitments' && request.method() === 'PATCH') {
+      offerRedemptions = offerRedemptions.map((redemption) =>
+        redemption.tenantId === 'tenant-test-123' ? { ...redemption, ...request.postDataJSON(), commitmentNotes: request.postDataJSON().notes ?? redemption.commitmentNotes } : redemption,
+      )
+      await json({ status: true, data: offerRedemptions[0] })
+      return
+    }
+
     // Incoming payment webhooks
     if (path === '/v1/admin/webhooks/incoming/summary' && request.method() === 'GET') {
       await json({ status: true, data: { RECEIVED: 0, PROCESSED: 41, IGNORED: 2, FAILED: 1, UNMATCHED: 1 } })
@@ -555,7 +614,7 @@ async function mockAdminApi(page: Page) {
   ])
 }
 
-test.describe('Admin Dashboard Journeys (01 - 12)', () => {
+test.describe('Admin Dashboard Journeys (01 - 13)', () => {
   test.beforeEach(async ({ page }) => {
     await mockAdminApi(page)
   })
@@ -747,5 +806,41 @@ test.describe('Admin Dashboard Journeys (01 - 12)', () => {
     await expect(page.getByText('3 duplicate deliveries')).toBeVisible()
     await page.getByRole('button', { name: 'View' }).click()
     await expect(page.getByTestId('webhook-payload')).toContainText('not-json-body')
+  })
+
+  test('Journey 13: Pricing offers lifecycle and redemption commitments', async ({ page }) => {
+    await page.goto('/dashboard/billing/offers')
+    await expect(page.getByRole('heading', { name: 'Pricing Offers' })).toBeVisible()
+    await expect(page.getByText('5 of 50 redeemed').first()).toBeVisible()
+
+    // The first offer is selected: configuration is visible
+    const detail = page.getByTestId('offer-detail')
+    await expect(detail.getByText('locked for life')).toBeVisible()
+    await expect(detail.getByText('WHATSAPP_UTILITY_CREDITS')).toBeVisible()
+
+    // Pause asks first, then updates the status
+    await detail.getByRole('button', { name: 'Pause' }).click()
+    await expect(page.getByText('Pause this offer?')).toBeVisible()
+    await expect(page.getByText(/keep their trial and locked price/)).toBeVisible()
+    await page.getByRole('button', { name: 'Pause offer' }).click()
+    await expect(detail.getByText('Paused', { exact: true })).toBeVisible()
+
+    // Resume, then ending is final and leaves no actions
+    await detail.getByRole('button', { name: 'Resume' }).click()
+    await page.getByRole('button', { name: 'Open offer' }).click()
+    await expect(detail.getByText('Active', { exact: true })).toBeVisible()
+    await detail.getByRole('button', { name: 'End' }).click()
+    await expect(page.getByText('End this offer for good?')).toBeVisible()
+    await page.getByRole('button', { name: 'End offer' }).click()
+    await expect(detail.getByText('Ended', { exact: true })).toBeVisible()
+    await expect(detail.getByRole('button', { name: 'Pause' })).toHaveCount(0)
+
+    // Commitments are tracked per redeeming store
+    const setupCall = page.getByLabel('Setup call completed for tenant-test-123')
+    await setupCall.check()
+    await expect(setupCall).toBeChecked()
+    await page.getByPlaceholder('Add a note').fill('Call done on Friday')
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Save', exact: true })).toHaveCount(0)
   })
 })

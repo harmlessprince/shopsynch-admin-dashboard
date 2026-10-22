@@ -231,6 +231,14 @@ export const endpoints = {
                 tenant: "/v1/admin/billing/tenants/:tenantId/invoices",
                 confirm: "/v1/admin/billing/invoices/:invoiceId/confirm",
             },
+            offers: {
+                list: "/v1/admin/billing/offers",
+                pause: "/v1/admin/billing/offers/:offerCode/pause",
+                resume: "/v1/admin/billing/offers/:offerCode/resume",
+                end: "/v1/admin/billing/offers/:offerCode/end",
+                redemptions: "/v1/admin/billing/offers/:offerCode/redemptions",
+                commitments: "/v1/admin/billing/offers/:offerCode/redemptions/:tenantId/commitments",
+            },
             refunds: {
                 list: "/v1/admin/billing/refunds",
                 create: "/v1/admin/billing/refunds",

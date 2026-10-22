@@ -18,6 +18,7 @@ This directory contains executable journey definitions for validating administra
 | [`10_subscription_refunds.journey.xml`](./10_subscription_refunds.journey.xml) | Subscription Refunds | GitHub #54 | List refunds, status badges, Refresh an open refund, time taken back. |
 | [`11_duplicate_subscription_payments.journey.xml`](./11_duplicate_subscription_payments.journey.xml) | Duplicate Subscription Payments | GitHub #55 | Shadow mode duplicates review, type filter, Refund with required reason. |
 | [`12_incoming_payment_webhooks.journey.xml`](./12_incoming_payment_webhooks.journey.xml) | Incoming Payment Webhooks | GitHub #56 | Status counts, failed/unmatched highlight, reference search, payload and headers detail. |
+| [`13_pricing_offers.journey.xml`](./13_pricing_offers.journey.xml) | Pricing Offers | Pricing offers screen | Offer status, slots, price overrides and perks, pause/resume/end with confirmation, redemption commitments. |
 
 ## Verification
 

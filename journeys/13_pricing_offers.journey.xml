@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<journey name="Pricing Offers" id="pricing-offers">
+    <description>
+        Validates that an administrator can review pricing offers such as Founding Merchants, see their slots, window,
+        price overrides and perks, pause, resume or end an offer after confirming, and track the setup call and review
+        commitments of the stores that redeemed it.
+    </description>
+    <stories>
+        <story id="OFFERS-01" title="Admin screen for pricing offers" />
+    </stories>
+    <actions>
+        <action>Sign in to the Admin Dashboard, open '/dashboard/billing/plans' and click 'Pricing offers'.</action>
+        <action>Verify each offer shows its status badge, redemptions against the cap, slots left and window, and that the first offer is selected below.</action>
+        <action>Verify the detail shows trial days, eligible plans, price overrides (with 'locked for life') and perks.</action>
+        <action>Click 'Pause' and verify a dialog says existing redemptions keep their trial and locked price; confirm and verify the status becomes Paused.</action>
+        <action>Click 'Resume', confirm, then 'End'; verify the dialog says it cannot be reopened, confirm, and verify the status becomes Ended with no lifecycle buttons left.</action>
+        <action>In Redemptions, tick 'Setup call' for a store, then add a note and click 'Save'; verify both persist after reload.</action>
+    </actions>
+</journey>

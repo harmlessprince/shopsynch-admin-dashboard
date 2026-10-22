@@ -392,6 +392,11 @@ onMounted(async () => {
               Overrides & extensions
             </BaseButton>
           </NuxtLink>
+          <NuxtLink to="/dashboard/billing/offers">
+            <BaseButton radius="8px" variant="outline" class="whitespace-nowrap">
+              Pricing offers
+            </BaseButton>
+          </NuxtLink>
           <NuxtLink to="/dashboard/billing/refunds">
             <BaseButton radius="8px" variant="outline" class="whitespace-nowrap">
               Refunds
