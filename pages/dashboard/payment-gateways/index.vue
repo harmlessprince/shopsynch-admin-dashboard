@@ -258,6 +258,12 @@ onMounted(loadData);
           </p>
         </div>
         <div class="flex items-center gap-[1rem]">
+          <NuxtLink
+            to="/dashboard/payment-gateways/webhooks"
+            class="rounded-[8px] border border-slate-200 px-[1.6rem] py-[0.9rem] font-[600] text-slate-700 hover:bg-slate-50 transition"
+          >
+            Incoming webhooks
+          </NuxtLink>
           <button
             class="rounded-[8px] border border-slate-200 px-[1.6rem] py-[0.9rem] font-[600] text-slate-700 hover:bg-slate-50 transition"
             @click="loadData"

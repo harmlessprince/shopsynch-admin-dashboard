@@ -67,6 +67,50 @@ async function mockAdminApi(page: Page) {
 
   let platformAlertRecipients = 'ops@shopsynch.com, oncall@shopsynch.com'
 
+  const incomingWebhooks = [
+    {
+      id: 'hook-1',
+      provider: 'PAYSTACK',
+      eventType: 'charge.success',
+      reference: 'PSK_FAILED_1',
+      tenantId: 'tenant-test-123',
+      targetKind: 'SUBSCRIPTION_PAYMENT',
+      status: 'FAILED',
+      attempts: 2,
+      duplicateCount: 0,
+      lastError: 'Could not activate the subscription',
+      payload: '{"event":"charge.success","data":{"reference":"PSK_FAILED_1","customer":{"email":"buyer@example.com"}}}',
+      headers: { 'x-paystack-signature': 'abc123', 'content-type': 'application/json' },
+      receivedAt: '2026-10-22T08:00:00Z',
+    },
+    {
+      id: 'hook-2',
+      provider: 'MONNIFY',
+      eventType: 'SUCCESSFUL_TRANSACTION',
+      reference: 'MNF_UNKNOWN_1',
+      targetKind: 'UNMATCHED',
+      status: 'UNMATCHED',
+      attempts: 1,
+      duplicateCount: 3,
+      payload: 'not-json-body',
+      headers: {},
+      receivedAt: '2026-10-22T07:00:00Z',
+    },
+    {
+      id: 'hook-3',
+      provider: 'PAYSTACK',
+      eventType: 'charge.success',
+      reference: 'PSK_OK_1',
+      targetKind: 'ORDER_PAYMENT',
+      status: 'PROCESSED',
+      attempts: 1,
+      duplicateCount: 0,
+      payload: '{}',
+      headers: {},
+      receivedAt: '2026-10-22T06:00:00Z',
+    },
+  ]
+
   const shadowDuplicates = [
     {
       id: 'shadow-1',
@@ -455,6 +499,23 @@ async function mockAdminApi(page: Page) {
       return
     }
 
+    // Incoming payment webhooks
+    if (path === '/v1/admin/webhooks/incoming/summary' && request.method() === 'GET') {
+      await json({ status: true, data: { RECEIVED: 0, PROCESSED: 41, IGNORED: 2, FAILED: 1, UNMATCHED: 1 } })
+      return
+    }
+
+    if (path === '/v1/admin/webhooks/incoming' && request.method() === 'GET') {
+      const url = new URL(request.url())
+      const reference = url.searchParams.get('reference')
+      const status = url.searchParams.get('status')
+      const rows = incomingWebhooks
+        .filter((hook) => (reference ? hook.reference === reference : true))
+        .filter((hook) => (!reference && status ? hook.status === status : true))
+      await json({ status: true, data: rows })
+      return
+    }
+
     // Subscription refunds
     if (path === '/v1/admin/billing/refunds' && request.method() === 'GET') {
       await json({ status: true, data: subscriptionRefunds })
@@ -494,7 +555,7 @@ async function mockAdminApi(page: Page) {
   ])
 }
 
-test.describe('Admin Dashboard Journeys (01 - 11)', () => {
+test.describe('Admin Dashboard Journeys (01 - 12)', () => {
   test.beforeEach(async ({ page }) => {
     await mockAdminApi(page)
   })
@@ -660,4 +721,31 @@ test.describe('Admin Dashboard Journeys (01 - 11)', () => {
     await expect(page.getByRole('button', { name: 'Refund', exact: true })).toHaveCount(0)
   })
 
+  test('Journey 12: Incoming webhooks viewer', async ({ page }) => {
+    await page.goto('/dashboard/payment-gateways/webhooks')
+    await expect(page.getByRole('heading', { name: 'Incoming Payment Webhooks' })).toBeVisible()
+    await expect(page.getByTestId('webhook-tile-FAILED')).toContainText('needs action')
+    await expect(page.getByTestId('webhook-tile-UNMATCHED')).toContainText('needs action')
+    await expect(page.getByTestId('webhook-tile-PROCESSED')).not.toContainText('needs action')
+
+    // Status tile filters the list
+    await page.getByTestId('webhook-tile-FAILED').click()
+    await expect(page.getByText('PSK_FAILED_1')).toBeVisible()
+    await expect(page.getByText('MNF_UNKNOWN_1')).toBeHidden()
+    await expect(page.getByText('Could not activate the subscription').first()).toBeVisible()
+
+    // Row detail shows pretty-printed payload and headers
+    await page.getByRole('button', { name: 'View' }).click()
+    await expect(page.getByTestId('webhook-payload')).toContainText('"reference": "PSK_FAILED_1"')
+    await expect(page.getByText('x-paystack-signature:')).toBeVisible()
+    await page.getByRole('button', { name: 'Close' }).click()
+
+    // Reference search takes priority over status
+    await page.getByPlaceholder('Search by payment reference').fill('MNF_UNKNOWN_1')
+    await page.getByRole('button', { name: 'Search' }).click()
+    await expect(page.getByText('The status filter is ignored while a reference is searched.')).toBeVisible()
+    await expect(page.getByText('3 duplicate deliveries')).toBeVisible()
+    await page.getByRole('button', { name: 'View' }).click()
+    await expect(page.getByTestId('webhook-payload')).toContainText('not-json-body')
+  })
 })

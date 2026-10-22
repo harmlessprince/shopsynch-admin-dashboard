@@ -164,6 +164,10 @@ export const endpoints = {
             reset: "/v1/admin/payment-gateway-health/circuits/:gateway/reset",
             metrics: "/v1/admin/payment-gateway-health/metrics",
         },
+        incomingWebhooks: {
+            summary: "/v1/admin/webhooks/incoming/summary",
+            list: "/v1/admin/webhooks/incoming",
+        },
         auditLogs: "/v1/admin/audit-logs",
         cache: {
             list: "/v1/admin/cache",

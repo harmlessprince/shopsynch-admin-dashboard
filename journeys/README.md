@@ -17,6 +17,7 @@ This directory contains executable journey definitions for validating administra
 | [`09_resync_subscriptions_to_test.journey.xml`](./09_resync_subscriptions_to_test.journey.xml) | Resync Subscriptions to Test Mode | Issue 009 | Super admin action to replicate live subscriptions to test mode with confirmation and count. |
 | [`10_subscription_refunds.journey.xml`](./10_subscription_refunds.journey.xml) | Subscription Refunds | GitHub #54 | List refunds, status badges, Refresh an open refund, time taken back. |
 | [`11_duplicate_subscription_payments.journey.xml`](./11_duplicate_subscription_payments.journey.xml) | Duplicate Subscription Payments | GitHub #55 | Shadow mode duplicates review, type filter, Refund with required reason. |
+| [`12_incoming_payment_webhooks.journey.xml`](./12_incoming_payment_webhooks.journey.xml) | Incoming Payment Webhooks | GitHub #56 | Status counts, failed/unmatched highlight, reference search, payload and headers detail. |
 
 ## Verification
 
