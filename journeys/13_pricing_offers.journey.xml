@@ -15,5 +15,7 @@
         <action>Click 'Pause' and verify a dialog says existing redemptions keep their trial and locked price; confirm and verify the status becomes Paused.</action>
         <action>Click 'Resume', confirm, then 'End'; verify the dialog says it cannot be reopened, confirm, and verify the status becomes Ended with no lifecycle buttons left.</action>
         <action>In Redemptions, tick 'Setup call' for a store, then add a note and click 'Save'; verify both persist after reload.</action>
+        <action>Click 'Edit' on an offer, change the redemption cap and save; verify the slots update and the code cannot be edited.</action>
+        <action>Click 'New offer' and submit without choosing a plan; verify the validation message appears beside the plan choices. Choose a plan, add a perk and create; verify the new offer is selected.</action>
     </actions>
 </journey>

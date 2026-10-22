@@ -233,6 +233,8 @@ export const endpoints = {
             },
             offers: {
                 list: "/v1/admin/billing/offers",
+                create: "/v1/admin/billing/offers",
+                update: "/v1/admin/billing/offers/:offerCode",
                 pause: "/v1/admin/billing/offers/:offerCode/pause",
                 resume: "/v1/admin/billing/offers/:offerCode/resume",
                 end: "/v1/admin/billing/offers/:offerCode/end",

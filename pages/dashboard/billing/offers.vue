@@ -57,6 +57,10 @@ const redemptionHeader = [
   { title: "Notes", accessor: "commitmentNotes" },
 ];
 
+const plansStore = useAdminBillingPlansStore();
+
+const showForm = ref(false);
+const editingOffer = ref(null);
 const pendingAction = ref(null); // { action, offer }
 const noteDrafts = ref({});
 
@@ -91,6 +95,19 @@ function windowLabel(row) {
   const from = row.startsAt ? formatDate(row.startsAt) : "any time";
   const to = row.endsAt ? formatDate(row.endsAt) : "no end date";
   return `${from} to ${to}`;
+}
+
+async function openForm(target = null) {
+  editingOffer.value = target;
+  showForm.value = true;
+  if (!plansStore.plans.length) await plansStore.fetchPlans();
+}
+
+async function submitForm(payload) {
+  const saved = await offersStore.saveOffer(payload, editingOffer.value?.code);
+  if (!saved) return;
+  showForm.value = false;
+  if (!editingOffer.value) await offersStore.selectOffer(saved.code);
 }
 
 function askConfirm(action) {
@@ -146,9 +163,12 @@ onMounted(async () => {
             to the stores that redeem it. Pausing or ending an offer never changes what a store already redeemed.
           </p>
         </div>
-        <BaseButton radius="8px" variant="outline" :loading="offersStore.loading" @click="offersStore.fetchOffers()">
-          Reload
-        </BaseButton>
+        <div class="flex gap-[1rem]">
+          <BaseButton radius="8px" variant="outline" :loading="offersStore.loading" @click="offersStore.fetchOffers()">
+            Reload
+          </BaseButton>
+          <BaseButton radius="8px" class="whitespace-nowrap" @click="openForm()">New offer</BaseButton>
+        </div>
       </div>
     </section>
 
@@ -223,6 +243,15 @@ onMounted(async () => {
             <p v-if="offer.description" class="mt-[0.8rem] max-w-[80rem] text-[#616161]">{{ offer.description }}</p>
           </div>
           <div class="flex flex-wrap gap-[1rem]">
+            <BaseButton
+              v-if="offer.status !== 'ENDED'"
+              radius="8px"
+              variant="outline"
+              class="whitespace-nowrap"
+              @click="openForm(offer)"
+            >
+              Edit
+            </BaseButton>
             <BaseButton
               v-for="item in availableActions"
               :key="item.action"
@@ -379,6 +408,16 @@ onMounted(async () => {
         </DataTable>
       </section>
     </template>
+
+    <DashboardPricingOfferFormModal
+      :open="showForm"
+      :offer="editingOffer"
+      :plans="plansStore.plans.filter((plan) => plan.status === 'ACTIVE')"
+      :saving="offersStore.saving"
+      :errors="offersStore.formErrors"
+      @close="showForm = false"
+      @submit="submitForm"
+    />
 
     <div
       v-if="pendingAction"

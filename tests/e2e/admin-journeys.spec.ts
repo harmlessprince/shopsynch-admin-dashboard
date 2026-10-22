@@ -85,6 +85,8 @@ async function mockAdminApi(page: Page) {
     slotsRemaining: 45,
   }
 
+  let createdOffers: Record<string, unknown>[] = []
+
   let offerRedemptions = [
     { id: 'red-1', offerCode: 'founding', tenantId: 'tenant-test-123', planCode: 'pro', redeemedAt: '2026-10-18T10:00:00Z', setupCallCompleted: false, reviewReceived: false, commitmentNotes: '' },
   ]
@@ -207,6 +209,7 @@ async function mockAdminApi(page: Page) {
     {
       id: 'plan-starter-1',
       code: 'starter',
+      status: 'ACTIVE',
       name: 'Starter Plan',
       description: 'Perfect for small shops getting started',
       seeded: true,
@@ -225,6 +228,7 @@ async function mockAdminApi(page: Page) {
     {
       id: 'plan-pro-1',
       code: 'pro',
+      status: 'ACTIVE',
       name: 'Pro Plan',
       description: 'For growing businesses',
       seeded: true,
@@ -522,8 +526,30 @@ async function mockAdminApi(page: Page) {
     }
 
     // Pricing offers
+    if (path === '/v1/admin/billing/offers' && request.method() === 'POST') {
+      const payload = request.postDataJSON()
+      if (!payload.eligiblePlanCodes?.length) {
+        await route.fulfill({
+          status: 422,
+          contentType: 'application/json',
+          body: JSON.stringify({ status: false, message: 'Validation failed', errors: { eligiblePlanCodes: 'At least one eligible plan is required.' } }),
+        })
+        return
+      }
+      const created = { ...pricingOffer, ...payload, id: 'offer-2', status: payload.status, redemptionCount: 0, slotsRemaining: payload.maxRedemptions ?? null, perks: payload.perks, priceOverrides: payload.priceOverrides.map((override) => ({ ...override, currency: 'NGN' })) }
+      createdOffers = [created, ...createdOffers]
+      await json({ status: true, message: 'pricing offer created', data: created })
+      return
+    }
+
+    if (path === '/v1/admin/billing/offers/founding' && request.method() === 'PUT') {
+      pricingOffer = { ...pricingOffer, ...request.postDataJSON(), slotsRemaining: request.postDataJSON().maxRedemptions - pricingOffer.redemptionCount }
+      await json({ status: true, message: 'pricing offer updated', data: pricingOffer })
+      return
+    }
+
     if (path === '/v1/admin/billing/offers' && request.method() === 'GET') {
-      await json({ status: true, data: [pricingOffer] })
+      await json({ status: true, data: [...createdOffers, pricingOffer] })
       return
     }
 
@@ -614,7 +640,7 @@ async function mockAdminApi(page: Page) {
   ])
 }
 
-test.describe('Admin Dashboard Journeys (01 - 13)', () => {
+test.describe('Admin Dashboard Journeys (01 - 14)', () => {
   test.beforeEach(async ({ page }) => {
     await mockAdminApi(page)
   })
@@ -842,5 +868,34 @@ test.describe('Admin Dashboard Journeys (01 - 13)', () => {
     await page.getByPlaceholder('Add a note').fill('Call done on Friday')
     await page.getByRole('button', { name: 'Save', exact: true }).click()
     await expect(page.getByRole('button', { name: 'Save', exact: true })).toHaveCount(0)
+  })
+
+  test('Journey 14: Create and edit a pricing offer', async ({ page }) => {
+    await page.goto('/dashboard/billing/offers')
+    await expect(page.getByTestId('offer-detail').getByText('Founding Merchant')).toBeVisible()
+
+    // Edit the cap of the selected offer
+    await page.getByTestId('offer-detail').getByRole('button', { name: 'Edit', exact: true }).click()
+    await expect(page.getByText('Edit Founding Merchant')).toBeVisible()
+    const dialog = page.getByRole('dialog')
+    await expect(dialog.getByPlaceholder('founding', { exact: true })).toHaveAttribute('readonly', '')
+    await dialog.getByPlaceholder('e.g. 50').fill('80')
+    await page.getByRole('button', { name: 'Save changes' }).click()
+    await expect(page.getByText('Edit Founding Merchant')).toBeHidden()
+    await expect(page.getByTestId('offer-detail').getByText('5 of 80 redeemed')).toBeVisible()
+
+    // Create: the 422 for a missing plan shows beside the plan choices
+    await page.getByRole('button', { name: 'New offer' }).click()
+    await dialog.getByPlaceholder('founding', { exact: true }).fill('spring')
+    await dialog.getByPlaceholder('Founding Merchant').fill('Spring Launch')
+    await page.getByRole('button', { name: 'Create offer' }).click()
+    await expect(page.getByText('At least one eligible plan is required.')).toBeVisible()
+
+    await page.getByText('Pro Plan').click()
+    await page.getByRole('button', { name: 'Add perk' }).click()
+    await dialog.getByPlaceholder('WHATSAPP_UTILITY_CREDITS').fill('WHATSAPP_UTILITY_CREDITS')
+    await page.getByRole('button', { name: 'Create offer' }).click()
+    await expect(page.getByText('New pricing offer')).toBeHidden()
+    await expect(page.getByTestId('offer-detail').getByText('Spring Launch')).toBeVisible()
   })
 })

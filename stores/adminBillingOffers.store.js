@@ -5,7 +5,7 @@ import { useToastStore } from "~/stores/toast.store.js";
 import { logger } from "~/utils/helpers.js";
 
 export const useAdminBillingOffersStore = defineStore("adminBillingOffersStore", () => {
-    const { get, post, patch } = useApiService();
+    const { get, post, put, patch } = useApiService();
     const toastStore = useToastStore();
 
     const offers = ref([]);
@@ -15,6 +15,8 @@ export const useAdminBillingOffersStore = defineStore("adminBillingOffersStore",
     const loadingRedemptions = ref(false);
     const actingCode = ref("");
     const savingTenantId = ref("");
+    const saving = ref(false);
+    const formErrors = ref({});
     const error = ref("");
 
     const selectedOffer = computed(() => offers.value.find((offer) => offer.code === selectedCode.value) || null);
@@ -102,6 +104,30 @@ export const useAdminBillingOffersStore = defineStore("adminBillingOffersStore",
         }
     }
 
+
+    // 422 field errors are kept in formErrors for the form; 400 business errors are toasted by the interceptor.
+    async function saveOffer(payload, offerCode = "") {
+        saving.value = true;
+        formErrors.value = {};
+        try {
+            const response = offerCode
+                ? await put(endpoints.admin.billing.offers.update.replace(":offerCode", encodeURIComponent(offerCode)), payload, { forceMode: "live" })
+                : await post(endpoints.admin.billing.offers.create, payload, { forceMode: "live" });
+            const saved = response?.data;
+            if (!saved) return null;
+            if (offerCode) replaceOffer(saved);
+            else offers.value.unshift(saved);
+            toastStore.success(response?.message || "Offer saved", "");
+            return saved;
+        } catch (err) {
+            logger.error("Failed to save pricing offer", err);
+            formErrors.value = err?.data?.errors || {};
+            return null;
+        } finally {
+            saving.value = false;
+        }
+    }
+
     return {
         offers,
         redemptions,
@@ -111,6 +137,8 @@ export const useAdminBillingOffersStore = defineStore("adminBillingOffersStore",
         loadingRedemptions,
         actingCode,
         savingTenantId,
+        saving,
+        formErrors,
         error,
         fetchOffers,
         selectOffer,
@@ -118,5 +146,6 @@ export const useAdminBillingOffersStore = defineStore("adminBillingOffersStore",
         resumeOffer,
         endOffer,
         updateCommitments,
+        saveOffer,
     };
 });
