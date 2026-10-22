@@ -137,15 +137,16 @@ onMounted(() => {
 
     <section class="overflow-hidden rounded-[8px] bg-white shadow-sm">
       <div class="flex flex-col gap-[1rem] border-b border-[#EDEFF2] p-[1.6rem] lg:flex-row lg:items-end">
-        <BaseSelectInput
-          :model-value="webhooksStore.status"
-          :options="statusOptions"
-          label="Status"
-          input-class="min-w-[20rem]"
-          @update:model-value="referenceInput = ''; load({ status: $event, reference: '', page: 0 })"
-        />
-        <form class="flex flex-1 items-end gap-[1rem]" @submit.prevent="searchReference">
-          <div class="flex-1">
+        <div class="w-full lg:w-[24rem]">
+          <BaseSelectInput
+            :model-value="webhooksStore.status"
+            :options="statusOptions"
+            label="Status"
+            @update:model-value="referenceInput = ''; load({ status: $event, reference: '', page: 0 })"
+          />
+        </div>
+        <form class="flex min-w-0 flex-1 items-end gap-[1rem]" @submit.prevent="searchReference">
+          <div class="min-w-0 flex-1">
             <AppInput v-model="referenceInput" label="Payment reference" placeholder="Search by payment reference" />
           </div>
           <BaseButton type="submit" radius="8px" :disabled="!referenceInput.trim()">Search</BaseButton>
