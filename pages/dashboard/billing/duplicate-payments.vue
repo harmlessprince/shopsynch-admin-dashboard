@@ -134,13 +134,14 @@ onMounted(() => {
 
     <section class="overflow-hidden rounded-[8px] bg-white shadow-sm">
       <div class="flex flex-col gap-[1rem] border-b border-[#EDEFF2] p-[1.6rem] sm:flex-row sm:items-end sm:justify-between">
-        <BaseSelectInput
-          :model-value="shadowStore.type"
-          :options="typeOptions"
-          label="Observation type"
-          input-class="min-w-[24rem]"
-          @update:model-value="loadEntries({ type: $event, page: 0 })"
-        />
+        <div class="w-full sm:w-[28rem]">
+          <BaseSelectInput
+            :model-value="shadowStore.type"
+            :options="typeOptions"
+            label="Observation type"
+            @update:model-value="loadEntries({ type: $event, page: 0 })"
+          />
+        </div>
       </div>
 
       <DataTable
@@ -162,7 +163,6 @@ onMounted(() => {
           <NuxtLink :to="`/dashboard/merchants/${row.tenantId}`" class="font-[700] text-primary hover:underline">
             {{ row.tenantId }}
           </NuxtLink>
-          <p class="text-[1.2rem] text-[#616161]">{{ row.slotKey }}</p>
         </template>
 
         <template #cell(providerReference)="{ row }">
