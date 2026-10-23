@@ -104,9 +104,14 @@ const removePerk = (index) => form.perks.splice(index, 1);
 
 const toNumber = (value) => (String(value ?? "").trim() === "" ? null : Number(value));
 // An unchanged date keeps the original timestamp, so editing other fields never shifts the offer's times.
+// The API serialises Instants as "yyyy-MM-dd HH:mm:ss" (no timezone); re-emit ISO-8601 it can parse back.
 const toInstant = (date, original) => {
   if (!date) return null;
-  return original && dateOnly(original) === date ? original : `${date}T00:00:00Z`;
+  if (original && dateOnly(original) === date) {
+    const normalized = String(original).replace(" ", "T");
+    return /([zZ]|[+-]\d{2}:?\d{2})$/.test(normalized) ? normalized : `${normalized}Z`;
+  }
+  return `${date}T00:00:00Z`;
 };
 
 function submit() {
