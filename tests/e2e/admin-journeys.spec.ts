@@ -67,6 +67,135 @@ async function mockAdminApi(page: Page) {
 
   let platformAlertRecipients = 'ops@shopsynch.com, oncall@shopsynch.com'
 
+  let pricingOffer = {
+    id: 'offer-1',
+    code: 'founding',
+    name: 'Founding Merchant',
+    description: '30 days of Pro free and a locked 3-month price.',
+    status: 'ACTIVE',
+    startsAt: '2026-10-11T00:00:00Z',
+    endsAt: '2027-01-09T00:00:00Z',
+    publicVisible: true,
+    eligiblePlanCodes: ['pro'],
+    trialDays: 30,
+    priceOverrides: [{ planCode: 'pro', periodUnitCount: 3, amount: 10000, currency: 'NGN', lockedForLife: true }],
+    perks: [{ perkCode: 'WHATSAPP_UTILITY_CREDITS', quantity: 50, description: 'Free WhatsApp utility test credits' }],
+    maxRedemptions: 50,
+    redemptionCount: 5,
+    slotsRemaining: 45,
+  }
+
+  let createdOffers: Record<string, unknown>[] = []
+
+  let offerRedemptions = [
+    { id: 'red-1', offerCode: 'founding', tenantId: 'tenant-test-123', planCode: 'pro', redeemedAt: '2026-10-18T10:00:00Z', setupCallCompleted: false, reviewReceived: false, commitmentNotes: '' },
+  ]
+
+  const incomingWebhooks = [
+    {
+      id: 'hook-1',
+      provider: 'PAYSTACK',
+      eventType: 'charge.success',
+      reference: 'PSK_FAILED_1',
+      tenantId: 'tenant-test-123',
+      targetKind: 'SUBSCRIPTION_PAYMENT',
+      status: 'FAILED',
+      attempts: 2,
+      duplicateCount: 0,
+      lastError: 'Could not activate the subscription',
+      payload: '{"event":"charge.success","data":{"reference":"PSK_FAILED_1","customer":{"email":"buyer@example.com"}}}',
+      headers: { 'x-paystack-signature': 'abc123', 'content-type': 'application/json' },
+      receivedAt: '2026-10-22T08:00:00Z',
+    },
+    {
+      id: 'hook-2',
+      provider: 'MONNIFY',
+      eventType: 'SUCCESSFUL_TRANSACTION',
+      reference: 'MNF_UNKNOWN_1',
+      targetKind: 'UNMATCHED',
+      status: 'UNMATCHED',
+      attempts: 1,
+      duplicateCount: 3,
+      payload: 'not-json-body',
+      headers: {},
+      receivedAt: '2026-10-22T07:00:00Z',
+    },
+    {
+      id: 'hook-3',
+      provider: 'PAYSTACK',
+      eventType: 'charge.success',
+      reference: 'PSK_OK_1',
+      targetKind: 'ORDER_PAYMENT',
+      status: 'PROCESSED',
+      attempts: 1,
+      duplicateCount: 0,
+      payload: '{}',
+      headers: {},
+      receivedAt: '2026-10-22T06:00:00Z',
+    },
+  ]
+
+  const shadowDuplicates = [
+    {
+      id: 'shadow-1',
+      tenantId: 'tenant-test-789',
+      slotKey: 'tenant-test-789:2026-10',
+      type: 'WOULD_BE_DUPLICATE',
+      paymentId: 'pay-dup-3',
+      providerReference: 'PSK_REF_3',
+      provider: 'PAYSTACK',
+      channel: 'CARD',
+      amount: 15000,
+      currency: 'NGN',
+      firstPaymentId: 'pay-first-3',
+      createdAt: '2026-10-22T09:00:00Z',
+    },
+    {
+      id: 'shadow-2',
+      tenantId: 'tenant-test-123',
+      slotKey: 'tenant-test-123:2026-10',
+      type: 'WOULD_BE_DUPLICATE',
+      paymentId: 'pay-dup-1',
+      providerReference: 'PSK_REF_1',
+      provider: 'PAYSTACK',
+      channel: 'BANK_TRANSFER',
+      amount: 15000,
+      currency: 'NGN',
+      firstPaymentId: 'pay-first-1',
+      createdAt: '2026-10-21T09:00:00Z',
+    },
+  ]
+
+  let subscriptionRefunds = [
+    {
+      id: 'refund-pending',
+      tenantId: 'tenant-test-123',
+      paymentId: 'pay-dup-1',
+      provider: 'PAYSTACK',
+      transactionReference: 'PSK_REF_1',
+      amount: 15000,
+      currency: 'NGN',
+      status: 'PENDING',
+      active: true,
+      reason: 'Paid twice for October',
+      requestedAt: '2026-10-22T10:00:00Z',
+    },
+    {
+      id: 'refund-failed',
+      tenantId: 'tenant-test-456',
+      paymentId: 'pay-dup-2',
+      provider: 'PAYSTACK',
+      transactionReference: 'PSK_REF_2',
+      amount: 15000,
+      currency: 'NGN',
+      status: 'FAILED',
+      active: false,
+      providerMessage: 'Refund refused by provider',
+      reason: 'Duplicate card charge',
+      requestedAt: '2026-10-21T10:00:00Z',
+    },
+  ]
+
   const planRules = [
     { code: 'pos_access', kind: 'feature', label: 'POS Access', description: 'Enable POS terminal sales', allowedValues: ['true', 'false'], missingKeyMeaning: 'not included' },
     { code: 'custom_domain', kind: 'feature', label: 'Custom Domain', description: 'Bring your own custom domain', allowedValues: ['true', 'false'], missingKeyMeaning: 'not included' },
@@ -80,6 +209,7 @@ async function mockAdminApi(page: Page) {
     {
       id: 'plan-starter-1',
       code: 'starter',
+      status: 'ACTIVE',
       name: 'Starter Plan',
       description: 'Perfect for small shops getting started',
       seeded: true,
@@ -98,6 +228,7 @@ async function mockAdminApi(page: Page) {
     {
       id: 'plan-pro-1',
       code: 'pro',
+      status: 'ACTIVE',
       name: 'Pro Plan',
       description: 'For growing businesses',
       seeded: true,
@@ -367,6 +498,133 @@ async function mockAdminApi(page: Page) {
       return
     }
 
+    // Shadow mode duplicate payments
+    if (path === '/v1/admin/billing/shadow/summary' && request.method() === 'GET') {
+      await json({ status: true, data: { ATTEMPT: 12, WOULD_APPLY: 9, WOULD_BE_DUPLICATE: 3 } })
+      return
+    }
+
+    if (path === '/v1/admin/billing/shadow/entries' && request.method() === 'GET') {
+      await json({ status: true, data: shadowDuplicates })
+      return
+    }
+
+    if (path === '/v1/admin/billing/refunds' && request.method() === 'POST') {
+      const payload = request.postDataJSON()
+      if (!payload.note?.trim()) {
+        await route.fulfill({
+          status: 422,
+          contentType: 'application/json',
+          body: JSON.stringify({ status: false, message: 'Validation failed', errors: { note: 'note is required' } }),
+        })
+        return
+      }
+      const created = { id: 'refund-new', tenantId: 'tenant-test-789', paymentId: payload.paymentId, provider: 'PAYSTACK', transactionReference: 'PSK_REF_3', amount: 15000, currency: 'NGN', status: 'PENDING', active: true, reason: payload.note, requestedAt: '2026-10-22T12:00:00Z' }
+      subscriptionRefunds = [created, ...subscriptionRefunds]
+      await json({ status: true, message: 'refund pending', data: created })
+      return
+    }
+
+    // Pricing offers
+    if (path === '/v1/admin/billing/offers' && request.method() === 'POST') {
+      const payload = request.postDataJSON()
+      if (!payload.eligiblePlanCodes?.length) {
+        await route.fulfill({
+          status: 422,
+          contentType: 'application/json',
+          body: JSON.stringify({ status: false, message: 'Validation failed', errors: { eligiblePlanCodes: 'At least one eligible plan is required.' } }),
+        })
+        return
+      }
+      const created = { ...pricingOffer, ...payload, id: 'offer-2', status: payload.status, redemptionCount: 0, slotsRemaining: payload.maxRedemptions ?? null, perks: payload.perks, priceOverrides: payload.priceOverrides.map((override) => ({ ...override, currency: 'NGN' })) }
+      createdOffers = [created, ...createdOffers]
+      await json({ status: true, message: 'pricing offer created', data: created })
+      return
+    }
+
+    if (path === '/v1/admin/billing/offers/founding' && request.method() === 'PUT') {
+      if (!request.postDataJSON().code) {
+        await route.fulfill({
+          status: 422,
+          contentType: 'application/json',
+          body: JSON.stringify({ status: false, message: 'Validation failed', errors: { code: 'The offer code is required.' } }),
+        })
+        return
+      }
+      pricingOffer = { ...pricingOffer, ...request.postDataJSON(), slotsRemaining: request.postDataJSON().maxRedemptions - pricingOffer.redemptionCount }
+      await json({ status: true, message: 'pricing offer updated', data: pricingOffer })
+      return
+    }
+
+    if (path === '/v1/admin/billing/offers' && request.method() === 'GET') {
+      await json({ status: true, data: [...createdOffers, pricingOffer] })
+      return
+    }
+
+    if (path === '/v1/admin/billing/offers/founding/pause' && request.method() === 'POST') {
+      pricingOffer = { ...pricingOffer, status: 'PAUSED' }
+      await json({ status: true, message: 'pricing offer paused', data: pricingOffer })
+      return
+    }
+
+    if (path === '/v1/admin/billing/offers/founding/resume' && request.method() === 'POST') {
+      pricingOffer = { ...pricingOffer, status: 'ACTIVE' }
+      await json({ status: true, message: 'pricing offer resumed', data: pricingOffer })
+      return
+    }
+
+    if (path === '/v1/admin/billing/offers/founding/end' && request.method() === 'POST') {
+      pricingOffer = { ...pricingOffer, status: 'ENDED' }
+      await json({ status: true, message: 'pricing offer ended', data: pricingOffer })
+      return
+    }
+
+    if (path === '/v1/admin/billing/offers/founding/redemptions' && request.method() === 'GET') {
+      await json({ status: true, data: offerRedemptions })
+      return
+    }
+
+    if (path === '/v1/admin/billing/offers/founding/redemptions/tenant-test-123/commitments' && request.method() === 'PATCH') {
+      offerRedemptions = offerRedemptions.map((redemption) =>
+        redemption.tenantId === 'tenant-test-123' ? { ...redemption, ...request.postDataJSON(), commitmentNotes: request.postDataJSON().notes ?? redemption.commitmentNotes } : redemption,
+      )
+      await json({ status: true, data: offerRedemptions[0] })
+      return
+    }
+
+    // Incoming payment webhooks
+    if (path === '/v1/admin/webhooks/incoming/summary' && request.method() === 'GET') {
+      await json({ status: true, data: { RECEIVED: 0, PROCESSED: 41, IGNORED: 2, FAILED: 1, UNMATCHED: 1 } })
+      return
+    }
+
+    if (path === '/v1/admin/webhooks/incoming' && request.method() === 'GET') {
+      const url = new URL(request.url())
+      const reference = url.searchParams.get('reference')
+      const status = url.searchParams.get('status')
+      const rows = incomingWebhooks
+        .filter((hook) => (reference ? hook.reference === reference : true))
+        .filter((hook) => (!reference && status ? hook.status === status : true))
+      await json({ status: true, data: rows })
+      return
+    }
+
+    // Subscription refunds
+    if (path === '/v1/admin/billing/refunds' && request.method() === 'GET') {
+      await json({ status: true, data: subscriptionRefunds })
+      return
+    }
+
+    if (path === '/v1/admin/billing/refunds/refund-pending/refresh' && request.method() === 'POST') {
+      subscriptionRefunds = subscriptionRefunds.map((refund) =>
+        refund.id === 'refund-pending'
+          ? { ...refund, status: 'PROCESSED', periodDaysReversed: 30, periodReversedAt: '2026-10-22T11:00:00Z', periodReversalNote: 'Removed 30 days from the subscription' }
+          : refund,
+      )
+      await json({ status: true, data: subscriptionRefunds[0] })
+      return
+    }
+
     // Fallback empty
     await json({ status: true, data: [] })
   })
@@ -390,7 +648,7 @@ async function mockAdminApi(page: Page) {
   ])
 }
 
-test.describe('Admin Dashboard Journeys (01 - 09)', () => {
+test.describe('Admin Dashboard Journeys (01 - 14)', () => {
   test.beforeEach(async ({ page }) => {
     await mockAdminApi(page)
   })
@@ -399,6 +657,7 @@ test.describe('Admin Dashboard Journeys (01 - 09)', () => {
     // 1. Visit Payment Gateways Page
     await page.goto('/dashboard/payment-gateways')
     await expect(page.getByText('Payment Gateway Management')).toBeVisible()
+    await expect(page.getByTestId('payment-alert-emails-warning')).toBeHidden()
 
     // Tab 1: Country Routing & Audit Trail (Journeys 01 & 03)
     await expect(page.getByText('Country Routing & Audit Trail')).toBeVisible()
@@ -433,6 +692,23 @@ test.describe('Admin Dashboard Journeys (01 - 09)', () => {
     await emailInput.fill('ops@shopsynch.com, alerts@shopsynch.com')
     await page.getByRole('button', { name: 'Save Alert Recipients' }).click()
     await expect(page.getByText('ops@shopsynch.com').first()).toBeVisible()
+  })
+
+  test('Journey 05: warns on payment pages when alert recipients are empty', async ({ page }) => {
+    await page.route('**/v1/admin/settings?*', async (route) => {
+      await route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({
+          status: true,
+          data: [{ key: 'platformPaymentAlertEmails', value: '', valueType: 'STRING', category: 'PAYMENT' }],
+        }),
+      })
+    })
+    await page.goto('/dashboard/payment-gateways')
+    const warning = page.getByTestId('payment-alert-emails-warning')
+    await expect(warning).toBeVisible()
+    await warning.getByRole('link', { name: /Set the recipients in Settings/ }).click()
+    await expect(page).toHaveURL(/\/dashboard\/settings#platformPaymentAlertEmails/)
   })
 
   test('Journey 04 & 07: Merchant Detail Gateway Availability and Effective Access Panel', async ({ page }) => {
@@ -499,5 +775,135 @@ test.describe('Admin Dashboard Journeys (01 - 09)', () => {
     await expect(page.getByText('Subscriptions Moved off Retired Plans')).toBeVisible()
     await expect(page.getByText('tenant-test-123')).toBeVisible()
     await expect(page.getByText('starter-legacy')).toBeVisible()
+  })
+
+  test('Journey 10: Subscription Refunds list and Refresh', async ({ page }) => {
+    await page.goto('/dashboard/billing/refunds')
+    await expect(page.getByRole('heading', { name: 'Subscription Refunds' })).toBeVisible()
+    await expect(page.getByText('Paid twice for October')).toBeVisible()
+    await expect(page.getByText('Refund refused by provider')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Refresh' })).toHaveCount(1)
+
+    await page.getByRole('button', { name: 'Refresh' }).click()
+    await expect(page.getByText('Removed 30 days from the subscription')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Refresh' })).toHaveCount(0)
+  })
+
+  test('Journey 11: Duplicate payments review and Refund action', async ({ page }) => {
+    await page.goto('/dashboard/billing/duplicate-payments')
+    await expect(page.getByRole('heading', { name: 'Duplicate Subscription Payments' })).toBeVisible()
+    await expect(page.getByText('This is observation only today.')).toBeVisible()
+    await expect(page.getByText('PSK_REF_3')).toBeVisible()
+    await expect(page.getByText('Period first paid by payment pay-first-3')).toBeVisible()
+
+    // pay-dup-1 already has an active refund, so its status replaces the button
+    await expect(page.getByText('Refund pending')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Refund', exact: true })).toHaveCount(1)
+
+    await page.getByRole('button', { name: 'Refund', exact: true }).click()
+    await expect(page.getByText('Refund this duplicate payment?')).toBeVisible()
+    await expect(page.getByText(/provider keeps its processing fee/)).toBeVisible()
+
+    // A missing reason shows the 422 beside the field
+    await page.getByRole('button', { name: 'Refund payment' }).click()
+    await expect(page.getByText('note is required')).toBeVisible()
+
+    await page.getByPlaceholder('Why is this payment being refunded?').fill('Paid twice for October')
+    await page.getByRole('button', { name: 'Refund payment' }).click()
+    await expect(page.getByText('Refund this duplicate payment?')).toBeHidden()
+    await expect(page.getByRole('button', { name: 'Refund', exact: true })).toHaveCount(0)
+  })
+
+  test('Journey 12: Incoming webhooks viewer', async ({ page }) => {
+    await page.goto('/dashboard/payment-gateways/webhooks')
+    await expect(page.getByRole('heading', { name: 'Incoming Payment Webhooks' })).toBeVisible()
+    await expect(page.getByTestId('webhook-tile-FAILED')).toContainText('needs action')
+    await expect(page.getByTestId('webhook-tile-UNMATCHED')).toContainText('needs action')
+    await expect(page.getByTestId('webhook-tile-PROCESSED')).not.toContainText('needs action')
+
+    // Status tile filters the list
+    await page.getByTestId('webhook-tile-FAILED').click()
+    await expect(page.getByText('PSK_FAILED_1')).toBeVisible()
+    await expect(page.getByText('MNF_UNKNOWN_1')).toBeHidden()
+    await expect(page.getByText('Could not activate the subscription').first()).toBeVisible()
+
+    // Row detail shows pretty-printed payload and headers
+    await page.getByRole('button', { name: 'View' }).click()
+    await expect(page.getByTestId('webhook-payload')).toContainText('"reference": "PSK_FAILED_1"')
+    await expect(page.getByText('x-paystack-signature:')).toBeVisible()
+    await page.getByRole('button', { name: 'Close' }).click()
+
+    // Reference search takes priority over status
+    await page.getByPlaceholder('Search by payment reference').fill('MNF_UNKNOWN_1')
+    await page.getByRole('button', { name: 'Search' }).click()
+    await expect(page.getByText('The status filter is ignored while a reference is searched.')).toBeVisible()
+    await expect(page.getByText('3 duplicate deliveries')).toBeVisible()
+    await page.getByRole('button', { name: 'View' }).click()
+    await expect(page.getByTestId('webhook-payload')).toContainText('not-json-body')
+  })
+
+  test('Journey 13: Pricing offers lifecycle and redemption commitments', async ({ page }) => {
+    await page.goto('/dashboard/billing/offers')
+    await expect(page.getByRole('heading', { name: 'Pricing Offers' })).toBeVisible()
+    await expect(page.getByText('5 of 50 redeemed').first()).toBeVisible()
+
+    // The first offer is selected: configuration is visible
+    const detail = page.getByTestId('offer-detail')
+    await expect(detail.getByText('locked for life')).toBeVisible()
+    await expect(detail.getByText('WHATSAPP_UTILITY_CREDITS')).toBeVisible()
+
+    // Pause asks first, then updates the status
+    await detail.getByRole('button', { name: 'Pause' }).click()
+    await expect(page.getByText('Pause this offer?')).toBeVisible()
+    await expect(page.getByText(/keep their trial and locked price/)).toBeVisible()
+    await page.getByRole('button', { name: 'Pause offer' }).click()
+    await expect(detail.getByText('Paused', { exact: true })).toBeVisible()
+
+    // Resume, then ending is final and leaves no actions
+    await detail.getByRole('button', { name: 'Resume' }).click()
+    await page.getByRole('button', { name: 'Open offer' }).click()
+    await expect(detail.getByText('Active', { exact: true })).toBeVisible()
+    await detail.getByRole('button', { name: 'End' }).click()
+    await expect(page.getByText('End this offer for good?')).toBeVisible()
+    await page.getByRole('button', { name: 'End offer' }).click()
+    await expect(detail.getByText('Ended', { exact: true })).toBeVisible()
+    await expect(detail.getByRole('button', { name: 'Pause' })).toHaveCount(0)
+
+    // Commitments are tracked per redeeming store
+    const setupCall = page.getByLabel('Setup call completed for tenant-test-123')
+    await setupCall.check()
+    await expect(setupCall).toBeChecked()
+    await page.getByPlaceholder('Add a note').fill('Call done on Friday')
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Save', exact: true })).toHaveCount(0)
+  })
+
+  test('Journey 14: Create and edit a pricing offer', async ({ page }) => {
+    await page.goto('/dashboard/billing/offers')
+    await expect(page.getByTestId('offer-detail').getByText('Founding Merchant')).toBeVisible()
+
+    // Edit the cap of the selected offer
+    await page.getByTestId('offer-detail').getByRole('button', { name: 'Edit', exact: true }).click()
+    await expect(page.getByText('Edit Founding Merchant')).toBeVisible()
+    const dialog = page.getByRole('dialog')
+    await expect(dialog.getByPlaceholder('founding', { exact: true })).toHaveAttribute('readonly', '')
+    await dialog.getByPlaceholder('e.g. 50').fill('80')
+    await page.getByRole('button', { name: 'Save changes' }).click()
+    await expect(page.getByText('Edit Founding Merchant')).toBeHidden()
+    await expect(page.getByTestId('offer-detail').getByText('5 of 80 redeemed')).toBeVisible()
+
+    // Create: the 422 for a missing plan shows beside the plan choices
+    await page.getByRole('button', { name: 'New offer' }).click()
+    await dialog.getByPlaceholder('founding', { exact: true }).fill('spring')
+    await dialog.getByPlaceholder('Founding Merchant').fill('Spring Launch')
+    await page.getByRole('button', { name: 'Create offer' }).click()
+    await expect(page.getByText('At least one eligible plan is required.')).toBeVisible()
+
+    await page.getByText('Pro Plan').click()
+    await page.getByRole('button', { name: 'Add perk' }).click()
+    await dialog.getByPlaceholder('WHATSAPP_UTILITY_CREDITS').fill('WHATSAPP_UTILITY_CREDITS')
+    await page.getByRole('button', { name: 'Create offer' }).click()
+    await expect(page.getByText('New pricing offer')).toBeHidden()
+    await expect(page.getByTestId('offer-detail').getByText('Spring Launch')).toBeVisible()
   })
 })

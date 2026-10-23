@@ -15,6 +15,10 @@ This directory contains executable journey definitions for validating administra
 | [`07_store_effective_access_panel.journey.xml`](./07_store_effective_access_panel.journey.xml) | Store Effective Access Panel | Issue 007 | Support view of merchant's plan, subscription status, billing enforcement reason, and access breakdown. |
 | [`08_retired_plan_moves_report.journey.xml`](./08_retired_plan_moves_report.journey.xml) | Retired Plan Moves Report | Issue 008 | Audit report of stores moved off retired plans to Pro, with merchant detail link. |
 | [`09_resync_subscriptions_to_test.journey.xml`](./09_resync_subscriptions_to_test.journey.xml) | Resync Subscriptions to Test Mode | Issue 009 | Super admin action to replicate live subscriptions to test mode with confirmation and count. |
+| [`10_subscription_refunds.journey.xml`](./10_subscription_refunds.journey.xml) | Subscription Refunds | GitHub #54 | List refunds, status badges, Refresh an open refund, time taken back. |
+| [`11_duplicate_subscription_payments.journey.xml`](./11_duplicate_subscription_payments.journey.xml) | Duplicate Subscription Payments | GitHub #55 | Shadow mode duplicates review, type filter, Refund with required reason. |
+| [`12_incoming_payment_webhooks.journey.xml`](./12_incoming_payment_webhooks.journey.xml) | Incoming Payment Webhooks | GitHub #56 | Status counts, failed/unmatched highlight, reference search, payload and headers detail. |
+| [`13_pricing_offers.journey.xml`](./13_pricing_offers.journey.xml) | Pricing Offers | Pricing offers screen | Offer status, slots, price overrides and perks, pause/resume/end with confirmation, redemption commitments. |
 
 ## Verification
 

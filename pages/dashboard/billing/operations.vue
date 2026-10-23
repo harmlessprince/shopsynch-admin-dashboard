@@ -1,5 +1,6 @@
 <script setup>
 import { logger, formatDate, formatToMoney } from "~/utils/helpers.js";
+import { billingEventLabel } from "~/utils/billingRefunds.js";
 
 definePageMeta({
   layout: "dashboard",
@@ -514,7 +515,7 @@ async function confirmInvoicePayment(invoice) {
             <h2 class="text-[1.8rem] font-[800] text-[#000]">Recent billing events</h2>
             <div v-if="recentEvents.length" class="mt-[1.6rem] space-y-[1rem]">
               <div v-for="event in recentEvents.slice(0, 5)" :key="event.id || event.timestamp || event.action" class="rounded-[8px] border border-[#EDEFF2] p-[1.2rem]">
-                <p class="text-[1.3rem] font-[800] text-[#000]">{{ event.action }}</p>
+                <p class="text-[1.3rem] font-[800] text-[#000]">{{ billingEventLabel(event.action) }}</p>
                 <p class="mt-[0.3rem] text-[1.2rem] text-[#616161]">{{ event.reason || "No reason recorded" }}</p>
                 <p class="mt-[0.3rem] text-[1.2rem] text-[#9CA3AF]">{{ event.timestamp ? formatDate(event.timestamp) : "" }}</p>
               </div>

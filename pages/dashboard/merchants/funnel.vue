@@ -138,6 +138,8 @@ onMounted(loadFunnel);
 
 <template>
   <div class="space-y-[1.6rem] text-[1.4rem] text-dashboard_text_color pb-[4rem]">
+    <DashboardFunnelDigestEmailsNotice />
+
     <!-- Top Header & Actions -->
     <section class="rounded-[8px] bg-white p-[2rem] shadow-sm space-y-[1.4rem]">
       <div class="flex flex-col gap-[1.2rem] lg:flex-row lg:items-center lg:justify-between">

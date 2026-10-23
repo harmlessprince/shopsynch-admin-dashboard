@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<journey name="Duplicate Subscription Payments" id="duplicate-subscription-payments">
+    <description>
+        Validates that an administrator can review the subscription payments the backend would treat as duplicates
+        (shadow mode, observation only) and start a refund for one with a required reason.
+    </description>
+    <stories>
+        <story id="GH-55" title="Admin review of duplicate subscription payments, with a Refund action" />
+    </stories>
+    <actions>
+        <action>Sign in to the Admin Dashboard and navigate to '/dashboard/billing/plans', then click 'Duplicate payments'.</action>
+        <action>Verify the page explains that this is observation only, shows the summary counts, and lists 'Would be duplicate' entries with the merchant link, both payment references and the amount.</action>
+        <action>Verify a payment that already has an active refund shows the refund status instead of a Refund button.</action>
+        <action>Click 'Refund' on another duplicate and verify the confirm dialog says the full amount is returned, the provider keeps its fee, and the merchant's extra time is taken back once the refund is processed.</action>
+        <action>Click 'Refund payment' without a reason and verify the validation message appears beside the reason field.</action>
+        <action>Enter a reason and confirm; verify the dialog closes and the row now shows the refund status.</action>
+        <action>Switch the type filter to 'Would apply' and 'Attempt' and verify no Refund button is offered.</action>
+    </actions>
+</journey>
