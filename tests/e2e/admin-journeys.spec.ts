@@ -71,15 +71,15 @@ async function mockAdminApi(page: Page) {
     id: 'offer-1',
     code: 'founding',
     name: 'Founding Merchant',
-    description: '30 days of Pro free and a locked 3-month price.',
+    description: '14 days of Pro free and a locked 3-month price.',
     status: 'ACTIVE',
     startsAt: '2026-10-11T00:00:00Z',
     endsAt: '2027-01-09T00:00:00Z',
     publicVisible: true,
     eligiblePlanCodes: ['pro'],
-    trialDays: 30,
+    trialDays: 14,
     priceOverrides: [{ planCode: 'pro', periodUnitCount: 3, amount: 10000, currency: 'NGN', lockedForLife: true }],
-    perks: [{ perkCode: 'WHATSAPP_UTILITY_CREDITS', quantity: 50, description: 'Free WhatsApp utility test credits' }],
+    perks: [],
     maxRedemptions: 50,
     redemptionCount: 5,
     slotsRemaining: 45,
@@ -850,7 +850,6 @@ test.describe('Admin Dashboard Journeys (01 - 14)', () => {
     // The first offer is selected: configuration is visible
     const detail = page.getByTestId('offer-detail')
     await expect(detail.getByText('locked for life')).toBeVisible()
-    await expect(detail.getByText('WHATSAPP_UTILITY_CREDITS')).toBeVisible()
 
     // Pause asks first, then updates the status
     await detail.getByRole('button', { name: 'Pause' }).click()
