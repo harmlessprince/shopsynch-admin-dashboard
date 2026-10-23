@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<journey name="Subscription Refunds" id="subscription-refunds">
+    <description>
+        Validates that an administrator can review subscription refunds, see where each stands, ask the provider for the
+        current state of one that is still open, and read how much time was taken back from the merchant.
+    </description>
+    <stories>
+        <story id="GH-54" title="Admin screen for subscription refunds" />
+    </stories>
+    <actions>
+        <action>Sign in to the Admin Dashboard and navigate to '/dashboard/billing/plans', then click 'Refunds'.</action>
+        <action>Verify refunds are listed newest first with merchant link, amount, status badge, reason and the time-taken-back result.</action>
+        <action>Verify a PENDING refund shows a 'Refresh' button and a FAILED refund shows the provider message and no button.</action>
+        <action>Click 'Refresh' on the pending refund and verify the row updates from the response (for example to PROCESSED with the days removed).</action>
+        <action>Open '/dashboard/billing/operations' for a merchant with refund activity and verify Recent billing events read 'Refund requested', 'Refund status changed' and 'Refunded time taken off subscription'.</action>
+    </actions>
+</journey>

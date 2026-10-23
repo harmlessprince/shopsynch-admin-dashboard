@@ -164,6 +164,10 @@ export const endpoints = {
             reset: "/v1/admin/payment-gateway-health/circuits/:gateway/reset",
             metrics: "/v1/admin/payment-gateway-health/metrics",
         },
+        incomingWebhooks: {
+            summary: "/v1/admin/webhooks/incoming/summary",
+            list: "/v1/admin/webhooks/incoming",
+        },
         auditLogs: "/v1/admin/audit-logs",
         cache: {
             list: "/v1/admin/cache",
@@ -226,6 +230,25 @@ export const endpoints = {
             invoices: {
                 tenant: "/v1/admin/billing/tenants/:tenantId/invoices",
                 confirm: "/v1/admin/billing/invoices/:invoiceId/confirm",
+            },
+            offers: {
+                list: "/v1/admin/billing/offers",
+                create: "/v1/admin/billing/offers",
+                update: "/v1/admin/billing/offers/:offerCode",
+                pause: "/v1/admin/billing/offers/:offerCode/pause",
+                resume: "/v1/admin/billing/offers/:offerCode/resume",
+                end: "/v1/admin/billing/offers/:offerCode/end",
+                redemptions: "/v1/admin/billing/offers/:offerCode/redemptions",
+                commitments: "/v1/admin/billing/offers/:offerCode/redemptions/:tenantId/commitments",
+            },
+            refunds: {
+                list: "/v1/admin/billing/refunds",
+                create: "/v1/admin/billing/refunds",
+                refresh: "/v1/admin/billing/refunds/:refundId/refresh",
+            },
+            shadow: {
+                summary: "/v1/admin/billing/shadow/summary",
+                entries: "/v1/admin/billing/shadow/entries",
             },
         },
         analytics: {

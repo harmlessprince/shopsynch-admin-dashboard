@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<journey name="Incoming Payment Webhooks" id="incoming-payment-webhooks">
+    <description>
+        Validates that an administrator can review the payment webhooks received from Paystack and Monnify, find failed
+        and unmatched ones first, search by payment reference, and inspect a webhook's payload, headers and errors.
+    </description>
+    <stories>
+        <story id="GH-56" title="Admin viewer for incoming payment webhooks" />
+    </stories>
+    <actions>
+        <action>Sign in to the Admin Dashboard, open '/dashboard/payment-gateways' and click 'Incoming webhooks'.</action>
+        <action>Verify status counts are shown and the Failed and Unmatched tiles are marked 'needs action' when their count is above zero.</action>
+        <action>Click the Failed tile and verify only failed webhooks are listed, with the last error, attempts and duplicate delivery count.</action>
+        <action>Click 'View' on a webhook and verify the payload is pretty-printed JSON (or the raw string when it is not JSON) and the stored headers are listed. Verify nothing is written to the browser console.</action>
+        <action>Search a payment reference and verify every webhook for it is listed and the status filter is ignored.</action>
+    </actions>
+</journey>

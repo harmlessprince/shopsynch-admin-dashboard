@@ -17,5 +17,7 @@
         <action>Enter valid comma-separated emails (e.g. 'ops@shopsynch.com, oncall@shopsynch.com') and click 'Save Alert Recipients'.</action>
         <action>Verify a success toast confirms that alert recipients have been updated.</action>
         <action>Navigate to '/dashboard/settings' and verify the 'Payment Platform Alerts' card reflects the updated recipients with a direct link back to Payment Gateways.</action>
+        <action>Clear the recipients on '/dashboard/settings', save, then open '/dashboard/payment-gateways'.</action>
+        <action>Verify a warning says nobody is emailed about payment problems and links to the recipients field on the Settings page. The same warning appears on the refunds, duplicate payments and webhooks pages.</action>
     </actions>
 </journey>

@@ -246,6 +246,8 @@ onMounted(loadData);
 
 <template>
   <div class="space-y-[2rem] text-[1.4rem] text-dashboard_text_color">
+    <DashboardPaymentAlertEmailsWarning />
+
     <!-- Header -->
     <section class="rounded-[12px] bg-white p-[2.4rem] shadow-sm border border-slate-100">
       <div class="flex flex-col gap-[1.6rem] lg:flex-row lg:items-center lg:justify-between">
@@ -256,6 +258,12 @@ onMounted(loadData);
           </p>
         </div>
         <div class="flex items-center gap-[1rem]">
+          <NuxtLink
+            to="/dashboard/payment-gateways/webhooks"
+            class="rounded-[8px] border border-slate-200 px-[1.6rem] py-[0.9rem] font-[600] text-slate-700 hover:bg-slate-50 transition"
+          >
+            Incoming webhooks
+          </NuxtLink>
           <button
             class="rounded-[8px] border border-slate-200 px-[1.6rem] py-[0.9rem] font-[600] text-slate-700 hover:bg-slate-50 transition"
             @click="loadData"

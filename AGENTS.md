@@ -63,6 +63,7 @@ All endpoint paths are centralized in `utils/endpoints.js`. Endpoints that inclu
 ### Knowledge Base & Skills
 - Plan management & gating: `admin_dashboard/agents/knowledge/plan-management.md`
 - Plan management skill: `admin_dashboard/agents/skills/manage-plans/SKILL.md`
+- Payments, refunds, webhooks and pricing offers: `admin_dashboard/agents/knowledge/payments-and-offers.md`
 - Form components rule: `admin_dashboard/agents/knowledge/form-components-rule.md`
 
 
