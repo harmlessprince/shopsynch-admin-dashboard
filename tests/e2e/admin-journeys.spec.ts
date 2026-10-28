@@ -66,6 +66,7 @@ async function mockAdminApi(page: Page) {
   ]
 
   let platformAlertRecipients = 'ops@shopsynch.com, oncall@shopsynch.com'
+  let telegramWebhookUrl = 'https://gateway.example.com/v1/webhooks/telegram?apikey=pk_test_123'
 
   let pricingOffer = {
     id: 'offer-1',
@@ -333,7 +334,7 @@ async function mockAdminApi(page: Page) {
       return
     }
 
-    const json = (body: any, status = 200) =>
+    const json = (body: unknown, status = 200) =>
       route.fulfill({
         status,
         contentType: 'application/json',
@@ -425,6 +426,7 @@ async function mockAdminApi(page: Page) {
         status: true,
         data: [
           { key: 'platformPaymentAlertEmails', value: platformAlertRecipients, type: 'STRING', description: 'Alert recipient emails' },
+          { key: 'telegramWebhookUrl', value: telegramWebhookUrl, type: 'STRING', category: 'URL', label: 'Telegram Webhook URL', editable: true, description: 'Public https URL Telegram sends bot updates to.' },
         ],
       })
       return
@@ -434,6 +436,18 @@ async function mockAdminApi(page: Page) {
       const payload = JSON.parse(request.postData() || '{}')
       platformAlertRecipients = payload.value
       await json({ status: true, message: 'Setting updated successfully', data: { key: 'platformPaymentAlertEmails', value: platformAlertRecipients } })
+      return
+    }
+
+    if (path.startsWith('/v1/admin/settings/telegramWebhookUrl/value') && request.method() === 'PATCH') {
+      const payload = JSON.parse(request.postData() || '{}')
+      telegramWebhookUrl = payload.value
+      await json({ status: true, message: 'Setting value updated', data: { key: 'telegramWebhookUrl', value: telegramWebhookUrl, type: 'STRING', category: 'URL', label: 'Telegram Webhook URL', editable: true } })
+      return
+    }
+
+    if (path === '/v1/admin/telegram/webhook/register' && request.method() === 'POST') {
+      await json({ status: true, message: 'telegram webhook registered', data: null })
       return
     }
 
@@ -904,5 +918,106 @@ test.describe('Admin Dashboard Journeys (01 - 14)', () => {
     await page.getByRole('button', { name: 'Create offer' }).click()
     await expect(page.getByText('New pricing offer')).toBeHidden()
     await expect(page.getByTestId('offer-detail').getByText('Spring Launch')).toBeVisible()
+  })
+
+  test('Journey 15: Telegram Bot Webhook controls, validation, unsaved edits, and registration', async ({ page }) => {
+    await page.goto('/dashboard/settings')
+
+    // 1. Telegram section is visible with current saved URL
+    await expect(page.getByRole('heading', { name: 'Telegram Bot Webhook' })).toBeVisible()
+    const input = page.getByTestId('telegram-webhook-input')
+    const saveBtn = page.getByTestId('save-telegram-webhook-btn')
+    const registerBtn = page.getByTestId('register-telegram-webhook-btn')
+
+    // Initial state: URL matches saved, so Save URL is disabled and Register button is enabled
+    await expect(saveBtn).toBeDisabled()
+    await expect(registerBtn).toBeEnabled()
+    await expect(page.getByTestId('telegram-unsaved-warning')).toBeHidden()
+
+    // 2. URL validation: test invalid URLs
+    await input.fill('http://insecure-gateway.com/v1/webhooks/telegram?apikey=pk_test_123')
+    await expect(saveBtn).toBeEnabled()
+    await saveBtn.click()
+
+    const validationError = page.getByTestId('telegram-validation-error')
+    await expect(validationError).toBeVisible()
+    await expect(validationError).toContainText('The URL must start with https://')
+
+    // Missing /v1/webhooks/telegram
+    await input.fill('https://gateway.com/other-webhook?apikey=pk_test_123')
+    await saveBtn.click()
+    await expect(validationError).toContainText('The URL must contain /v1/webhooks/telegram')
+
+    // Missing valid apikey
+    await input.fill('https://gateway.com/v1/webhooks/telegram?apikey=wrong_key')
+    await saveBtn.click()
+    await expect(validationError).toContainText('The URL must contain an apikey query parameter starting with pk_test_ or pk_live_')
+
+    // Mode warning: live key in test mode warns, but does not block
+    await input.fill('https://gateway.example.com/v1/webhooks/telegram?apikey=pk_live_key999')
+    await expect(page.getByTestId('telegram-mode-warning')).toBeVisible()
+    await expect(page.getByTestId('telegram-mode-warning')).toContainText('The URL uses a live API key (pk_live_...), but the dashboard is currently in test mode.')
+
+    // 3. Unsaved edits disable the register button
+    await expect(registerBtn).toBeDisabled()
+    await expect(page.getByTestId('telegram-unsaved-warning')).toBeVisible()
+
+    // 4. Save a valid URL
+    const validUrl = 'https://gateway.example.com/v1/webhooks/telegram?apikey=pk_test_valid_key'
+    await input.fill(validUrl)
+    await saveBtn.click()
+
+    // Unsaved edits warning disappears and Register button re-enables
+    await expect(page.getByTestId('telegram-unsaved-warning')).toBeHidden()
+    await expect(registerBtn).toBeEnabled()
+
+    // 5. Register button opens confirmation modal naming the URL
+    await registerBtn.click()
+    const confirmModal = page.getByTestId('telegram-register-confirm-modal')
+    await expect(confirmModal).toBeVisible()
+    await expect(confirmModal).toContainText(validUrl)
+
+    // Cancel closes the modal
+    await confirmModal.getByRole('button', { name: 'Cancel' }).click()
+    await expect(confirmModal).toBeHidden()
+
+    // Confirm registration succeeds
+    await registerBtn.click()
+    await expect(confirmModal).toBeVisible()
+    await page.getByTestId('confirm-register-telegram-btn').click()
+    await expect(confirmModal).toBeHidden()
+    await expect(page.locator('.iziToast').filter({ hasText: /telegram webhook registered/i })).toBeVisible()
+
+    // 6. Backend 400 error display
+    await page.route('**/v1/admin/telegram/webhook/register', async (route) => {
+      await route.fulfill({
+        status: 400,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          status: false,
+          message: 'the webhook is disabled in this environment',
+        }),
+      })
+    })
+
+    await registerBtn.click()
+    await page.getByTestId('confirm-register-telegram-btn').click()
+    await expect(page.locator('.iziToast').filter({ hasText: 'the webhook is disabled in this environment' })).toBeVisible()
+
+    // 7. Backend 404 error display
+    await page.route('**/v1/admin/telegram/webhook/register', async (route) => {
+      await route.fulfill({
+        status: 404,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          status: false,
+          message: 'Not Found',
+        }),
+      })
+    })
+
+    await registerBtn.click()
+    await page.getByTestId('confirm-register-telegram-btn').click()
+    await expect(page.locator('.iziToast').filter({ hasText: "The Telegram backend isn't available on this instance yet" })).toBeVisible()
   })
 })

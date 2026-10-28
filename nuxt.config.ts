@@ -40,6 +40,15 @@ export default defineNuxtConfig({
         }
     },
     css: ['~/assets/css/main.css', 'vue-final-modal/style.css'],
+    fonts: {
+        providers: {
+            google: false,
+            bunny: false,
+            fontshare: false,
+            fontsource: false,
+            googleicons: false,
+        },
+    },
     modules: [
         '@nuxt/eslint',
         '@nuxt/fonts',

@@ -155,6 +155,9 @@ export const endpoints = {
             updateValue: "/v1/admin/settings/:key/value",
             delete: "/v1/admin/settings/:key",
         },
+        telegram: {
+            registerWebhook: "/v1/admin/telegram/webhook/register",
+        },
         paymentGatewaySettings: {
             list: "/v1/admin/payment-gateway-settings",
             update: "/v1/admin/payment-gateway-settings/:country",
