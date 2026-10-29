@@ -208,7 +208,7 @@ async function confirmRegisterWebhook() {
     const response = await post(
       endpoints.admin.telegram.registerWebhook,
       null,
-      { silent: true }
+      { silent: true, forceMode: "live" }
     );
     toastStore.success(response?.message || "telegram webhook registered");
   } catch (err) {

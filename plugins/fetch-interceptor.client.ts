@@ -49,8 +49,8 @@ export default defineNuxtPlugin((_nuxtApp) => {
             if (token) {
                 options.headers.set("Authorization", `Bearer ${token}`);
             }
-            if (authStore.currentMode) {
-                options.headers.set("X-Mode", authStore.currentMode)
+            if (!options.headers.has("X-Mode")) {
+                options.headers.set("X-Mode", authStore.currentMode || "live");
             }
             if (authStore.user?.merchantId?.length > 1) {
                 logger.log(authStore.user)

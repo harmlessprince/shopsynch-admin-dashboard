@@ -1,5 +1,6 @@
 <script setup>
 import { reactive, computed, onMounted, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import DataTable from "~/components/table/DataTable.vue";
 import SearchableSelectInput from "~/components/SearchableSelectInput.vue";
 import { useInventoryStore } from "~/stores/inventory.store.js";
@@ -16,6 +17,9 @@ useHead({
   title: "Inventory - ShopSynch Admin",
 });
 
+const route = useRoute();
+const router = useRouter();
+
 const inventoryStore = useInventoryStore();
 const merchantsStore = useAdminMerchantsStore();
 
@@ -23,6 +27,7 @@ const filters = reactive({
   search: "",
   tenantId: "",
   status: "",
+  mode: route.query.mode === "test" ? "test" : "live",
   page: 1,
   limit: 50,
 });
@@ -78,7 +83,12 @@ function getQueryFromFilters() {
 
 async function loadInventory() {
   try {
-    await inventoryStore.getInventory(filters.page, filters.limit, getQueryFromFilters());
+    await inventoryStore.getInventory(
+      filters.page,
+      filters.limit,
+      getQueryFromFilters(),
+      filters.mode
+    );
   } catch (err) {
     logger.error("Failed to load inventory:", err);
   }
@@ -110,8 +120,11 @@ function handleChangeLimit(nextLimit) {
 }
 
 watch(
-  () => [filters.search, filters.tenantId, filters.status],
-  () => {
+  () => [filters.search, filters.tenantId, filters.status, filters.mode],
+  (newVals, oldVals) => {
+    if (newVals[3] !== oldVals?.[3]) {
+      router.replace({ query: { ...route.query, mode: filters.mode } });
+    }
     filters.page = 1;
     loadInventory();
   }
@@ -139,6 +152,12 @@ onMounted(async () => {
             >
               {{ inventoryStore.paginatedData.total }} records
             </span>
+            <span
+              class="rounded-full px-3 py-0.5 text-[1.1rem] font-bold uppercase tracking-wider border"
+              :class="filters.mode === 'live' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'"
+            >
+              {{ filters.mode === 'live' ? 'Live Mode' : 'Test Mode' }}
+            </span>
           </div>
           <p class="mt-1 text-[1.4rem] text-slate-500">
             Platform-wide inventory levels, warehouse stock, and SKU quantities across merchants.
@@ -149,7 +168,30 @@ onMounted(async () => {
 
     <!-- Filter Bar -->
     <section class="rounded-[10px] bg-white p-[2rem] shadow-sm border border-slate-100 space-y-4">
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <!-- Environment Toggle -->
+        <div>
+          <label class="block text-[1.2rem] font-semibold text-slate-600 mb-1">Environment</label>
+          <div class="inline-flex w-full rounded-[8px] border border-slate-200 bg-slate-50 p-1 h-[4.2rem] items-center">
+            <button
+              type="button"
+              class="flex-1 rounded-[6px] py-1.5 text-center text-[1.2rem] font-bold transition-all"
+              :class="filters.mode === 'live' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+              @click="filters.mode = 'live'"
+            >
+              Live
+            </button>
+            <button
+              type="button"
+              class="flex-1 rounded-[6px] py-1.5 text-center text-[1.2rem] font-bold transition-all"
+              :class="filters.mode === 'test' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+              @click="filters.mode = 'test'"
+            >
+              Test
+            </button>
+          </div>
+        </div>
+
         <!-- Search -->
         <div>
           <label class="block text-[1.2rem] font-semibold text-slate-600 mb-1">Search</label>
@@ -215,13 +257,13 @@ onMounted(async () => {
         has-show
         @fetch-page="handleFetchPage"
         @change-limit="handleChangeLimit"
-        @show="(id) => $router.push('/dashboard/inventory/' + id)"
+        @show="(id) => $router.push({ path: '/dashboard/inventory/' + id, query: { mode: filters.mode } })"
       >
         <!-- Product & SKU -->
         <template #cell(productName)="{ row }">
           <div class="py-1">
             <NuxtLink
-              :to="'/dashboard/inventory/' + row.id"
+              :to="{ path: '/dashboard/inventory/' + row.id, query: { mode: filters.mode } }"
               class="font-semibold text-slate-900 truncate max-w-[26rem] hover:text-primary hover:underline transition-colors block"
             >
               {{ row.productName || row.name || `Product: ${row.productId?.substring(0, 10)}...` }}

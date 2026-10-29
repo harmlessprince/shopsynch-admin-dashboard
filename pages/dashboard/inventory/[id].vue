@@ -32,6 +32,7 @@ const isWeightedAverage = computed(() => {
 const isFifoDrawerOpen = ref(false)
 
 const inventoryId = route.params.id
+const activeMode = computed(() => route.query.mode === 'test' ? 'test' : 'live')
 
 // Data state
 const loading = ref(true)
@@ -42,8 +43,8 @@ async function loadData() {
   logsLoading.value = true
   try {
     await Promise.all([
-      inventoryStore.fetchInventoryById(inventoryId),
-      inventoryStore.fetchInventoryLogsById(inventoryId),
+      inventoryStore.fetchInventoryById(inventoryId, activeMode.value),
+      inventoryStore.fetchInventoryLogsById(inventoryId, 0, 50, activeMode.value),
     ])
   } catch (err) {
     logger.error('Failed to load inventory details', err)
@@ -174,7 +175,7 @@ async function handleAdjustmentSubmit() {
     if (form.action === 'RECEIVED' && form.unitCost !== null && form.unitCost !== '' && !isNaN(Number(form.unitCost))) {
       payload.unitCost = Number(form.unitCost)
     }
-    const response = await inventoryStore.adjustStock(inventoryId, payload)
+    const response = await inventoryStore.adjustStock(inventoryId, payload, activeMode.value)
     toastStore.success(response?.message || 'Stock adjusted successfully.')
     // Reset form fields
     form.qty = 1
@@ -242,8 +243,14 @@ function qtyChangeClass(change) {
           <span class="material-symbols-outlined text-[2.4rem]">arrow_back</span>
         </button>
         <div class="flex items-center gap-2">
+          <span
+            class="px-[1.2rem] py-[0.6rem] text-[1.2rem] font-bold rounded-xl border uppercase tracking-wider"
+            :class="activeMode === 'live' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'"
+          >
+            {{ activeMode === 'live' ? 'Live Mode' : 'Test Mode' }}
+          </span>
           <NuxtLink
-            to="/dashboard/inventory"
+            :to="{ path: '/dashboard/inventory', query: { mode: activeMode } }"
             class="px-[1.6rem] py-[0.8rem] text-[1.3rem] font-semibold border border-slate-200 rounded-xl hover:bg-white transition-colors"
           >
             All Inventory

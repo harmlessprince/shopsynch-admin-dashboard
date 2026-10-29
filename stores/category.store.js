@@ -14,7 +14,7 @@ export const useCategoryStore = defineStore("categoryStore", () => {
         try {
             isLoading.value = true;
             const url = endpoints.tenantCategories?.list || endpoints.admin?.categories?.list || "/v1/admin/categories";
-            const response = await get(url, params);
+            const response = await get(url, params, { forceMode: "live" });
             if (response && response.data) {
                 categories.value = response.data;
             }
@@ -26,7 +26,7 @@ export const useCategoryStore = defineStore("categoryStore", () => {
 
     async function getDefaultCategories() {
         const url = endpoints.defaultCategories || endpoints.admin?.categories?.list || "/v1/admin/categories";
-        const response = await get(url, {});
+        const response = await get(url, {}, { forceMode: "live" });
         if (response && response.data) {
             defaultCategories.value = response.data;
         }
@@ -37,7 +37,7 @@ export const useCategoryStore = defineStore("categoryStore", () => {
         if (!tenantId) return [];
         const url = (endpoints.tenantCategories?.listByMerchant || "/v1/admin/categories/merchants/:tenantId")
             .replace(":tenantId", tenantId);
-        const response = await get(url, {});
+        const response = await get(url, {}, { forceMode: "live" });
         if (response && response.data) {
             merchantCategories.value = Array.isArray(response.data) ? response.data : [];
         }
@@ -45,7 +45,7 @@ export const useCategoryStore = defineStore("categoryStore", () => {
     }
 
     async function createCategory(payload) {
-        const response = await post(endpoints.tenantCategories.create, payload);
+        const response = await post(endpoints.tenantCategories.create, payload, { forceMode: "live" });
         if (response && response.status) {
             await getCategories();
         }
@@ -55,7 +55,8 @@ export const useCategoryStore = defineStore("categoryStore", () => {
     async function updateCategory(id, payload) {
         const response = await put(
             endpoints.tenantCategories.update.replace(":id", id),
-            payload
+            payload,
+            { forceMode: "live" }
         );
         if (response && response.status) {
             await getCategories();
@@ -65,7 +66,8 @@ export const useCategoryStore = defineStore("categoryStore", () => {
 
     async function deleteCategory(id) {
         const response = await deleteRequest(
-            endpoints.tenantCategories.delete.replace(":id", id)
+            endpoints.tenantCategories.delete.replace(":id", id),
+            { forceMode: "live" }
         );
         if (response && response.status) {
             await getCategories();

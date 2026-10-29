@@ -14,7 +14,7 @@ export const useWarehouseStore = defineStore("warehouseStore", () => {
     try {
       loading.value = true;
       error.value = null;
-      const response = await get(endpoints.warehouse.list, {});
+      const response = await get(endpoints.warehouse.list, {}, { forceMode: 'live' });
       if (response && response.data) {
         warehouses.value = response.data;
         // Find and set default warehouse
@@ -34,7 +34,7 @@ export const useWarehouseStore = defineStore("warehouseStore", () => {
     try {
       loading.value = true;
       error.value = null;
-      const response = await post(endpoints.warehouse.create, payload);
+      const response = await post(endpoints.warehouse.create, payload, { forceMode: 'live' });
       if (response && response.data) {
         warehouses.value.push(response.data);
         // If it's the first warehouse or marked as default, set as default
@@ -57,7 +57,8 @@ export const useWarehouseStore = defineStore("warehouseStore", () => {
       error.value = null;
       const response = await patch(
         endpoints.warehouse.update.replace(":id", id),
-        payload
+        payload,
+        { forceMode: 'live' }
       );
       if (response && response.data) {
         const index = warehouses.value.findIndex((wh) => wh.id === id);

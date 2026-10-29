@@ -19,7 +19,7 @@ export const useProductTemplateStore = defineStore('productTemplateStore', () =>
   async function getTemplates(params = {}) {
     try {
       isLoading.value = true
-      const response = await get(endpoints.productTemplates.list, params)
+      const response = await get(endpoints.productTemplates.list, params, { forceMode: 'live' })
       if (response?.data) {
         templates.value = response.data
       }
@@ -38,7 +38,7 @@ export const useProductTemplateStore = defineStore('productTemplateStore', () =>
     try {
       isLoading.value = true
       const url = endpoints.productTemplates.byCategory.replace(':categoryId', categoryId)
-      const response = await get(url, {}, { silent: true })
+      const response = await get(url, {}, { silent: true, forceMode: 'live' })
       
       if (response?.data) {
         templatesByCategory.value[categoryId] = response.data
@@ -50,7 +50,7 @@ export const useProductTemplateStore = defineStore('productTemplateStore', () =>
         templatesByCategory.value[categoryId] = null
         return null
       }
-    } catch (error) {
+    } catch {
       console.warn(`No template found for category ${categoryId}`)
       templatesByCategory.value[categoryId] = null
       return null
@@ -67,7 +67,7 @@ export const useProductTemplateStore = defineStore('productTemplateStore', () =>
     try {
       isLoading.value = true
       const url = endpoints.productTemplates.detail.replace(':id', templateId)
-      const response = await get(url)
+      const response = await get(url, {}, { forceMode: 'live' })
       
       if (response?.data) {
         currentTemplate.value = response.data
@@ -85,7 +85,7 @@ export const useProductTemplateStore = defineStore('productTemplateStore', () =>
   async function createTemplate(payload) {
     try {
       isLoading.value = true
-      const response = await post(endpoints.productTemplates.create, payload)
+      const response = await post(endpoints.productTemplates.create, payload, { forceMode: 'live' })
       
       if (response?.data) {
         templates.value.push(response.data)
@@ -105,7 +105,7 @@ export const useProductTemplateStore = defineStore('productTemplateStore', () =>
     try {
       isLoading.value = true
       const url = endpoints.productTemplates.update.replace(':id', templateId)
-      const response = await put(url, payload)
+      const response = await put(url, payload, { forceMode: 'live' })
       
       if (response?.data) {
         // Update in templates array
@@ -135,7 +135,7 @@ export const useProductTemplateStore = defineStore('productTemplateStore', () =>
     try {
       isLoading.value = true
       const url = endpoints.productTemplates.delete.replace(':id', templateId)
-      const response = await deleteRequest(url)
+      const response = await deleteRequest(url, { forceMode: 'live' })
       
       if (response?.status) {
         // Remove from templates array

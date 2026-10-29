@@ -94,7 +94,7 @@ export const handleFileUpload = async (eventOrFile, explicitTenantId = null) => 
 
   try {
     const { post } = useApiService();
-    const options = {};
+    const options = { forceMode: 'live' };
     if (resolvedTenantId) {
       options.headers = {
         'X-TenantId': resolvedTenantId,
