@@ -1,5 +1,8 @@
 <script setup>
 import { logger } from "~/utils/helpers.js";
+import { endpoints } from "~/utils/endpoints.js";
+import { useApiService } from "~/services/apiService.js";
+import { validateTelegramWebhookUrl, getTelegramModeWarning } from "~/utils/telegram.js";
 
 definePageMeta({
   layout: "dashboard",
@@ -9,6 +12,7 @@ definePageMeta({
 
 const adminSettingsStore = useAdminSettingsStore();
 const toastStore = useToastStore();
+const displayModeCookie = useCookie("displayMode");
 
 const categories = ["PAYMENT", "URL", "EMAIL", "FEATURE_FLAG", "SYSTEM", "O_AUTH"];
 const valueTypes = ["STRING", "NUMBER", "BOOLEAN", "JSON"];
@@ -93,6 +97,140 @@ async function savePaymentAlertRecipients() {
     paymentAlertEmailError.value = err?.data?.message || err?.message || "Unable to update setting value";
   } finally {
     savingKey.value = "";
+  }
+}
+
+const telegramWebhookKey = "telegramWebhookUrl";
+const telegramValidationError = ref("");
+const showRegisterConfirmModal = ref(false);
+const registeringWebhook = ref(false);
+const copiedTelegramExample = ref(false);
+
+const currentMode = computed(() => displayModeCookie.value === "live" ? "live" : "test");
+
+const telegramWebhookSetting = computed(() =>
+  adminSettingsStore.settings.find((setting) => setting.key === telegramWebhookKey)
+);
+
+const telegramWebhookDraft = computed({
+  get() {
+    return drafts.value[telegramWebhookKey] ?? "";
+  },
+  set(value) {
+    drafts.value[telegramWebhookKey] = value;
+  },
+});
+
+const savedTelegramWebhookUrl = computed(() => {
+  return (telegramWebhookSetting.value?.value ?? "").trim();
+});
+
+const hasUnsavedTelegramEdits = computed(() => {
+  return telegramWebhookDraft.value.trim() !== savedTelegramWebhookUrl.value;
+});
+
+const expectedTelegramFormatExample = computed(() => {
+  const keyPrefix = currentMode.value === "live" ? "pk_live_" : "pk_test_";
+  return `https://<gateway-host>/v1/webhooks/telegram?apikey=${keyPrefix}xxx`;
+});
+
+const telegramModeWarning = computed(() => {
+  return getTelegramModeWarning(telegramWebhookDraft.value, currentMode.value);
+});
+
+async function copyTelegramExample() {
+  try {
+    await navigator.clipboard.writeText(expectedTelegramFormatExample.value);
+    copiedTelegramExample.value = true;
+    setTimeout(() => {
+      copiedTelegramExample.value = false;
+    }, 2000);
+  } catch (err) {
+    logger.error("Failed to copy Telegram webhook example", err);
+  }
+}
+
+async function saveTelegramWebhookUrl() {
+  telegramValidationError.value = "";
+  const url = telegramWebhookDraft.value.trim();
+  const validationError = validateTelegramWebhookUrl(url);
+  if (validationError) {
+    telegramValidationError.value = validationError;
+    return;
+  }
+  try {
+    savingKey.value = telegramWebhookKey;
+    await adminSettingsStore.updateSettingValue(telegramWebhookKey, url);
+    syncDrafts();
+  } catch (err) {
+    logger.error("Failed to update telegram webhook URL", err);
+    if (err?.statusCode === 404 || err?.response?.status === 404) {
+      try {
+        await adminSettingsStore.upsertSetting({
+          key: telegramWebhookKey,
+          label: "Telegram Webhook URL",
+          description: "Public https URL Telegram sends bot updates to, ending in /v1/webhooks/telegram.",
+          value: url,
+          valueType: "STRING",
+          category: "URL",
+          public: false,
+        });
+        syncDrafts();
+        return;
+      } catch (upsertErr) {
+        logger.error("Failed to upsert telegram webhook URL", upsertErr);
+        telegramValidationError.value = upsertErr?.data?.message || upsertErr?.message || "Unable to save setting";
+        return;
+      }
+    }
+    telegramValidationError.value = err?.data?.message || err?.message || "Unable to update setting value";
+  } finally {
+    savingKey.value = "";
+  }
+}
+
+function promptRegisterWebhook() {
+  if (hasUnsavedTelegramEdits.value || registeringWebhook.value || savingKey.value === telegramWebhookKey) {
+    return;
+  }
+  if (!savedTelegramWebhookUrl.value) {
+    toastStore.error("Set and save a Telegram webhook URL before registering.", "URL Not Set");
+    return;
+  }
+  showRegisterConfirmModal.value = true;
+}
+
+async function confirmRegisterWebhook() {
+  showRegisterConfirmModal.value = false;
+  registeringWebhook.value = true;
+  try {
+    const { post } = useApiService();
+    const response = await post(
+      endpoints.admin.telegram.registerWebhook,
+      null,
+      { silent: true, forceMode: "live" }
+    );
+    toastStore.success(response?.message || "telegram webhook registered");
+  } catch (err) {
+    logger.error("Failed to register Telegram webhook", err);
+    const status = err?.statusCode || err?.response?.status || err?.status;
+    if (status === 401) {
+      // Handled by auth flow
+    } else if (status === 403) {
+      navigateTo("/unauthorized");
+    } else if (status === 404) {
+      toastStore.error("The Telegram backend isn't available on this instance yet", "Not Available");
+    } else if (status === 400) {
+      const msg = err?.data?.message || err?.data?.description || err?.message || "Telegram webhook registration failed";
+      toastStore.error(msg, "Registration Failed");
+    } else if (!status || (err?.name === "FetchError" && !err?.response)) {
+      toastStore.error("Check your internet connection or try again later", "Network error");
+    } else {
+      const msg = err?.data?.message || err?.message || "An error occurred while registering webhook";
+      toastStore.error(msg, "Registration Error");
+    }
+  } finally {
+    registeringWebhook.value = false;
   }
 }
 
@@ -332,6 +470,151 @@ onMounted(fetchSettings);
         </div>
       </div>
     </section>
+
+    <!-- Telegram Bot Webhook Settings Card -->
+    <section id="setting-telegramWebhookUrl" class="rounded-[8px] bg-white p-[2rem] shadow-sm">
+      <div class="flex flex-col gap-[1.6rem]">
+        <div class="flex flex-col gap-[1.2rem] lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <h2 class="text-[1.6rem] font-[700] text-[#000]">Telegram Bot Webhook</h2>
+            <p class="mt-[0.4rem] text-[1.2rem] text-slate-600">
+              Configure and register the public HTTPS webhook URL where Telegram delivers bot updates.
+              Routing to the test or live bot is determined by the <code>apikey</code> query parameter.
+            </p>
+            <p v-if="!savedTelegramWebhookUrl" class="mt-[0.6rem] text-[1.2rem] text-amber-700 bg-amber-50 p-[0.6rem] rounded-[6px] inline-block font-[500]">
+              No webhook URL configured. Updates cannot be delivered until a valid URL is saved and registered.
+            </p>
+          </div>
+          <div class="flex flex-col gap-[0.6rem] sm:flex-row sm:items-center">
+            <button
+              type="button"
+              class="rounded-[8px] bg-primary px-[1.6rem] py-[0.9rem] font-[700] text-white disabled:cursor-not-allowed disabled:opacity-50"
+              :disabled="registeringWebhook || savingKey === telegramWebhookKey || hasUnsavedTelegramEdits || !savedTelegramWebhookUrl"
+              data-testid="register-telegram-webhook-btn"
+              @click="promptRegisterWebhook"
+            >
+              {{ registeringWebhook ? "Registering..." : "Register webhook with Telegram" }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Help line showing expected format and copy button -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-[0.8rem] rounded-[8px] bg-slate-50 border border-slate-200 px-[1.4rem] py-[1rem] text-[1.2rem]">
+          <div class="text-slate-700">
+            <span class="font-[600]">Expected format for {{ currentMode }} mode:</span>
+            <code class="ml-[0.6rem] font-mono text-[1.2rem] text-slate-900 break-all select-all">{{ expectedTelegramFormatExample }}</code>
+          </div>
+          <button
+            type="button"
+            class="flex items-center gap-[0.4rem] font-[700] text-primary hover:underline whitespace-nowrap self-start sm:self-auto cursor-pointer"
+            data-testid="copy-telegram-example-btn"
+            @click="copyTelegramExample"
+          >
+            <span class="material-symbols-outlined text-[1.6rem]">{{ copiedTelegramExample ? "check" : "content_copy" }}</span>
+            <span>{{ copiedTelegramExample ? "Copied!" : "Copy example" }}</span>
+          </button>
+        </div>
+
+        <!-- Input and Save URL -->
+        <div class="flex flex-col gap-[0.8rem]">
+          <label class="text-[1.2rem] font-[700] text-[#000]" for="telegramWebhookUrlInput">
+            Webhook URL
+          </label>
+          <div class="flex flex-col sm:flex-row gap-[1rem]">
+            <input
+              id="telegramWebhookUrlInput"
+              v-model="telegramWebhookDraft"
+              type="text"
+              placeholder="https://<gateway-host>/v1/webhooks/telegram?apikey=pk_test_xxx"
+              class="w-full rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem]"
+              data-testid="telegram-webhook-input"
+            >
+            <button
+              type="button"
+              class="rounded-[8px] bg-primary px-[1.6rem] py-[0.9rem] font-[700] text-white disabled:cursor-not-allowed disabled:opacity-60 whitespace-nowrap"
+              :disabled="savingKey === telegramWebhookKey || !hasUnsavedTelegramEdits"
+              data-testid="save-telegram-webhook-btn"
+              @click="saveTelegramWebhookUrl"
+            >
+              {{ savingKey === telegramWebhookKey ? "Saving..." : "Save URL" }}
+            </button>
+          </div>
+
+          <!-- Mode warning (warn, don't block) -->
+          <div
+            v-if="telegramModeWarning"
+            class="flex items-center gap-[0.6rem] rounded-[6px] bg-amber-50 border border-amber-200 p-[0.8rem] text-[1.2rem] text-amber-800 font-[500]"
+            data-testid="telegram-mode-warning"
+          >
+            <span class="material-symbols-outlined text-[1.6rem] text-amber-600">warning</span>
+            <span>{{ telegramModeWarning }}</span>
+          </div>
+
+          <!-- Validation Error -->
+          <p
+            v-if="telegramValidationError"
+            class="text-[1.2rem] font-[600] text-rose-600"
+            data-testid="telegram-validation-error"
+          >
+            {{ telegramValidationError }}
+          </p>
+
+          <!-- Warning note: Saving does not register -->
+          <div class="flex flex-col gap-[0.4rem] mt-[0.4rem]">
+            <p class="text-[1.2rem] text-amber-700 font-[500] flex items-center gap-[0.4rem]">
+              <span class="material-symbols-outlined text-[1.6rem]">info</span>
+              Saving the URL does not register it with Telegram. The button above must be pressed after every change.
+            </p>
+            <p v-if="hasUnsavedTelegramEdits" class="text-[1.2rem] text-amber-600 font-[500]" data-testid="telegram-unsaved-warning">
+              You have unsaved edits. Save the URL before registering with Telegram.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Confirmation Modal for Telegram Webhook Registration -->
+    <div
+      v-if="showRegisterConfirmModal"
+      class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-[1.6rem]"
+      role="dialog"
+      aria-modal="true"
+      data-testid="telegram-register-confirm-modal"
+    >
+      <div class="w-full max-w-[48rem] rounded-[12px] bg-white p-[2.4rem] shadow-xl border border-slate-200">
+        <h3 class="text-[1.8rem] font-[700] text-slate-900 flex items-center gap-[0.8rem]">
+          <span class="material-symbols-outlined text-primary">send</span>
+          Register Webhook with Telegram?
+        </h3>
+        <p class="mt-[1.2rem] text-[1.4rem] text-slate-600 leading-relaxed">
+          Are you sure you want to register the current saved webhook URL with Telegram?
+        </p>
+        <div class="mt-[1.2rem] rounded-[8px] bg-slate-50 border border-slate-200 p-[1.2rem]">
+          <p class="text-[1.2rem] font-[700] text-slate-700 mb-[0.4rem]">URL to be registered:</p>
+          <code class="font-mono text-[1.3rem] text-slate-900 break-all select-all">{{ savedTelegramWebhookUrl }}</code>
+        </div>
+        <p class="mt-[1.2rem] text-[1.2rem] text-slate-500">
+          This will instruct the Telegram Bot API to send all future updates to this endpoint.
+        </p>
+        <div class="mt-[2.4rem] flex justify-end gap-[1.2rem]">
+          <button
+            type="button"
+            class="rounded-[8px] border border-slate-300 px-[1.6rem] py-[0.8rem] font-[600] text-slate-700 hover:bg-slate-50 transition"
+            @click="showRegisterConfirmModal = false"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="rounded-[8px] bg-primary px-[1.8rem] py-[0.8rem] font-[700] text-white hover:bg-primary/90 transition"
+            data-testid="confirm-register-telegram-btn"
+            @click="confirmRegisterWebhook"
+          >
+            Confirm &amp; Register
+          </button>
+        </div>
+      </div>
+    </div>
 
     <section class="rounded-[8px] bg-white p-[2rem] shadow-sm">
       <div class="mb-[1.6rem]">

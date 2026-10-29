@@ -31,6 +31,7 @@ const errorStore = useErrorStore()
 const { get, post } = useApiService()
 const router = useRouter()
 const route = useRoute()
+const activeMode = computed(() => route.query.mode === 'test' ? 'test' : 'live')
 
 const isCategoryDrawerOpen = ref(false)
 const isAddCategoryDrawerOpen = ref(false)
@@ -176,7 +177,7 @@ const loadBundledProducts = async (ids) => {
     isLoadingBundled.value = true
     const responses = await Promise.all(
       ids.map((id) =>
-        productStore.getProductById(id).catch((err) => {
+        productStore.getProductById(id, activeMode.value).catch((err) => {
           logger.warn(`Failed to fetch bundled product ${id}`, err)
           return null
         })
@@ -532,7 +533,7 @@ async function fetchBrandOptions(query) {
   isLoadingBrands.value = true
 
   try {
-    const response = await get(endpoints.brands, { search: typedBrand })
+    const response = await get(endpoints.brands, { search: typedBrand }, { forceMode: activeMode.value })
     if (cleanBrandName(brandQuery.value) !== typedBrand) return
 
     brandOptions.value = filterBrandMatches(
@@ -1188,7 +1189,7 @@ async function generateVariantSellerSku(index) {
     const url = tenantId
       ? endpoints.skus.generate.replace(':tenantId', tenantId)
       : endpoints.skus.generate
-    const response = await post(url, buildVariantSkuPayload(variant))
+    const response = await post(url, buildVariantSkuPayload(variant), { forceMode: activeMode.value })
     const generatedSku = readGeneratedSku(response)
 
     if (generatedSku) {
@@ -1322,7 +1323,7 @@ async function handleFileUpload(event, index) {
       payload.append('tenantId', productTenantId.value)
     }
 
-    const response = await post(endpoints.files.uploadSingle, payload, { silent: true })
+    const response = await post(endpoints.files.uploadSingle, payload, { silent: true, forceMode: activeMode.value })
     if (response?.data) {
       productForm.images[index] = {
         fileId: response.data.id,
@@ -1431,7 +1432,7 @@ async function submitProductInformation() {
   errorStore.resetErrors()
 
   try {
-    const response = await productStore.updateProduct(route.params.id, buildProductPayload())
+    const response = await productStore.updateProduct(route.params.id, buildProductPayload(), activeMode.value)
     recordSubmittedBrand()
 
     const productId = response?.data?.id || route.params.id
@@ -1452,9 +1453,9 @@ async function submitProductInformation() {
     toastStore.success('Product updated successfully')
 
     if (productId) {
-      await router.push(`/dashboard/product/${productId}`)
+      await router.push({ path: `/dashboard/product/${productId}`, query: { mode: activeMode.value } })
     } else {
-      await router.push('/dashboard/product')
+      await router.push({ path: '/dashboard/product', query: { mode: activeMode.value } })
     }
   } catch (error) {
     logger.error('Product update failed', error)
@@ -1487,8 +1488,8 @@ onMounted(async () => {
   try {
     isLoadingProduct.value = true
     const [response, inventoryRecords] = await Promise.all([
-      productStore.getProductById(route.params.id),
-      inventoryStore.getProductInventory(route.params.id),
+      productStore.getProductById(route.params.id, activeMode.value),
+      inventoryStore.getProductInventory(route.params.id, activeMode.value),
     ])
     if (response?.data) {
       hydrateProductForm(response.data, inventoryRecords)
@@ -1640,9 +1641,17 @@ watch(
           class="scroll-mt-[24rem]"
         >
           <div class="mb-[2.8rem] flex flex-col gap-[1.2rem] sm:flex-row sm:items-center sm:justify-between">
-            <h1 class="text-[2.6rem] font-[700] leading-[3.2rem]">
-              Edit Product Information
-            </h1>
+            <div class="flex items-center gap-3">
+              <h1 class="text-[2.6rem] font-[700] leading-[3.2rem]">
+                Edit Product Information
+              </h1>
+              <span
+                class="rounded-full px-3 py-0.5 text-[1.1rem] font-bold uppercase tracking-wider border"
+                :class="activeMode === 'live' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'"
+              >
+                {{ activeMode === 'live' ? 'Live Mode' : 'Test Mode' }}
+              </span>
+            </div>
           </div>
 
           <!-- Merchant Store Banner -->

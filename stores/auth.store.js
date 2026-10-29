@@ -13,7 +13,7 @@ export const useAuthStore = defineStore("authStore", () => {
     const user = ref({
         merchantId: "", id: null, email: null, fullName: null, address: null, createdAt: null, role: {
             name: undefined, slug: undefined,
-        }, currentMode: "test"
+        }, currentMode: "live"
     });
     const businessProfile = ref({
         businessName: "",
@@ -29,11 +29,10 @@ export const useAuthStore = defineStore("authStore", () => {
             role: {
                 name: undefined, slug: undefined,
             },
-            currentMode: "test"
+            currentMode: "live"
         }
     });
-    const currentMode = ref(null);
-    const returnUrl = ref(null);
+    const currentMode = ref("live");
     const toastStore = useToastStore();
     const forgotPasswordTokenSent = ref(false);
     const emailVerificationTokenSent = ref(false);
@@ -106,7 +105,7 @@ export const useAuthStore = defineStore("authStore", () => {
                 return null;
             }
             return data.url;
-        } catch (e) {
+        } catch {
             return null;
         }
     };
@@ -223,7 +222,7 @@ export const useAuthStore = defineStore("authStore", () => {
     }
 
 
-    async function loginWithGoogle(token, refreshToken, expiresIn) {
+    async function loginWithGoogle(token, refreshToken) {
         useCookie('shopsynch_admin_auth_token').value = token;
         setAuthToken(token);
         setRefreshToken(refreshToken);

@@ -18,6 +18,9 @@ useHead({
   title: "Products - ShopSynch Admin",
 });
 
+const route = useRoute();
+const router = useRouter();
+
 const productStore = useProductStore();
 const merchantsStore = useAdminMerchantsStore();
 const categoriesStore = useAdminCategoriesStore();
@@ -30,6 +33,7 @@ const filters = reactive({
   category: "",
   status: "",
   availability: "",
+  mode: route.query.mode === "test" ? "test" : "live",
   page: 1,
   limit: 50,
 });
@@ -133,7 +137,7 @@ function getQueryFromFilters() {
 async function loadProducts() {
   try {
     const query = getQueryFromFilters();
-    await productStore.getProducts(query);
+    await productStore.getProducts(query, filters.mode);
   } catch (err) {
     logger.error("Failed to load products:", err);
   }
@@ -176,7 +180,7 @@ function handleChangeLimit(nextLimit) {
 
 async function handleDeleteProduct(id) {
   try {
-    await productStore.deleteProduct(id);
+    await productStore.deleteProduct(id, filters.mode);
     toastStore.success("Product deleted", "");
   } catch (err) {
     logger.error("Failed to delete product:", err);
@@ -185,8 +189,19 @@ async function handleDeleteProduct(id) {
 }
 
 watch(
-  () => [filters.search, filters.tag, filters.tenantId, filters.category, filters.status, filters.availability],
-  () => {
+  () => [
+    filters.search,
+    filters.tag,
+    filters.tenantId,
+    filters.category,
+    filters.status,
+    filters.availability,
+    filters.mode,
+  ],
+  (newVals, oldVals) => {
+    if (newVals[6] !== oldVals?.[6]) {
+      router.replace({ query: { ...route.query, mode: filters.mode } });
+    }
     filters.page = 1;
     loadProducts();
   }
@@ -217,6 +232,12 @@ onMounted(async () => {
             >
               {{ productStore.total }} items
             </span>
+            <span
+              class="rounded-full px-3 py-0.5 text-[1.1rem] font-bold uppercase tracking-wider border"
+              :class="filters.mode === 'live' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'"
+            >
+              {{ filters.mode === 'live' ? 'Live Mode' : 'Test Mode' }}
+            </span>
           </div>
           <p class="mt-1 text-[1.4rem] text-slate-500">
             Platform-wide product catalog imported or created across all merchant stores.
@@ -224,14 +245,14 @@ onMounted(async () => {
         </div>
         <div class="flex items-center gap-3">
           <NuxtLink
-            to="/dashboard/product/import"
+            :to="{ path: '/dashboard/product/import', query: { mode: filters.mode } }"
             class="flex items-center gap-2 rounded-[8px] border border-slate-200 bg-slate-50 px-[1.6rem] py-[1rem] font-[700] text-slate-700 hover:bg-slate-100 transition-colors"
           >
             <span class="material-symbols-outlined text-[2rem]">upload_file</span>
             <span>Import Products</span>
           </NuxtLink>
           <NuxtLink
-            to="/dashboard/product/create"
+            :to="{ path: '/dashboard/product/create', query: { mode: filters.mode } }"
             class="flex items-center gap-2 rounded-[8px] bg-primary px-[1.6rem] py-[1rem] font-[700] text-white hover:bg-primary/90 transition-colors"
           >
             <span class="material-symbols-outlined text-[2rem]">add</span>
@@ -243,7 +264,29 @@ onMounted(async () => {
 
     <!-- Filter Bar -->
     <section class="rounded-[10px] bg-white p-[2rem] shadow-sm border border-slate-100 space-y-4">
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
+        <!-- Environment Toggle -->
+        <div>
+          <label class="block text-[1.2rem] font-semibold text-slate-600 mb-1">Environment</label>
+          <div class="inline-flex w-full rounded-[8px] border border-slate-200 bg-slate-50 p-1 h-[4.2rem] items-center">
+            <button
+              type="button"
+              class="flex-1 rounded-[6px] py-1.5 text-center text-[1.2rem] font-bold transition-all"
+              :class="filters.mode === 'live' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+              @click="filters.mode = 'live'"
+            >
+              Live
+            </button>
+            <button
+              type="button"
+              class="flex-1 rounded-[6px] py-1.5 text-center text-[1.2rem] font-bold transition-all"
+              :class="filters.mode === 'test' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+              @click="filters.mode = 'test'"
+            >
+              Test
+            </button>
+          </div>
+        </div>
         <!-- Search -->
         <div>
           <label class="block text-[1.2rem] font-semibold text-slate-600 mb-1">Search</label>
@@ -349,8 +392,8 @@ onMounted(async () => {
         has-delete
         @fetch-page="handleFetchPage"
         @change-limit="handleChangeLimit"
-        @show="(id) => $router.push('/dashboard/product/' + id)"
-        @edit="(id) => $router.push('/dashboard/product/' + id + '/edit')"
+        @show="(id) => $router.push({ path: '/dashboard/product/' + id, query: { mode: filters.mode } })"
+        @edit="(id) => $router.push({ path: '/dashboard/product/' + id + '/edit', query: { mode: filters.mode } })"
         @delete="handleDeleteProduct"
       >
         <!-- Product Name & Thumbnail -->
@@ -361,19 +404,19 @@ onMounted(async () => {
               :src="getProductImage(row)"
               class="w-[4.4rem] h-[4.4rem] rounded-xl object-cover border border-slate-100 flex-shrink-0 bg-slate-50 cursor-pointer"
               alt=""
-              @click="$router.push('/dashboard/product/' + row.id)"
+              @click="$router.push({ path: '/dashboard/product/' + row.id, query: { mode: filters.mode } })"
             >
             <div
               v-else
               class="w-[4.4rem] h-[4.4rem] rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0 border border-slate-100 text-slate-400 cursor-pointer"
-              @click="$router.push('/dashboard/product/' + row.id)"
+              @click="$router.push({ path: '/dashboard/product/' + row.id, query: { mode: filters.mode } })"
             >
               <span class="material-symbols-outlined text-[2rem]">image_not_supported</span>
             </div>
 
             <div class="min-w-0 flex-1">
               <NuxtLink
-                :to="'/dashboard/product/' + row.id"
+                :to="{ path: '/dashboard/product/' + row.id, query: { mode: filters.mode } }"
                 class="font-semibold text-slate-900 truncate max-w-[28rem] hover:text-primary hover:underline transition-colors block"
               >
                 {{ row.name }}

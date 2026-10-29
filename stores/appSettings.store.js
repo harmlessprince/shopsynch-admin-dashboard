@@ -28,7 +28,7 @@ export const useAppSettingsStore = defineStore('appSettings', () => {
         ? `${endpoints.appSettings.list(tenantId)}?category=${category}`
         : endpoints.appSettings.list(tenantId)
 
-      const response = await get(url, {})
+      const response = await get(url, {}, { forceMode: 'live' })
       
       if (response?.status) {
         settings.value = response.data ?? []
@@ -52,6 +52,7 @@ export const useAppSettingsStore = defineStore('appSettings', () => {
       const response = await patch(
         endpoints.appSettings.updateValue(tenantId, key),
         { value },
+        { forceMode: 'live' }
       )
 
       if (response?.status) {

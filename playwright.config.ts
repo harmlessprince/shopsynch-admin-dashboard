@@ -9,7 +9,7 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   webServer: {
-    command: 'NUXT_PUBLIC_API_TEST_BASE_URL=http://localhost:3019 NUXT_PUBLIC_API_LIVE_BASE_URL=http://localhost:3019 npx nuxt dev --port 3019',
+    command: 'HOME=/tmp NUXT_TELEMETRY_DISABLED=1 NUXT_PUBLIC_API_TEST_BASE_URL=http://localhost:3019 NUXT_PUBLIC_API_LIVE_BASE_URL=http://localhost:3019 npx nuxt dev --port 3019',
     url: 'http://localhost:3019',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
