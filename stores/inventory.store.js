@@ -15,6 +15,11 @@ export const useInventoryStore = defineStore("inventoryStore", () => {
   const paginatedData = ref(undefined);
   const loading = ref(false);
   const error = ref(null);
+  const currentInventoryMode = ref("live");
+
+  function setMode(newMode) {
+    currentInventoryMode.value = newMode === "test" ? "test" : "live";
+  }
 
   const stockMovementActions = new Set([
     "RECEIVED",
@@ -78,16 +83,20 @@ export const useInventoryStore = defineStore("inventoryStore", () => {
     };
   }
 
-  async function getInventory(page = 1, limit = 50, filters = {}) {
+  async function getInventory(page = 1, limit = 50, filters = {}, mode = null) {
+    const resolvedMode = mode || filters?.mode || currentInventoryMode.value || "live";
+    currentInventoryMode.value = resolvedMode;
+    const cleanFilters = { ...filters };
+    delete cleanFilters.mode;
     try {
       loading.value = true;
       error.value = null;
       const params = {
         page: page - 1,
         limit,
-        ...filters,
+        ...cleanFilters,
       };
-      const response = await get(endpoints.admin.inventory.list, params);
+      const response = await get(endpoints.admin.inventory.list, params, { forceMode: resolvedMode });
       if (response && response.data) {
         const data = response.data;
         if (Array.isArray(data)) {
@@ -116,13 +125,15 @@ export const useInventoryStore = defineStore("inventoryStore", () => {
     }
   }
 
-  async function getProductInventory(productId) {
+  async function getProductInventory(productId, mode = null) {
+    const resolvedMode = mode || currentInventoryMode.value || "live";
     try {
       loading.value = true;
       error.value = null;
       const response = await get(
         endpoints.inventory.byProduct.replace(":productId", productId),
-        {}
+        {},
+        { forceMode: resolvedMode }
       );
       if (response && response.data) {
         if (Array.isArray(response.data)) {
@@ -139,7 +150,8 @@ export const useInventoryStore = defineStore("inventoryStore", () => {
     }
   }
 
-  async function getSkuInventory(productId, skuId) {
+  async function getSkuInventory(productId, skuId, mode = null) {
+    const resolvedMode = mode || currentInventoryMode.value || "live";
     try {
       loading.value = true;
       error.value = null;
@@ -147,7 +159,8 @@ export const useInventoryStore = defineStore("inventoryStore", () => {
         endpoints.inventory.bySku
           .replace(":productId", productId)
           .replace(":skuId", skuId),
-        {}
+        {},
+        { forceMode: resolvedMode }
       );
       if (response && response.data) {
         return Array.isArray(response.data) ? response.data : response.data;
@@ -202,11 +215,12 @@ export const useInventoryStore = defineStore("inventoryStore", () => {
     }
   }
 
-  async function createInventory(payload) {
+  async function createInventory(payload, mode = null) {
+    const resolvedMode = mode || currentInventoryMode.value || "live";
     try {
       loading.value = true;
       error.value = null;
-      const response = await post(endpoints.inventory.create, payload);
+      const response = await post(endpoints.inventory.create, payload, { forceMode: resolvedMode });
       if (response && response.data) {
         inventory.value.push(response.data);
       }
@@ -219,7 +233,8 @@ export const useInventoryStore = defineStore("inventoryStore", () => {
     }
   }
 
-  async function adjustStock(inventoryId, payload) {
+  async function adjustStock(inventoryId, payload, mode = null) {
+    const resolvedMode = mode || currentInventoryMode.value || "live";
     try {
       loading.value = true;
       error.value = null;
@@ -229,7 +244,8 @@ export const useInventoryStore = defineStore("inventoryStore", () => {
       );
       const response = await patch(
         endpoints.inventory.adjust.replace(":id", inventoryId),
-        movementPayload
+        movementPayload,
+        { forceMode: resolvedMode }
       );
       if (response && response.data) {
         const index = inventory.value.findIndex((inv) => inv.id === inventoryId);
@@ -249,13 +265,15 @@ export const useInventoryStore = defineStore("inventoryStore", () => {
     }
   }
 
-  async function reserveStock(inventoryId, quantity) {
+  async function reserveStock(inventoryId, quantity, mode = null) {
+    const resolvedMode = mode || currentInventoryMode.value || "live";
     try {
       loading.value = true;
       error.value = null;
       const response = await patch(
         endpoints.inventory.reserve.replace(":id", inventoryId),
-        { quantity }
+        { quantity },
+        { forceMode: resolvedMode }
       );
       if (response && response.data) {
         const index = inventory.value.findIndex((inv) => inv.id === inventoryId);
@@ -272,13 +290,15 @@ export const useInventoryStore = defineStore("inventoryStore", () => {
     }
   }
 
-  async function releaseStock(inventoryId, payload) {
+  async function releaseStock(inventoryId, payload, mode = null) {
+    const resolvedMode = mode || currentInventoryMode.value || "live";
     try {
       loading.value = true;
       error.value = null;
       const response = await patch(
         endpoints.inventory.release.replace(":id", inventoryId),
-        payload
+        payload,
+        { forceMode: resolvedMode }
       );
       if (response && response.data) {
         const index = inventory.value.findIndex((inv) => inv.id === inventoryId);
@@ -299,13 +319,15 @@ export const useInventoryStore = defineStore("inventoryStore", () => {
     return inventory.value.find((inv) => inv.id === id);
   }
 
-  async function fetchInventoryById(id) {
+  async function fetchInventoryById(id, mode = null) {
+    const resolvedMode = mode || currentInventoryMode.value || "live";
     try {
       loading.value = true;
       error.value = null;
       const response = await get(
         endpoints.inventory.detail.replace(":id", id),
-        {}
+        {},
+        { forceMode: resolvedMode }
       );
       if (response && response.data) {
         currentItem.value = response.data;
@@ -319,13 +341,15 @@ export const useInventoryStore = defineStore("inventoryStore", () => {
     }
   }
 
-  async function fetchInventoryLogsById(id, page = 0, limit = 50) {
+  async function fetchInventoryLogsById(id, page = 0, limit = 50, mode = null) {
+    const resolvedMode = mode || currentInventoryMode.value || "live";
     try {
       loading.value = true;
       error.value = null;
       const response = await get(
         endpoints.inventory.logs.replace(":id", id),
-        { page, limit }
+        { page, limit },
+        { forceMode: resolvedMode }
       );
       if (response && response.data) {
         currentItemLogs.value = Array.isArray(response.data)
@@ -341,13 +365,15 @@ export const useInventoryStore = defineStore("inventoryStore", () => {
     }
   }
 
-  async function fetchInventoryBatches(id) {
+  async function fetchInventoryBatches(id, mode = null) {
+    const resolvedMode = mode || currentInventoryMode.value || "live";
     try {
       loading.value = true;
       error.value = null;
       const response = await get(
         endpoints.inventory.batches.replace(":id", id),
-        {}
+        {},
+        { forceMode: resolvedMode }
       );
       if (response && response.data) {
         currentItemBatches.value = Array.isArray(response.data)
@@ -400,6 +426,8 @@ export const useInventoryStore = defineStore("inventoryStore", () => {
     fetchInventoryById,
     fetchInventoryLogsById,
     fetchInventoryBatches,
+    currentInventoryMode,
+    setMode,
     resetStore,
   };
 });

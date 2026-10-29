@@ -12,14 +12,18 @@ export const useApiService = () => {
             if (!route || typeof route !== "string") {
                 throw new Error(`Invalid API endpoint: route must be a non-empty string, got ${typeof route} (${route})`);
             }
-            const { headers: optionHeaders = {}, ...fetchOptions } = options;
+            const { headers: optionHeaders = {}, forceMode, ...fetchOptions } = options;
+            const mode = forceMode || switchModeStore.currentMode || 'live'; // 'test' | 'live'
+            let baseURL = mode === 'test' ? config.public.testBaseUrl : config.public.liveBaseUrl;
+
             const finalHeaders = { 
                 ...headers, 
                 ...optionHeaders,
                 'X-Auth-Mode': 'jwt',
                 'X-ShopSynch-Client': 'admin-dashboard',
+                'X-Mode': mode,
             };
-            
+
             // Auto-set Content-Type if not provided and not FormData
             if (!finalHeaders['Content-Type'] && !(data instanceof FormData)) {
                 finalHeaders['Content-Type'] = 'application/json';
@@ -28,14 +32,9 @@ export const useApiService = () => {
             // Let the browser set the boundary for FormData
             if (data instanceof FormData) {
                 delete finalHeaders['Content-Type'];
-            }else if (!finalHeaders['Content-Type'] && method !== 'GET') {
+            } else if (!finalHeaders['Content-Type'] && method !== 'GET') {
                 finalHeaders['Content-Type'] = 'application/json';
             }
-
-            // headers['X-Auth-Mode'] = 'jwt';
-
-            const mode = fetchOptions?.forceMode || switchModeStore.currentMode; // 'test' | 'live'
-            let baseURL = mode === 'live' ? config.public.liveBaseUrl : config.public.testBaseUrl;
 
             logger.log('baseURL', baseURL);
             logger.log('mode', mode);

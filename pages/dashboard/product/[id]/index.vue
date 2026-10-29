@@ -57,6 +57,7 @@ const archiveModal = reactive({
 })
 
 const productId = route.params.id
+const activeMode = computed(() => route.query.mode === 'test' ? 'test' : 'live')
 
 const bundledProducts = ref([])
 const isLoadingBundled = ref(false)
@@ -85,7 +86,7 @@ const loadBundledProducts = async (ids) => {
     isLoadingBundled.value = true
     const responses = await Promise.all(
       ids.map((id) =>
-        productStore.getProductById(id).catch((err) => {
+        productStore.getProductById(id, activeMode.value).catch((err) => {
           logger.warn(`Failed to fetch bundled product ${id}`, err)
           return null
         })
@@ -103,8 +104,8 @@ const loadProduct = async () => {
   try {
     loading.value = true
     const [response, inventory] = await Promise.all([
-      productStore.getProductById(productId),
-      inventoryStore.getProductInventory(productId),
+      productStore.getProductById(productId, activeMode.value),
+      inventoryStore.getProductInventory(productId, activeMode.value),
     ])
     if (response?.data) {
       product.value = response.data
@@ -136,11 +137,11 @@ const loadProductTemplate = async (productData) => {
 }
 
 const goBack = () => {
-  router.push('/dashboard/product')
+  router.push({ path: '/dashboard/product', query: { mode: activeMode.value } })
 }
 
 const goToEdit = () => {
-  router.push(`/dashboard/product/${productId}/edit`)
+  router.push({ path: `/dashboard/product/${productId}/edit`, query: { mode: activeMode.value } })
 }
 
 const refreshProduct = async () => {
@@ -168,8 +169,8 @@ const confirmArchiveAction = async () => {
   try {
     archiveModal.loading = true
     const response = isArchived
-      ? await productStore.unarchiveProduct(product.value.id)
-      : await productStore.archiveProduct(product.value.id)
+      ? await productStore.unarchiveProduct(product.value.id, activeMode.value)
+      : await productStore.archiveProduct(product.value.id, activeMode.value)
 
     if (response?.status) {
       toastStore.showToast(
@@ -690,7 +691,7 @@ const storefrontUrl = computed(() => {
           <div class="min-w-0 space-y-0.5">
             <!-- Breadcrumbs -->
             <nav class="flex items-center gap-1.5 text-xs font-medium text-slate-400" aria-label="Breadcrumb">
-              <NuxtLink to="/dashboard/product" class="hover:text-primary transition-colors">Products</NuxtLink>
+              <NuxtLink :to="{ path: '/dashboard/product', query: { mode: activeMode } }" class="hover:text-primary transition-colors">Products</NuxtLink>
               <span class="text-slate-300">/</span>
               <span v-if="productCategory" class="text-slate-500 font-semibold">{{ productCategory }}</span>
               <span v-if="productCategory" class="text-slate-300">/</span>
@@ -701,6 +702,12 @@ const storefrontUrl = computed(() => {
               <h1 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight truncate max-w-lg lg:max-w-xl" :title="product.name">
                 {{ product.name }}
               </h1>
+              <span
+                class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold shrink-0 uppercase tracking-wider border"
+                :class="activeMode === 'live' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'"
+              >
+                {{ activeMode === 'live' ? 'Live Mode' : 'Test Mode' }}
+              </span>
               <span
                 class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold shrink-0"
                 :class="getStatusClass(rootInventoryStatus)"

@@ -34,6 +34,7 @@ const errorStore = useErrorStore()
 const { get, post } = useApiService()
 const router = useRouter()
 const route = useRoute()
+const activeMode = computed(() => route.query.mode === 'test' ? 'test' : 'live')
 
 const selectedTenantId = ref(route.query.tenantId ? String(route.query.tenantId) : '')
 const merchantOptions = computed(() =>
@@ -477,7 +478,7 @@ async function fetchBrandOptions(query) {
   isLoadingBrands.value = true
 
   try {
-    const response = await get(endpoints.brands, { search: typedBrand })
+    const response = await get(endpoints.brands, { search: typedBrand }, { forceMode: activeMode.value })
     if (cleanBrandName(brandQuery.value) !== typedBrand) return
 
     brandOptions.value = filterBrandMatches(
@@ -1357,7 +1358,7 @@ async function generateVariantSellerSku(index) {
     const url = tenantId
       ? endpoints.skus.generate.replace(':tenantId', tenantId)
       : endpoints.skus.generate
-    const response = await post(url, buildVariantSkuPayload(variant))
+    const response = await post(url, buildVariantSkuPayload(variant), { forceMode: activeMode.value })
     const generatedSku = readGeneratedSku(response)
 
     if (generatedSku) {
@@ -1556,7 +1557,7 @@ async function handleFileUpload(event, index) {
       payload.append('tenantId', selectedTenantId.value)
     }
 
-    const response = await post(endpoints.files.uploadSingle, payload, { silent: true })
+    const response = await post(endpoints.files.uploadSingle, payload, { silent: true, forceMode: activeMode.value })
     if (response?.data) {
       productForm.images[index] = {
         fileId: response.data.id,
@@ -1726,7 +1727,7 @@ async function submitProductInformation() {
     if (tenantId) {
       payload.tenantId = tenantId
     }
-    const response = await post(url, payload)
+    const response = await post(url, payload, { forceMode: activeMode.value })
     recordSubmittedBrand()
 
     const productId = response?.data?.id
@@ -1741,9 +1742,9 @@ async function submitProductInformation() {
     toastStore.success('Product created successfully')
 
     if (productId) {
-      await router.push(`/dashboard/product/${productId}`)
+      await router.push({ path: `/dashboard/product/${productId}`, query: { mode: activeMode.value } })
     } else {
-      await router.push('/dashboard/product')
+      await router.push({ path: '/dashboard/product', query: { mode: activeMode.value } })
     }
   } catch (error) {
     logger.error('Product creation failed', error)
@@ -1872,9 +1873,17 @@ watch(
           class="scroll-mt-[24rem]"
         >
           <div class="mb-[2.8rem] flex flex-col gap-[1.2rem] sm:flex-row sm:items-center sm:justify-between">
-            <h1 class="text-[2.6rem] font-[700] leading-[3.2rem]">
-              Product Information
-            </h1>
+            <div class="flex items-center gap-3">
+              <h1 class="text-[2.6rem] font-[700] leading-[3.2rem]">
+                Product Information
+              </h1>
+              <span
+                class="rounded-full px-3 py-0.5 text-[1.1rem] font-bold uppercase tracking-wider border"
+                :class="activeMode === 'live' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'"
+              >
+                {{ activeMode === 'live' ? 'Live Mode' : 'Test Mode' }}
+              </span>
+            </div>
           </div>
 
           <div

@@ -1,5 +1,6 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { useProductStore } from '~/stores/products.store.js'
 import { useToastStore } from '~/stores/toast.store.js'
 import { useApiService } from '~/services/apiService.js'
@@ -20,6 +21,8 @@ const props = defineProps({
 
 const emit = defineEmits(['update:open', 'success'])
 
+const route = useRoute()
+const activeMode = computed(() => route.query.mode === 'test' ? 'test' : 'live')
 const productStore = useProductStore()
 const toastStore = useToastStore()
 const { post } = useApiService()
@@ -53,7 +56,8 @@ const handleFileUpload = async (event, index) => {
     }
     
     const response = await post(endpoints.files.uploadSingle, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
+      headers: { 'Content-Type': 'multipart/form-data' },
+      forceMode: activeMode.value,
     })
     
     if (response && response.data) {
