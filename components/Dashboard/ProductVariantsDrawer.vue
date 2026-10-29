@@ -17,6 +17,8 @@ const emit = defineEmits(['update:open', 'success'])
 const { post } = useApiService()
 const toastStore = useToastStore()
 const productTemplateStore = useProductTemplateStore()
+const route = useRoute()
+const activeMode = computed(() => route.query.mode === 'test' ? 'test' : 'live')
 
 const isSubmitting = ref(false)
 const template = ref(null)
@@ -120,7 +122,7 @@ async function handleImageUpload(event) {
     if (props.product?.tenantId) {
       fd.append('tenantId', props.product.tenantId)
     }
-    const res = await post(endpoints.files.uploadSingle, fd)
+    const res = await post(endpoints.files.uploadSingle, fd, { forceMode: activeMode.value })
     if (res?.data) {
       group.image = { fileId: res.data.id, url: res.data.url }
     }
@@ -194,7 +196,7 @@ async function save() {
     if (group.image?.fileId) payload.image = group.image.fileId
 
     const url = endpoints.variantGroups.add.replace(':productId', props.product.id)
-    const response = await post(url, payload)
+    const response = await post(url, payload, { forceMode: activeMode.value })
 
     if (response?.status || response?.data) {
       toastStore.success('Variant added successfully')
