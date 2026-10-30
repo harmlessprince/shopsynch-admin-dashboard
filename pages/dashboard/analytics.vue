@@ -282,7 +282,12 @@ onMounted(fetchSummary);
           :table-data="analyticsStore.summary?.topTenants || []"
           :loading="analyticsStore.loading"
           :has-pagination="false"
-        />
+        >
+          <template #cell(tenantId)="{ data }">
+            <TenantHoverCard v-if="data?.tenantId" :tenant-id="data.tenantId" />
+            <span v-else class="text-gray-400">N/A</span>
+          </template>
+        </DataTable>
       </div>
     </section>
 
@@ -294,7 +299,12 @@ onMounted(fetchSummary);
           :table-data="analyticsStore.summary?.recentEvents || []"
           :loading="analyticsStore.loading"
           :has-pagination="false"
-        />
+        >
+          <template #cell(tenantId)="{ data }">
+            <TenantHoverCard v-if="data?.tenantId" :tenant-id="data.tenantId" />
+            <span v-else class="text-gray-400">N/A</span>
+          </template>
+        </DataTable>
       </div>
     </section>
   </div>
