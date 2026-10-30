@@ -75,6 +75,7 @@ export const endpoints = {
         },
         merchants: {
             list: "/v1/admin/merchants",
+            preview: "/v1/admin/merchants/:tenantId/preview",
             register: "/v1/admin/merchants",
             resetPassword: "/v1/admin/merchants/reset-password",
             complianceQueue: "/v1/admin/merchants/compliance-queue",
@@ -122,6 +123,14 @@ export const endpoints = {
                 generate: "/v1/admin/products/merchants/:tenantId/skus/generate",
                 validate: "/v1/admin/products/merchants/:tenantId/skus/validate",
             },
+        },
+        orders: {
+            list: "/v1/admin/orders",
+            detail: "/v1/admin/orders/:id",
+        },
+        bookings: {
+            list: "/v1/admin/bookings",
+            detail: "/v1/admin/bookings/:id",
         },
         inventory: {
             list: "/v1/admin/inventory",
