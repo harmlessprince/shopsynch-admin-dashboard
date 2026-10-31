@@ -93,6 +93,17 @@ export const useAdminMerchantsStore = defineStore("adminMerchantsStore", () => {
         return response;
     }
 
+    async function enableMerchantInventory(tenantId) {
+        const url = endpoints.admin.inventory.enable.replace(":tenantId", tenantId);
+        const response = await post(url, {}, { forceMode: "live" });
+
+        if (response) {
+            toastStore.success("Inventory tracking enabled", "Inventory records were created from existing product quantities.");
+        }
+
+        return response;
+    }
+
     async function fetchReminderTemplates(category = "ONBOARDING") {
         try {
             const response = await get(endpoints.admin.merchants.reminderTemplates, { category }, { forceMode: "live" });
@@ -350,6 +361,7 @@ export const useAdminMerchantsStore = defineStore("adminMerchantsStore", () => {
         fetchMerchants,
         fetchMerchantDetail,
         updateMerchantStatus,
+        enableMerchantInventory,
         updateMerchantClassification,
         backfillMerchantClassifications,
         fetchMerchantFunnel,
