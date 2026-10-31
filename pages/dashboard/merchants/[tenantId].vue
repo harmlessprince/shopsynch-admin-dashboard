@@ -1,6 +1,6 @@
 <script setup>
 import { logger, formatDate, formatToMoney } from "~/utils/helpers.js";
-import { useVfm } from "vue-final-modal";
+import { useVfm, useModal } from "vue-final-modal";
 import SendReminderModal from "~/components/Modals/SendReminderModal.vue";
 import ResetMerchantPasswordModal from "~/components/Modals/ResetMerchantPasswordModal.vue";
 import CompleteComplianceModal from "~/components/Modals/CompleteComplianceModal.vue";
@@ -23,6 +23,7 @@ const vfm = useVfm();
 
 const statusToggleLoading = ref(false);
 const classificationUpdating = ref(false);
+const inventoryEnabling = ref(false);
 
 const m = computed(() => store.merchant);
 
@@ -126,6 +127,36 @@ function getKycStatus(merchant) {
     return { label: 'Prefilled', class: 'bg-slate-100 text-slate-700' }
   }
   return { label: 'Not Provided', class: 'bg-slate-100 text-slate-500' }
+}
+
+function confirmEnableInventory() {
+  const confirmModal = useModal({
+    component: ConfirmModal,
+    attrs: {
+      modalTitle: "Enable Inventory Tracking",
+      prompt:
+        "This creates a default branch (if none exists) and an inventory record for every product, using each product's current quantity as opening stock. Existing records are left untouched.",
+      confirmLabel: "Enable Inventory",
+      variant: "primary",
+      onConfirm() {
+        confirmModal.close();
+        enableInventory();
+      },
+    },
+  });
+  confirmModal.open();
+}
+
+async function enableInventory() {
+  inventoryEnabling.value = true;
+  try {
+    await store.enableMerchantInventory(route.params.tenantId);
+    await store.fetchMerchantDetail(route.params.tenantId);
+  } catch (err) {
+    logger.error("Failed to enable merchant inventory tracking", err);
+  } finally {
+    inventoryEnabling.value = false;
+  }
 }
 
 async function toggleStatus() {
@@ -263,6 +294,17 @@ async function checkRetiredPlanEvent() {
             >
               <span class="material-symbols-outlined text-[1.6rem]">assignment_turned_in</span>
               Complete Compliance
+            </button>
+            <button
+              v-if="m.inventoryTrackingEnabled === false"
+              type="button"
+              :disabled="inventoryEnabling"
+              class="inline-flex items-center gap-[0.4rem] rounded-[8px] border border-blue-600 px-[1.6rem] py-[0.8rem] text-[1.3rem] font-[700] text-blue-700 transition-colors hover:bg-blue-50 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+              @click="confirmEnableInventory"
+            >
+              <span v-if="inventoryEnabling" class="animate-spin material-symbols-outlined text-[1.6rem]">progress_activity</span>
+              <span v-else class="material-symbols-outlined text-[1.6rem]">inventory_2</span>
+              Enable Inventory
             </button>
             <NuxtLink
               :to="`/dashboard/product/import?tenantId=${m.id}`"
