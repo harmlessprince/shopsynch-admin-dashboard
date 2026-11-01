@@ -1,0 +1,15 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+  # Skip the build when a push only touches docs, agent/tooling files, issues, journeys or tests.
+  # Exit code 0 skips the build; a non-zero exit (including a missing cached commit) builds.
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- . ':(exclude)*.md' ':(exclude)*.txt' ':(exclude)docs' ':(exclude)agents' ':(exclude).agents' ':(exclude).claude' ':(exclude).cursor' ':(exclude).antigravity' ':(exclude).gemini' ':(exclude).github' ':(exclude)issues' ':(exclude)journeys' ':(exclude)tests'"
+
+[build.environment]
+  NODE_VERSION = "22"
+  NPM_FLAGS = "--no-audit --no-fund --prefer-offline"
+  NUXT_TELEMETRY_DISABLED = "1"
+
+# Deploy Previews are off: staging is where changes are reviewed, so PR previews would only spend build minutes.
+[context.deploy-preview]
+  ignore = "exit 0"
