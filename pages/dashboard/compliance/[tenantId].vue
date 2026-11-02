@@ -26,6 +26,7 @@ const showTemplatePanel = ref(true);
 
 // Document viewer
 const { loadCredentialDocument, releaseCredentialDocument } = useCredentialDocument();
+const documentViewerPanel = ref(null);
 // A local object URL for the document bytes fetched through the authenticated content endpoint, never a stored link.
 const activeDoc = ref(null);
 const activeDocTitle = ref("");
@@ -263,9 +264,12 @@ async function viewDoc(field) {
   docRotation.value = 0;
   if (!field.fileId) {
     activeDocError.value = "This document was uploaded before documents were stored privately, so it cannot be shown. Ask the merchant to upload it again.";
+    documentViewerPanel.value?.scrollIntoView({ behavior: "smooth", block: "center" });
     return;
   }
   activeDocLoading.value = true;
+  // The viewer sits below the rejection templates, so bring it into view or the click looks like it did nothing.
+  documentViewerPanel.value?.scrollIntoView({ behavior: "smooth", block: "center" });
   try {
     const document = await loadCredentialDocument(field.fileId);
     activeDoc.value = document.objectUrl;
@@ -561,9 +565,9 @@ watch(
                       </span>
                       <span
                         v-else-if="field.verified === false"
-                        class="mb-[0.6rem] inline-flex items-center gap-[0.3rem] rounded-full bg-red-100 px-[0.8rem] py-[0.2rem] text-[1.1rem] font-[600] text-red-700"
+                        class="mb-[0.6rem] inline-flex items-center gap-[0.3rem] rounded-full bg-amber-100 px-[0.8rem] py-[0.2rem] text-[1.1rem] font-[600] text-amber-700"
                       >
-                        <span class="material-symbols-outlined text-[1.4rem]">cancel</span> Rejected
+                        <span class="material-symbols-outlined text-[1.4rem]">pending</span> Not verified
                       </span>
                       <span
                         v-else
@@ -785,7 +789,7 @@ watch(
         </div>
 
         <!-- Document Viewer -->
-        <div class="overflow-hidden rounded-[10px] border border-slate-200 bg-white">
+        <div ref="documentViewerPanel" class="overflow-hidden rounded-[10px] border border-slate-200 bg-white">
           <div class="flex items-center justify-between border-b border-slate-100 px-[1.6rem] py-[1rem]">
             <p class="text-[1.4rem] font-[700] text-[#000]">
               {{ activeDocTitle || "Document Viewer" }}
