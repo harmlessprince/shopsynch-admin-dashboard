@@ -111,7 +111,7 @@
               <input
                 v-model="form.idNumber"
                 type="text"
-                placeholder="ID document number"
+                :placeholder="props.merchant?.owner?.idNumber ? `On file: ${props.merchant.owner.idNumber}. Leave blank to keep it` : 'ID document number'"
                 class="h-12 rounded-xl border border-slate-200 px-4 text-[1.3rem] text-[#1B1B19] focus:border-primary focus:outline-none"
               >
             </div>
@@ -135,16 +135,13 @@
             <!-- ID Document -->
             <div class="flex flex-col gap-y-[0.6rem]">
               <label class="font-[600] text-[1.3rem] text-[#0F172A] flex items-center justify-between">
-                <span>ID Document URL</span>
+                <span>ID Document</span>
                 <span v-if="uploadingDoc === 'idDoc'" class="text-[1.2rem] text-primary">Uploading...</span>
               </label>
               <div class="flex items-center gap-3">
-                <input
-                  v-model="form.idDocumentUrl"
-                  type="text"
-                  placeholder="URL or upload ID document"
-                  class="flex-1 h-12 rounded-xl border border-slate-200 px-4 text-[1.3rem] text-[#1B1B19] focus:border-primary focus:outline-none"
-                >
+                <p class="flex-1 h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-[1.3rem] text-slate-600 flex items-center">
+                    {{ documentStatus('idDoc', props.merchant?.owner?.idDocumentOnFile) }}
+                  </p>
                 <label class="h-12 px-4 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 cursor-pointer flex items-center gap-2 text-[1.3rem] font-semibold text-slate-700">
                   <span class="material-symbols-outlined text-[1.8rem]">upload_file</span>
                   <span>Upload</span>
@@ -160,12 +157,9 @@
                 <span v-if="uploadingDoc === 'profile'" class="text-[1.2rem] text-primary">Uploading...</span>
               </label>
               <div class="flex items-center gap-3">
-                <input
-                  v-model="form.profileUrl"
-                  type="text"
-                  placeholder="URL or upload selfie"
-                  class="flex-1 h-12 rounded-xl border border-slate-200 px-4 text-[1.3rem] text-[#1B1B19] focus:border-primary focus:outline-none"
-                >
+                <p class="flex-1 h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-[1.3rem] text-slate-600 flex items-center">
+                    {{ documentStatus('profile', props.merchant?.owner?.profileImageOnFile) }}
+                  </p>
                 <label class="h-12 px-4 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 cursor-pointer flex items-center gap-2 text-[1.3rem] font-semibold text-slate-700">
                   <span class="material-symbols-outlined text-[1.8rem]">upload_file</span>
                   <span>Upload</span>
@@ -181,12 +175,9 @@
                 <span v-if="uploadingDoc === 'proof'" class="text-[1.2rem] text-primary">Uploading...</span>
               </label>
               <div class="flex items-center gap-3">
-                <input
-                  v-model="form.proofOfAddress"
-                  type="text"
-                  placeholder="URL or upload utility bill / bank statement"
-                  class="flex-1 h-12 rounded-xl border border-slate-200 px-4 text-[1.3rem] text-[#1B1B19] focus:border-primary focus:outline-none"
-                >
+                <p class="flex-1 h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-[1.3rem] text-slate-600 flex items-center">
+                    {{ documentStatus('proof', props.merchant?.owner?.proofOfAddressOnFile) }}
+                  </p>
                 <label class="h-12 px-4 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 cursor-pointer flex items-center gap-2 text-[1.3rem] font-semibold text-slate-700">
                   <span class="material-symbols-outlined text-[1.8rem]">upload_file</span>
                   <span>Upload</span>
@@ -226,7 +217,7 @@ import { ref, reactive, watch } from 'vue'
 import { VueFinalModal, useModal } from 'vue-final-modal'
 import { useAdminMerchantsStore } from '~/stores/adminMerchants.store.js'
 import { useToastStore } from '~/stores/toast.store.js'
-import { handleFileUpload } from '~/utils/helpers.js'
+import { handleCredentialUpload } from '~/utils/helpers.js'
 import ConfirmModal from '~/components/Modals/ConfirmModal.vue'
 
 const props = defineProps({
@@ -241,6 +232,7 @@ const toastStore = useToastStore()
 
 const isSubmitting = ref(false)
 const uploadingDoc = ref('')
+const uploadedNames = reactive({ idDoc: '', profile: '', proof: '' })
 
 const form = reactive({
   fullName: '',
@@ -252,9 +244,9 @@ const form = reactive({
   dateOfBirth: '',
   nationality: 'Nigerian',
   idType: '',
-  idDocumentUrl: '',
-  profileUrl: '',
-  proofOfAddress: '',
+  idDocumentFileId: '',
+  profileFileId: '',
+  proofOfAddressFileId: '',
 })
 
 function populateForm(m) {
@@ -265,13 +257,14 @@ function populateForm(m) {
   form.lastName = o.lastName || (o.fullName ? o.fullName.split(' ').slice(1).join(' ') : '')
   form.phoneNumber = o.phoneNumber || ''
   form.address = o.address || ''
-  form.idNumber = o.idNumber || ''
+  // The stored number is masked in responses, so the field starts empty and a blank value keeps the current number.
+  form.idNumber = ''
   form.dateOfBirth = o.dateOfBirth || o.dob || ''
   form.nationality = o.nationality || 'Nigerian'
   form.idType = o.idType || ''
-  form.idDocumentUrl = o.idDocumentUrl || ''
-  form.profileUrl = o.profileUrl || ''
-  form.proofOfAddress = o.proofOfAddress || o.proofOfAddressUrl || ''
+  form.idDocumentFileId = o.idDocumentFileId || ''
+  form.profileFileId = o.profileFileId || ''
+  form.proofOfAddressFileId = o.proofOfAddressFileId || ''
 }
 
 watch(
@@ -291,14 +284,22 @@ function generateRandomCode(length = 6) {
   return result
 }
 
+const purposeByType = { idDoc: 'id_document', profile: 'selfie', proof: 'proof_of_address' }
+
+function documentStatus(type, onFile) {
+  if (uploadedNames[type]) return `New file ready: ${uploadedNames[type]}`
+  return onFile ? 'A document is on file. Upload a file to replace it.' : 'No document uploaded yet'
+}
+
 async function uploadFile(e, type) {
   uploadingDoc.value = type
   try {
-    const url = await handleFileUpload(e, props.tenantId)
-    if (url) {
-      if (type === 'idDoc') form.idDocumentUrl = url
-      else if (type === 'profile') form.profileUrl = url
-      else if (type === 'proof') form.proofOfAddress = url
+    const stored = await handleCredentialUpload(e, purposeByType[type], props.tenantId)
+    if (stored) {
+      if (type === 'idDoc') form.idDocumentFileId = stored.id
+      else if (type === 'profile') form.profileFileId = stored.id
+      else if (type === 'proof') form.proofOfAddressFileId = stored.id
+      uploadedNames[type] = stored.name
       toastStore.success('File uploaded successfully', '')
     }
   } catch {
@@ -329,9 +330,9 @@ async function executeSubmit(close) {
       dateOfBirth: form.dateOfBirth || undefined,
       nationality: form.nationality || undefined,
       idType: form.idType || undefined,
-      idDocumentUrl: form.idDocumentUrl || undefined,
-      profileUrl: form.profileUrl || undefined,
-      proofOfAddress: form.proofOfAddress || undefined,
+      idDocumentFileId: form.idDocumentFileId || undefined,
+      profileFileId: form.profileFileId || undefined,
+      proofOfAddressFileId: form.proofOfAddressFileId || undefined,
     }
 
     await adminMerchantsStore.updateOwnerKyc(props.tenantId, payload)

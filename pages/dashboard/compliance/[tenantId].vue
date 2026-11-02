@@ -25,15 +25,17 @@ const activeFlagKey = ref(null);
 const showTemplatePanel = ref(true);
 
 // Document viewer
+const { loadCredentialDocument, releaseCredentialDocument } = useCredentialDocument();
+const documentViewerPanel = ref(null);
+// A local object URL for the document bytes fetched through the authenticated content endpoint, never a stored link.
 const activeDoc = ref(null);
 const activeDocTitle = ref("");
+const activeDocIsImage = ref(false);
+const activeDocLoading = ref(false);
+const activeDocError = ref("");
 const docZoom = ref(1);
 const docRotation = ref(0);
-const isImageDoc = computed(() => {
-  if (!activeDoc.value) return false;
-  console.log("Checking if document is image with URL:", activeDoc.value);
-  return /\.(png|jpe?g|gif|webp|svg|bmp|ico)(\?.*)?$/i.test(activeDoc.value);
-});
+const isImageDoc = computed(() => activeDocIsImage.value);
 
 // Modals
 const showRejectModal = ref(false);
@@ -105,7 +107,7 @@ const auditSections = computed(() => [
       { key: "storefrontUrl", label: "Store Link", value: detail.value?.businessProfile?.storefrontUrl },
       { key: "website", field: "website", label: "Website", value: detail.value?.businessProfile?.website },
       { key: "description", field: "businessDescription", label: "Business Description", value: detail.value?.businessProfile?.description, full: true },
-      { key: "cacDocumentUrl", label: "CAC Document", value: detail.value?.businessProfile?.cacDocumentUrl, isDoc: true, docTitle: "CAC Document", documentType: "CAC_DOCUMENT", verified: detail.value?.businessProfile?.cacDocumentVerified },
+      { key: "cacDocumentUrl", label: "CAC Document", fileId: detail.value?.businessProfile?.cacDocumentFileId, onFile: detail.value?.businessProfile?.cacDocumentOnFile, isDoc: true, docTitle: "CAC Document", documentType: "CAC_DOCUMENT", verified: detail.value?.businessProfile?.cacDocumentVerified },
     ],
   },
   {
@@ -121,9 +123,9 @@ const auditSections = computed(() => [
       { key: "idType", label: "ID Type", value: detail.value?.owner?.idType },
       { key: "idNumber", label: "ID Number", value: detail.value?.owner?.idNumber },
       { key: "address", label: "Address", value: detail.value?.owner?.address, full: true },
-      { key: "idDocumentUrl", label: "ID Document", value: detail.value?.owner?.idDocumentUrl, isDoc: true, docTitle: "ID Document", documentType: "ID_DOCUMENT", verified: detail.value?.owner?.idDocumentVerified },
-      { key: "proofOfAddressUrl", field: "proofOfAddress", label: "Proof of Address", value: detail.value?.owner?.proofOfAddressUrl, isDoc: true, docTitle: "Proof of Address", documentType: "PROOF_OF_ADDRESS", verified: detail.value?.owner?.proofOfAddressVerified },
-      { key: "profileUrl", field: "profileUrl", label: "Profile Photo", value: detail.value?.owner?.profileUrl, isDoc: true, docTitle: "Profile Photo", documentType: "PROFILE_IMAGE", verified: detail.value?.owner?.profileImageVerified },
+      { key: "idDocumentUrl", label: "ID Document", fileId: detail.value?.owner?.idDocumentFileId, onFile: detail.value?.owner?.idDocumentOnFile, isDoc: true, docTitle: "ID Document", documentType: "ID_DOCUMENT", verified: detail.value?.owner?.idDocumentVerified },
+      { key: "proofOfAddressUrl", field: "proofOfAddress", label: "Proof of Address", fileId: detail.value?.owner?.proofOfAddressFileId, onFile: detail.value?.owner?.proofOfAddressOnFile, isDoc: true, docTitle: "Proof of Address", documentType: "PROOF_OF_ADDRESS", verified: detail.value?.owner?.proofOfAddressVerified },
+      { key: "profileUrl", field: "profileUrl", label: "Profile Photo", fileId: detail.value?.owner?.profileFileId, onFile: detail.value?.owner?.profileImageOnFile, isDoc: true, docTitle: "Profile Photo", documentType: "PROFILE_IMAGE", verified: detail.value?.owner?.profileImageVerified },
     ],
   },
   {
@@ -247,12 +249,39 @@ function handleInlineTemplateSelect(flagKey, code) {
   flags.value[flagKey].note = template.message || "";
 }
 
-function viewDoc(url, title) {
-  activeDoc.value = url;
-  activeDocTitle.value = title;
+function clearActiveDoc() {
+  releaseCredentialDocument(activeDoc.value);
+  activeDoc.value = null;
+  activeDocIsImage.value = false;
+  showFullscreenDoc.value = false;
+}
+
+async function viewDoc(field) {
+  clearActiveDoc();
+  activeDocTitle.value = field.docTitle;
+  activeDocError.value = "";
   docZoom.value = 1;
   docRotation.value = 0;
+  if (!field.fileId) {
+    activeDocError.value = "This document was uploaded before documents were stored privately, so it cannot be shown. Ask the merchant to upload it again.";
+    documentViewerPanel.value?.scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+  activeDocLoading.value = true;
+  // The viewer sits below the rejection templates, so bring it into view or the click looks like it did nothing.
+  documentViewerPanel.value?.scrollIntoView({ behavior: "smooth", block: "center" });
+  try {
+    const document = await loadCredentialDocument(field.fileId);
+    activeDoc.value = document.objectUrl;
+    activeDocIsImage.value = document.contentType.startsWith("image/");
+  } catch (error) {
+    activeDocError.value = error.message;
+  } finally {
+    activeDocLoading.value = false;
+  }
 }
+
+onBeforeUnmount(clearActiveDoc);
 
 function openRejectModal() {
   showRejectModal.value = true;
@@ -421,8 +450,8 @@ onMounted(async () => {
     }
   }
 
-  const cac = store.detail?.businessProfile?.cacDocumentUrl;
-  if (cac) viewDoc(cac, "CAC Document");
+  const cacField = auditSections.value[0].fields.find((field) => field.documentType === "CAC_DOCUMENT");
+  if (cacField?.fileId) viewDoc(cacField);
 });
 
 watch(
@@ -536,9 +565,9 @@ watch(
                       </span>
                       <span
                         v-else-if="field.verified === false"
-                        class="mb-[0.6rem] inline-flex items-center gap-[0.3rem] rounded-full bg-red-100 px-[0.8rem] py-[0.2rem] text-[1.1rem] font-[600] text-red-700"
+                        class="mb-[0.6rem] inline-flex items-center gap-[0.3rem] rounded-full bg-amber-100 px-[0.8rem] py-[0.2rem] text-[1.1rem] font-[600] text-amber-700"
                       >
-                        <span class="material-symbols-outlined text-[1.4rem]">cancel</span> Rejected
+                        <span class="material-symbols-outlined text-[1.4rem]">pending</span> Not verified
                       </span>
                       <span
                         v-else
@@ -550,9 +579,9 @@ watch(
                       <!-- View link -->
                       <div class="mt-[0.4rem] mb-[0.8rem]">
                         <button
-                          v-if="field.value"
+                          v-if="field.onFile"
                           class="flex items-center gap-[0.4rem] text-[1.3rem] font-[600] text-primary underline hover:no-underline"
-                          @click="viewDoc(field.value, field.docTitle)"
+                          @click="viewDoc(field)"
                         >
                           <span class="material-symbols-outlined text-[1.6rem]">visibility</span>
                           View {{ field.docTitle }}
@@ -561,7 +590,7 @@ watch(
                       </div>
 
                       <!-- Per-document actions -->
-                      <div v-if="field.value && field.documentType" class="flex items-center gap-[0.6rem]">
+                      <div v-if="field.onFile && field.documentType" class="flex items-center gap-[0.6rem]">
                         <button
                           :disabled="docReviewLoading[field.documentType]"
                           class="flex items-center gap-[0.3rem] rounded-[6px] border border-green-400 px-[0.8rem] py-[0.4rem] text-[1.2rem] font-[600] text-green-700 transition-colors hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
@@ -760,7 +789,7 @@ watch(
         </div>
 
         <!-- Document Viewer -->
-        <div class="overflow-hidden rounded-[10px] border border-slate-200 bg-white">
+        <div ref="documentViewerPanel" class="overflow-hidden rounded-[10px] border border-slate-200 bg-white">
           <div class="flex items-center justify-between border-b border-slate-100 px-[1.6rem] py-[1rem]">
             <p class="text-[1.4rem] font-[700] text-[#000]">
               {{ activeDocTitle || "Document Viewer" }}
@@ -815,6 +844,14 @@ watch(
                 class="h-[38rem] w-[28rem] border-0 bg-white"
                 title="Document preview"
               />
+            </div>
+            <div v-else-if="activeDocLoading" class="flex flex-col items-center gap-[0.8rem] text-slate-400">
+              <span class="animate-spin material-symbols-outlined text-[4rem]">progress_activity</span>
+              <p class="text-[1.3rem]">Loading document...</p>
+            </div>
+            <div v-else-if="activeDocError" class="flex max-w-[28rem] flex-col items-center gap-[0.8rem] px-[1.6rem] text-center text-red-600">
+              <span class="material-symbols-outlined text-[4rem]">error</span>
+              <p class="text-[1.3rem]">{{ activeDocError }}</p>
             </div>
             <div v-else class="flex flex-col items-center gap-[0.8rem] text-slate-400">
               <span class="material-symbols-outlined text-[4rem]">article</span>

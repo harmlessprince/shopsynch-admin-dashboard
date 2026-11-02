@@ -546,11 +546,7 @@ async function checkRetiredPlanEvent() {
           </div>
           <div class="col-span-2 rounded-[8px] border border-slate-100 p-[1.2rem]">
             <p class="mb-[0.4rem] text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">CAC Document</p>
-            <a v-if="m.cacDocumentUrl" :href="m.cacDocumentUrl" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-[0.4rem] font-[600] text-primary underline hover:no-underline">
-              <span class="material-symbols-outlined text-[1.6rem]">open_in_new</span>
-              View CAC Document
-            </a>
-            <p v-else class="italic text-slate-400">Not uploaded</p>
+            <DashboardCredentialDocumentLink label="CAC Document" :file-id="m.cacDocumentFileId" :on-file="m.cacDocumentOnFile" />
           </div>
         </div>
       </div>
@@ -979,11 +975,7 @@ async function checkRetiredPlanEvent() {
                 <p class="text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">ID Document</p>
                 <span v-if="m.owner.idDocumentVerified" class="text-[1.1rem] font-[700] text-emerald-600">Verified</span>
               </div>
-              <a v-if="m.owner.idDocumentUrl" :href="m.owner.idDocumentUrl" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-[0.4rem] font-[600] text-primary underline hover:no-underline">
-                <span class="material-symbols-outlined text-[1.6rem]">open_in_new</span>
-                View ID Document
-              </a>
-              <p v-else class="italic text-slate-400">Not uploaded</p>
+              <DashboardCredentialDocumentLink label="ID Document" :file-id="m.owner.idDocumentFileId" :on-file="m.owner.idDocumentOnFile" />
             </div>
 
             <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
@@ -991,11 +983,7 @@ async function checkRetiredPlanEvent() {
                 <p class="text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">Owner Photo / Selfie</p>
                 <span v-if="m.owner.profileImageVerified" class="text-[1.1rem] font-[700] text-emerald-600">Verified</span>
               </div>
-              <a v-if="m.owner.profileUrl" :href="m.owner.profileUrl" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-[0.4rem] font-[600] text-primary underline hover:no-underline">
-                <span class="material-symbols-outlined text-[1.6rem]">open_in_new</span>
-                View Photo
-              </a>
-              <p v-else class="italic text-slate-400">Not uploaded</p>
+              <DashboardCredentialDocumentLink label="Photo" :file-id="m.owner.profileFileId" :on-file="m.owner.profileImageOnFile" />
             </div>
 
             <div class="rounded-[8px] border border-slate-100 p-[1.2rem]">
@@ -1003,11 +991,7 @@ async function checkRetiredPlanEvent() {
                 <p class="text-[1.1rem] font-[600] uppercase tracking-wider text-[#616161]">Proof of Address</p>
                 <span v-if="m.owner.proofOfAddressVerified" class="text-[1.1rem] font-[700] text-emerald-600">Verified</span>
               </div>
-              <a v-if="m.owner.proofOfAddress" :href="m.owner.proofOfAddress" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-[0.4rem] font-[600] text-primary underline hover:no-underline">
-                <span class="material-symbols-outlined text-[1.6rem]">open_in_new</span>
-                View Proof of Address
-              </a>
-              <p v-else class="italic text-slate-400">Not uploaded</p>
+              <DashboardCredentialDocumentLink label="Proof of Address" :file-id="m.owner.proofOfAddressFileId" :on-file="m.owner.proofOfAddressOnFile" />
             </div>
           </div>
         </div>

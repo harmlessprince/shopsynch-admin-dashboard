@@ -149,13 +149,9 @@
               <span v-if="uploadingDoc" class="text-[1.2rem] text-primary">Uploading...</span>
             </label>
             <div class="flex items-center gap-3">
-              <input
-                v-model="form.cacDocumentUrl"
-                type="text"
-                placeholder="Document URL or upload file"
-                class="flex-1 h-12 rounded-xl border border-slate-200 px-4 text-[1.3rem] text-[#1B1B19] focus:border-primary focus:outline-none"
-                required
-              >
+              <p class="flex-1 h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-[1.3rem] text-slate-600 flex items-center">
+                {{ uploadedName ? `New file ready: ${uploadedName}` : (props.merchant?.cacDocumentOnFile ? 'A document is on file. Upload a file to replace it.' : 'No document uploaded yet') }}
+              </p>
               <label class="h-12 px-4 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 cursor-pointer flex items-center gap-2 text-[1.3rem] font-semibold text-slate-700">
                 <span class="material-symbols-outlined text-[1.8rem]">upload_file</span>
                 <span>Upload</span>
@@ -194,7 +190,7 @@ import { ref, reactive, watch } from 'vue'
 import { VueFinalModal, useModal } from 'vue-final-modal'
 import { useAdminMerchantsStore } from '~/stores/adminMerchants.store.js'
 import { useToastStore } from '~/stores/toast.store.js'
-import { handleFileUpload } from '~/utils/helpers.js'
+import { handleCredentialUpload } from '~/utils/helpers.js'
 import ConfirmModal from '~/components/Modals/ConfirmModal.vue'
 
 const props = defineProps({
@@ -208,6 +204,7 @@ const adminMerchantsStore = useAdminMerchantsStore()
 const toastStore = useToastStore()
 
 const isSubmitting = ref(false)
+const uploadedName = ref('')
 const uploadingDoc = ref(false)
 
 const form = reactive({
@@ -220,7 +217,7 @@ const form = reactive({
   businessTaxIdNumber: '',
   businessExpectedMonthlyIncome: '',
   staffSize: '',
-  cacDocumentUrl: '',
+  cacDocumentFileId: '',
 })
 
 function populateForm(m) {
@@ -234,7 +231,7 @@ function populateForm(m) {
   form.businessTaxIdNumber = m.businessTaxIdNumber || ''
   form.businessExpectedMonthlyIncome = m.businessExpectedMonthlyIncome ? String(m.businessExpectedMonthlyIncome) : ''
   form.staffSize = m.staffSize || ''
-  form.cacDocumentUrl = m.cacDocumentUrl || ''
+  form.cacDocumentFileId = m.cacDocumentFileId || ''
 }
 
 watch(
@@ -257,9 +254,10 @@ function generateRandomCode(length = 6) {
 async function uploadFile(e) {
   uploadingDoc.value = true
   try {
-    const url = await handleFileUpload(e, props.tenantId)
-    if (url) {
-      form.cacDocumentUrl = url
+    const stored = await handleCredentialUpload(e, 'cac_document', props.tenantId)
+    if (stored) {
+      form.cacDocumentFileId = stored.id
+      uploadedName.value = stored.name
       toastStore.success('CAC document uploaded successfully', '')
     }
   } catch {
@@ -289,7 +287,7 @@ async function executeSubmit(close) {
       businessTaxIdNumber: form.businessTaxIdNumber || undefined,
       businessExpectedMonthlyIncome: form.businessExpectedMonthlyIncome || undefined,
       staffSize: form.staffSize || undefined,
-      cacDocumentUrl: form.cacDocumentUrl || undefined,
+      cacDocumentFileId: form.cacDocumentFileId || undefined,
     }
 
     await adminMerchantsStore.updateBusinessProfile(props.tenantId, payload)
