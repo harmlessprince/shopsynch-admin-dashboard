@@ -113,6 +113,42 @@ export const handleFileUpload = async (eventOrFile, explicitTenantId = null) => 
   } 
 };
 
+/**
+ * Uploads an identity or compliance document as a private credential on behalf of a merchant and returns its file id.
+ * No link to the document exists: show it later through useCredentialDocument.
+ *
+ * @param eventOrFile a file input change event or a File
+ * @param purpose one of id_document, selfie, proof_of_address, cac_document
+ * @param tenantId the merchant the document belongs to
+ * @returns {Promise<{id: string, name: string}|null>} the stored file, or null when nothing was uploaded
+ */
+export const handleCredentialUpload = async (eventOrFile, purpose, tenantId) => {
+  const file = eventOrFile instanceof File ? eventOrFile : eventOrFile?.target?.files?.[0];
+  if (!file) return null;
+
+  if (file.size > 2 * 1024 * 1024) {
+    alert('File size must be less than 2MB');
+    return null;
+  }
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('purpose', purpose);
+  formData.append('tenantId', tenantId);
+
+  try {
+    const { post } = useApiService();
+    const response = await post(endpoints.admin.files.uploadCredential, formData, {
+      forceMode: 'live',
+      headers: { 'X-TenantId': tenantId, 'X-MerchantId': tenantId },
+    });
+    return response?.data?.id ? { id: response.data.id, name: file.name } : null;
+  } catch (error) {
+    logger.error('Credential upload failed:', error);
+    return null;
+  }
+};
+
 export const generateStorefrontUrl = (tradingName) => {
   if (!tradingName) return ''
   const slug = tradingName

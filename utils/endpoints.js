@@ -67,6 +67,8 @@ export const endpoints = {
             uploadSingle: "/v1/admin/files/upload/single/image",
             upload: "/v1/admin/files/upload",
             uploadMultiple: "/v1/admin/files/upload/multiple/images",
+            uploadCredential: "/v1/admin/files/upload/credential",
+            credentialContent: "/v1/admin/files/:fileId/content",
         },
         dashboard: {
             overview: "/v1/admin/dashboard/overview",
