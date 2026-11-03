@@ -67,6 +67,8 @@ export const endpoints = {
             uploadSingle: "/v1/admin/files/upload/single/image",
             upload: "/v1/admin/files/upload",
             uploadMultiple: "/v1/admin/files/upload/multiple/images",
+            uploadCredential: "/v1/admin/files/upload/credential",
+            credentialContent: "/v1/admin/files/:fileId/content",
         },
         dashboard: {
             overview: "/v1/admin/dashboard/overview",
@@ -262,6 +264,14 @@ export const endpoints = {
                 summary: "/v1/admin/billing/shadow/summary",
                 entries: "/v1/admin/billing/shadow/entries",
             },
+        },
+        affiliates: {
+            list: "/v1/admin/affiliates",
+            approve: "/v1/admin/affiliates/:affiliateId/approve",
+            reject: "/v1/admin/affiliates/:affiliateId/reject",
+            commissions: "/v1/admin/affiliates/commissions",
+            markCommissionPaid: "/v1/admin/affiliates/commissions/:entryId/mark-paid",
+            settings: "/v1/admin/affiliates/settings",
         },
         analytics: {
             summary: "/v1/admin/analytics/summary",
