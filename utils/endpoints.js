@@ -265,6 +265,14 @@ export const endpoints = {
                 entries: "/v1/admin/billing/shadow/entries",
             },
         },
+        affiliates: {
+            list: "/v1/admin/affiliates",
+            approve: "/v1/admin/affiliates/:affiliateId/approve",
+            reject: "/v1/admin/affiliates/:affiliateId/reject",
+            commissions: "/v1/admin/affiliates/commissions",
+            markCommissionPaid: "/v1/admin/affiliates/commissions/:entryId/mark-paid",
+            settings: "/v1/admin/affiliates/settings",
+        },
         analytics: {
             summary: "/v1/admin/analytics/summary",
             runRollup: "/v1/admin/analytics/rollups/run",

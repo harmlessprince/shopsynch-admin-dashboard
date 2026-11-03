@@ -49,6 +49,8 @@ watch(
       currentPageTitle.value = "Feature Flags";
     } else if (newPath.includes("/dashboard/billing")) {
       currentPageTitle.value = "Billing";
+    } else if (newPath.includes("/dashboard/affiliates")) {
+      currentPageTitle.value = "Affiliates";
     } else if (newPath.includes("/dashboard/categories")) {
       currentPageTitle.value = "Categories";
     } else if (newPath.includes("/dashboard/notifications")) {
@@ -175,6 +177,14 @@ const dashboardSidebarMenu = [
     icon: "payments",
     activeIcon: "payments",
     link: "/dashboard/billing/plans",
+    comingSoon: false,
+  },
+  {
+    key: "affiliates",
+    name: "Affiliates",
+    icon: "diversity_3",
+    activeIcon: "diversity_3",
+    link: "/dashboard/affiliates",
     comingSoon: false,
   },
   {
