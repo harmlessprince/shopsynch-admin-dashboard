@@ -13,6 +13,9 @@ useHead({
 });
 
 const affiliatesStore = useAdminAffiliatesStore();
+const toastStore = useToastStore();
+
+const MERCHANT_SIGNUP_REFERRAL_URL = "https://dashboard.shopsynch.com/register?ref=";
 
 const activeTab = ref("partners");
 
@@ -96,6 +99,45 @@ function syncSettingsForm(settingsData) {
   settingsForm.maxApprovedAffiliates = String(settingsData.maxApprovedAffiliates ?? 20);
 }
 
+// No more partners can be approved once the cohort is full; the cap is raised in Programme Settings.
+const cohortFull = computed(() => {
+  const settings = affiliatesStore.settings;
+  return Boolean(settings) && settings.approvedAffiliatesCount >= settings.maxApprovedAffiliates;
+});
+
+const commissionFilterPartnerName = computed(() => {
+  const filteredId = affiliatesStore.commissionAffiliateIdFilter;
+  return affiliatesStore.affiliates.find((affiliate) => affiliate.id === filteredId)?.fullName
+    || affiliatesStore.commissions[0]?.affiliateName
+    || "one partner";
+});
+
+const approvedPartnersCount = computed(() => affiliatesStore.settings?.approvedAffiliatesCount ?? 0);
+
+const capBelowApprovedMessage = computed(() => {
+  const cap = Number(settingsForm.maxApprovedAffiliates);
+  return Number.isFinite(cap) && cap < approvedPartnersCount.value
+    ? `${approvedPartnersCount.value} partners are already approved, so the cap cannot be lower than that.`
+    : "";
+});
+
+// Local numbers (0801...) become the international form WhatsApp links need (23480...).
+function whatsappLink(phoneNumber) {
+  const digits = String(phoneNumber || "").replace(/\D/g, "");
+  if (!digits) return "";
+  const international = digits.startsWith("0") ? `234${digits.slice(1)}` : digits;
+  return `https://wa.me/${international}`;
+}
+
+async function copyToClipboard(text, successMessage) {
+  try {
+    await navigator.clipboard.writeText(text);
+    toastStore.success(successMessage, "");
+  } catch {
+    toastStore.error("Could not copy. Select the text and copy it manually.", "");
+  }
+}
+
 function partnerStatusMeta(status) {
   return affiliateStatusBadge[status] || { label: status, badge: "bg-gray-100 text-gray-600" };
 }
@@ -166,6 +208,7 @@ async function submitMarkPaid() {
 }
 
 async function saveProgrammeSettings() {
+  if (capBelowApprovedMessage.value) return;
   const saved = await affiliatesStore.updateSettings({
     commissionPercentage: Number(settingsForm.commissionPercentage),
     maxCommissionPaymentsPerMerchant: Number(settingsForm.maxCommissionPaymentsPerMerchant),
@@ -274,6 +317,12 @@ onMounted(async () => {
         </div>
       </section>
 
+      <p v-if="cohortFull" class="rounded-[8px] bg-[#FFF0C2] p-[1.2rem] font-[600] text-[#8A5A00]">
+        The partner cohort is full ({{ approvedPartnersCount }} of {{ affiliatesStore.settings.maxApprovedAffiliates }}).
+        Pending applications cannot be approved until you
+        <button type="button" class="underline" @click="activeTab = 'settings'">raise the cap in Programme Settings</button>.
+      </p>
+
       <p v-if="affiliatesStore.affiliatesError" class="rounded-[8px] bg-[#FFBFBF] p-[1.2rem] font-[600] text-[#B42318]">
         {{ affiliatesStore.affiliatesError }}
       </p>
@@ -297,7 +346,13 @@ onMounted(async () => {
           <template #cell(fullName)="{ row }">
             <p class="font-[700] text-[#121212]">{{ row.fullName }}</p>
             <p class="text-[1.2rem] text-[#616161]">{{ row.email }}</p>
-            <p class="text-[1.2rem] text-[#616161]">{{ row.phoneNumber }}</p>
+            <a
+              :href="whatsappLink(row.phoneNumber)"
+              target="_blank"
+              rel="noopener"
+              class="text-[1.2rem] text-primary hover:underline"
+              title="Message on WhatsApp"
+            >{{ row.phoneNumber }}</a>
           </template>
 
           <template #cell(occupation)="{ row }">
@@ -325,6 +380,18 @@ onMounted(async () => {
               <p class="text-[1.2rem] text-[#616161]">
                 {{ row.commissionPercentage }}% · first {{ row.maxCommissionPaymentsPerMerchant }} payments
               </p>
+              <div class="mt-[0.4rem] flex gap-[1rem] text-[1.2rem]">
+                <button type="button" class="text-primary hover:underline" @click="copyToClipboard(row.referralCode, 'Referral code copied')">
+                  Copy code
+                </button>
+                <button
+                  type="button"
+                  class="text-primary hover:underline"
+                  @click="copyToClipboard(MERCHANT_SIGNUP_REFERRAL_URL + row.referralCode, 'Signup link copied')"
+                >
+                  Copy signup link
+                </button>
+              </div>
             </template>
             <span v-else class="text-[#9CA3AF]">&mdash;</span>
           </template>
@@ -348,6 +415,7 @@ onMounted(async () => {
                   radius="8px"
                   variant="primary"
                   :loading="affiliatesStore.actingAffiliateId === row.id"
+                  :disabled="cohortFull"
                   @click="openApproveModal(row)"
                 >
                   Approve
@@ -398,7 +466,7 @@ onMounted(async () => {
               variant="outline"
               @click="affiliatesStore.fetchCommissions({ page: 0, affiliateId: '' })"
             >
-              Clear Affiliate Filter ({{ affiliatesStore.commissionAffiliateIdFilter }})
+              Show all partners (filtered to {{ commissionFilterPartnerName }})
             </BaseButton>
           </div>
           <BaseButton
@@ -434,12 +502,13 @@ onMounted(async () => {
           @change-limit="affiliatesStore.fetchCommissions({ page: 0, size: $event })"
         >
           <template #cell(affiliateId)="{ row }">
-            <span class="font-mono text-[1.2rem] text-[#121212]">{{ row.affiliateId }}</span>
+            <p class="font-[700] text-[#121212]">{{ row.affiliateName || "Unknown partner" }}</p>
+            <p class="font-mono text-[1.1rem] text-[#9CA3AF]">{{ row.affiliateId }}</p>
           </template>
 
           <template #cell(referredTenantId)="{ row }">
             <NuxtLink :to="`/dashboard/merchants/${row.referredTenantId}`" class="font-[700] text-primary hover:underline">
-              {{ row.referredTenantId }}
+              {{ row.referredStoreName || row.referredTenantId }}
             </NuxtLink>
             <p class="text-[1.2rem] text-[#616161]">Payment #{{ row.paymentSequenceNumber }}</p>
           </template>
@@ -525,11 +594,14 @@ onMounted(async () => {
             type="number"
             label="Maximum Approved Affiliate Partners (Cohort Cap)"
             placeholder="20"
-            :error="fieldError(affiliatesStore.settingsErrors, 'maxApprovedAffiliates')"
+            :error="capBelowApprovedMessage || fieldError(affiliatesStore.settingsErrors, 'maxApprovedAffiliates')"
           />
+          <p class="-mt-[0.8rem] text-[1.2rem] text-[#616161]">
+            {{ approvedPartnersCount }} partners are approved today. Lowering the cap never removes them; it only stops new approvals.
+          </p>
 
           <div class="pt-[0.8rem]">
-            <BaseButton type="submit" radius="8px" variant="primary" :loading="affiliatesStore.settingsSaving">
+            <BaseButton type="submit" radius="8px" variant="primary" :loading="affiliatesStore.settingsSaving" :disabled="Boolean(capBelowApprovedMessage)">
               Save Settings
             </BaseButton>
           </div>
