@@ -26,8 +26,8 @@
         <!-- Loading State -->
         <div v-if="loading && !profile" class="flex items-center gap-3 py-4 text-gray-500">
           <svg class="animate-spin h-5 w-5 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
           </svg>
           <span class="text-xs">Loading profile...</span>
         </div>
@@ -193,10 +193,11 @@ async function fetchProfile() {
 
   try {
     const endpoint = endpoints.admin.merchants.preview.replace(":tenantId", props.tenantId);
-    const res = await get(endpoint);
-    if (res && res.data) {
-      tenantPreviewCache.set(props.tenantId, res.data);
-      profile.value = res.data;
+    const res = await get(endpoint, {}, { forceMode: "live" });
+    const profileData = res?.data || res;
+    if (profileData) {
+      tenantPreviewCache.set(props.tenantId, profileData);
+      profile.value = profileData;
     } else {
       error.value = "Failed to load preview";
     }

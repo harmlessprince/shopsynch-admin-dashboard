@@ -227,6 +227,20 @@ export const endpoints = {
                 tenantAuditLogs: "/v1/admin/billing/subscriptions/tenants/:tenantId/audit-logs",
                 auditLogs: "/v1/admin/billing/subscriptions/audit-logs",
                 resyncToTest: "/v1/admin/billing/subscriptions/resync-to-test",
+                priceLock: "/v1/admin/billing/subscriptions/tenants/:tenantId/price-lock",
+                priceLockRestore: "/v1/admin/billing/subscriptions/tenants/:tenantId/price-lock/restore",
+                priceLockRevoke: "/v1/admin/billing/subscriptions/tenants/:tenantId/price-lock/revoke",
+                status: "/v1/admin/billing/subscriptions/tenants/:tenantId/status",
+            },
+            paymentAttempts: {
+                list: "/v1/admin/billing/payment-attempts",
+                detail: "/v1/admin/billing/payment-attempts/:attemptId",
+                verify: "/v1/admin/billing/payment-attempts/:attemptId/verify",
+                abandon: "/v1/admin/billing/payment-attempts/:attemptId/abandon",
+            },
+            payments: {
+                list: "/v1/admin/billing/payments",
+                detail: "/v1/admin/billing/payments/:paymentId",
             },
             overrides: {
                 apply: "/v1/admin/billing/overrides",
