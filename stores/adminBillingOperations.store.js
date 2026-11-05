@@ -5,7 +5,7 @@ import { useToastStore } from "~/stores/toast.store.js";
 import { logger } from "~/utils/helpers.js";
 
 export const useAdminBillingOperationsStore = defineStore("adminBillingOperationsStore", () => {
-    const { get, post, patch } = useApiService();
+    const { get, post, patch, put } = useApiService();
     const toastStore = useToastStore();
 
     const loadingSnapshot = ref(false);
@@ -27,6 +27,19 @@ export const useAdminBillingOperationsStore = defineStore("adminBillingOperation
     const generatedCode = ref(null);
     const updatedSubscription = ref(null);
 
+    // Price lock & subscription status state
+    const priceLock = ref(null);
+    const loadingPriceLock = ref(false);
+    const priceLockError = ref("");
+    const grantingPriceLock = ref(false);
+    const restoringPriceLock = ref(false);
+    const revokingPriceLock = ref(false);
+    const priceLockActionError = ref("");
+    const priceLockValidationErrors = ref({});
+    const changingStatus = ref(false);
+    const statusActionError = ref("");
+    const statusValidationErrors = ref({});
+
     function normalizeData(response) {
         return response?.data || response || null;
     }
@@ -39,7 +52,10 @@ export const useAdminBillingOperationsStore = defineStore("adminBillingOperation
             const url = endpoints.admin.billing.subscriptions.tenantSnapshot.replace(":tenantId", tenantId);
             const response = await get(url, { recentEventLimit: 20 }, { forceMode: "live" });
             tenantSnapshot.value = normalizeData(response);
-            await fetchTenantInvoices(tenantId);
+            await Promise.allSettled([
+                fetchTenantInvoices(tenantId),
+                fetchPriceLock(tenantId),
+            ]);
             return tenantSnapshot.value;
         } catch (error) {
             logger.error("Failed to load tenant billing snapshot", error);
@@ -48,6 +64,128 @@ export const useAdminBillingOperationsStore = defineStore("adminBillingOperation
             return null;
         } finally {
             loadingSnapshot.value = false;
+        }
+    }
+
+    async function fetchPriceLock(tenantId) {
+        if (!tenantId) {
+            priceLock.value = null;
+            return null;
+        }
+        loadingPriceLock.value = true;
+        priceLockError.value = "";
+        try {
+            const url = endpoints.admin.billing.subscriptions.priceLock.replace(":tenantId", tenantId);
+            const response = await get(url, {}, { forceMode: "live" });
+            priceLock.value = normalizeData(response);
+            return priceLock.value;
+        } catch (error) {
+            logger.error("Failed to load tenant price lock", error);
+            priceLock.value = null;
+            priceLockError.value = error?.data?.message || error?.message || "Tenant price lock could not be loaded.";
+            return null;
+        } finally {
+            loadingPriceLock.value = false;
+        }
+    }
+
+    async function grantPriceLock(tenantId, payload) {
+        if (!tenantId) return null;
+        grantingPriceLock.value = true;
+        priceLockActionError.value = "";
+        priceLockValidationErrors.value = {};
+        try {
+            const url = endpoints.admin.billing.subscriptions.priceLock.replace(":tenantId", tenantId);
+            const response = await put(url, payload, { forceMode: "live" });
+            const data = normalizeData(response);
+            priceLock.value = data;
+            toastStore.success(response?.message || "Price lock granted successfully", "");
+            await fetchTenantSnapshot(tenantId);
+            return data;
+        } catch (error) {
+            logger.error("Failed to grant price lock", error);
+            if (error?.status === 422 || error?.statusCode === 422 || error?.data?.errorCode === "VALIDATION_ERROR") {
+                priceLockValidationErrors.value = error?.data?.errors || {};
+            }
+            priceLockActionError.value = error?.data?.message || error?.message || "Failed to grant price lock.";
+            return null;
+        } finally {
+            grantingPriceLock.value = false;
+        }
+    }
+
+    async function restorePriceLock(tenantId, reason) {
+        if (!tenantId) return null;
+        restoringPriceLock.value = true;
+        priceLockActionError.value = "";
+        priceLockValidationErrors.value = {};
+        try {
+            const url = endpoints.admin.billing.subscriptions.priceLockRestore.replace(":tenantId", tenantId);
+            const response = await post(url, { reason }, { forceMode: "live" });
+            const data = normalizeData(response);
+            priceLock.value = data;
+            toastStore.success(response?.message || "Price lock restored successfully", "");
+            await fetchTenantSnapshot(tenantId);
+            return data;
+        } catch (error) {
+            logger.error("Failed to restore price lock", error);
+            if (error?.status === 422 || error?.statusCode === 422) {
+                priceLockValidationErrors.value = error?.data?.errors || {};
+            }
+            priceLockActionError.value = error?.data?.message || error?.message || "Failed to restore price lock.";
+            return null;
+        } finally {
+            restoringPriceLock.value = false;
+        }
+    }
+
+    async function revokePriceLock(tenantId, reason) {
+        if (!tenantId) return null;
+        revokingPriceLock.value = true;
+        priceLockActionError.value = "";
+        priceLockValidationErrors.value = {};
+        try {
+            const url = endpoints.admin.billing.subscriptions.priceLockRevoke.replace(":tenantId", tenantId);
+            const response = await post(url, { reason }, { forceMode: "live" });
+            const data = normalizeData(response);
+            priceLock.value = data;
+            toastStore.success(response?.message || "Price lock revoked successfully", "");
+            await fetchTenantSnapshot(tenantId);
+            return data;
+        } catch (error) {
+            logger.error("Failed to revoke price lock", error);
+            if (error?.status === 422 || error?.statusCode === 422) {
+                priceLockValidationErrors.value = error?.data?.errors || {};
+            }
+            priceLockActionError.value = error?.data?.message || error?.message || "Failed to revoke price lock.";
+            return null;
+        } finally {
+            revokingPriceLock.value = false;
+        }
+    }
+
+    async function changeSubscriptionStatus(tenantId, status, reason) {
+        if (!tenantId) return null;
+        changingStatus.value = true;
+        statusActionError.value = "";
+        statusValidationErrors.value = {};
+        try {
+            const url = endpoints.admin.billing.subscriptions.status.replace(":tenantId", tenantId);
+            const response = await patch(url, { status, reason }, { forceMode: "live" });
+            const data = normalizeData(response);
+            updatedSubscription.value = data;
+            toastStore.success(response?.message || `Subscription status updated to ${status}`, "");
+            await fetchTenantSnapshot(tenantId);
+            return data;
+        } catch (error) {
+            logger.error("Failed to change subscription status", error);
+            if (error?.status === 422 || error?.statusCode === 422) {
+                statusValidationErrors.value = error?.data?.errors || {};
+            }
+            statusActionError.value = error?.data?.message || error?.message || "Failed to change subscription status.";
+            return null;
+        } finally {
+            changingStatus.value = false;
         }
     }
 
@@ -219,6 +357,10 @@ export const useAdminBillingOperationsStore = defineStore("adminBillingOperation
     function resetActionState() {
         actionError.value = "";
         invoicesError.value = "";
+        priceLockActionError.value = "";
+        statusActionError.value = "";
+        priceLockValidationErrors.value = {};
+        statusValidationErrors.value = {};
         generatedCode.value = null;
         updatedSubscription.value = null;
     }
@@ -242,8 +384,24 @@ export const useAdminBillingOperationsStore = defineStore("adminBillingOperation
         tenantInvoices,
         generatedCode,
         updatedSubscription,
+        priceLock,
+        loadingPriceLock,
+        priceLockError,
+        grantingPriceLock,
+        restoringPriceLock,
+        revokingPriceLock,
+        priceLockActionError,
+        priceLockValidationErrors,
+        changingStatus,
+        statusActionError,
+        statusValidationErrors,
         fetchTenantSnapshot,
         fetchTenantInvoices,
+        fetchPriceLock,
+        grantPriceLock,
+        restorePriceLock,
+        revokePriceLock,
+        changeSubscriptionStatus,
         applyOverride,
         revokeOverride,
         generateExtensionCode,

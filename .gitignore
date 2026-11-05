@@ -26,3 +26,4 @@ logs
 template
 test-results/
 playwright-report/
+tests/e2e/screenshots/

@@ -153,6 +153,7 @@ onMounted(async () => {
 
 <template>
   <div class="space-y-[1.6rem] text-[1.4rem] text-dashboard_text_color">
+    <DashboardBillingTabs />
     <section class="rounded-[8px] bg-white p-[2rem] shadow-sm">
       <div class="flex flex-col gap-[1.6rem] lg:flex-row lg:items-center lg:justify-between">
         <div>
@@ -355,9 +356,15 @@ onMounted(async () => {
           empty-state-description="No store has redeemed this offer."
         >
           <template #cell(tenantId)="{ row }">
-            <NuxtLink :to="`/dashboard/merchants/${row.tenantId}`" class="font-[700] text-primary hover:underline">
-              {{ row.tenantId }}
-            </NuxtLink>
+            <TenantHoverCard
+              v-if="row.tenantId"
+              :tenant-id="row.tenantId"
+            />
+            <span v-else class="text-slate-400">N/A</span>
+          </template>
+
+          <template #cell(planCode)="{ row }">
+            <PlanLabel :plan-id="row.planCode" />
           </template>
 
           <template #cell(redeemedAt)="{ row }">

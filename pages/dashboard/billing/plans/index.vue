@@ -372,6 +372,7 @@ onMounted(async () => {
 
 <template>
   <div class="space-y-[1.6rem] text-[1.4rem] text-dashboard_text_color">
+    <DashboardBillingTabs />
     <section class="rounded-[8px] bg-white p-[2rem] shadow-sm">
       <div class="flex flex-col gap-[1.6rem] lg:flex-row lg:items-center lg:justify-between">
         <div>
@@ -390,6 +391,16 @@ onMounted(async () => {
           <NuxtLink to="/dashboard/billing/operations">
             <BaseButton radius="8px" variant="outline" class="whitespace-nowrap">
               Overrides & extensions
+            </BaseButton>
+          </NuxtLink>
+          <NuxtLink to="/dashboard/billing/payment-attempts">
+            <BaseButton radius="8px" variant="outline" class="whitespace-nowrap">
+              Payment attempts
+            </BaseButton>
+          </NuxtLink>
+          <NuxtLink to="/dashboard/billing/payments">
+            <BaseButton radius="8px" variant="outline" class="whitespace-nowrap">
+              Payments
             </BaseButton>
           </NuxtLink>
           <NuxtLink to="/dashboard/billing/offers">
