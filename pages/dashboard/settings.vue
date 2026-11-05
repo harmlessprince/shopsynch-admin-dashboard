@@ -14,7 +14,7 @@ const adminSettingsStore = useAdminSettingsStore();
 const toastStore = useToastStore();
 const displayModeCookie = useCookie("displayMode");
 
-const categories = ["PAYMENT", "URL", "EMAIL", "FEATURE_FLAG", "SYSTEM", "O_AUTH"];
+const categories = ["PAYMENT", "URL", "EMAIL", "FEATURE_FLAG", "SYSTEM", "O_AUTH", "ASSISTANT"];
 const valueTypes = ["STRING", "NUMBER", "BOOLEAN", "JSON"];
 const askAnalyticsLimitKey = "askAnalyticsDailyQuestionLimit";
 
