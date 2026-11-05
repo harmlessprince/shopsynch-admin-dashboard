@@ -47,6 +47,7 @@ onMounted(() => refundsStore.fetchRefunds({ page: 0 }));
 
 <template>
   <div class="space-y-[1.6rem] text-[1.4rem] text-dashboard_text_color">
+    <DashboardBillingTabs />
     <DashboardPaymentAlertEmailsWarning />
 
     <section class="rounded-[8px] bg-white p-[2rem] shadow-sm">
@@ -87,10 +88,12 @@ onMounted(() => refundsStore.fetchRefunds({ page: 0 }));
         @change-limit="refundsStore.fetchRefunds({ page: 0, limit: $event })"
       >
         <template #cell(tenantId)="{ row }">
-          <NuxtLink :to="`/dashboard/merchants/${row.tenantId}`" class="font-[700] text-primary hover:underline">
-            {{ row.tenantId }}
-          </NuxtLink>
-          <p class="text-[1.2rem] text-[#616161]">{{ row.transactionReference }}</p>
+          <TenantHoverCard
+            v-if="row.tenantId"
+            :tenant-id="row.tenantId"
+          />
+          <span v-else class="text-slate-400">N/A</span>
+          <p v-if="row.transactionReference" class="font-mono text-[1.2rem] text-slate-500 mt-[0.2rem]">{{ row.transactionReference }}</p>
         </template>
 
         <template #cell(amount)="{ row }">

@@ -99,6 +99,7 @@ onMounted(() => {
 
 <template>
   <div class="space-y-[1.6rem] text-[1.4rem] text-dashboard_text_color">
+    <DashboardBillingTabs />
     <DashboardPaymentAlertEmailsWarning />
 
     <section class="rounded-[8px] bg-white p-[2rem] shadow-sm">
@@ -160,9 +161,11 @@ onMounted(() => {
         @change-limit="loadEntries({ page: 0, limit: $event })"
       >
         <template #cell(tenantId)="{ row }">
-          <NuxtLink :to="`/dashboard/merchants/${row.tenantId}`" class="font-[700] text-primary hover:underline">
-            {{ row.tenantId }}
-          </NuxtLink>
+          <TenantHoverCard
+            v-if="row.tenantId"
+            :tenant-id="row.tenantId"
+          />
+          <span v-else class="text-slate-400">N/A</span>
         </template>
 
         <template #cell(providerReference)="{ row }">
