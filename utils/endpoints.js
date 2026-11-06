@@ -291,6 +291,15 @@ export const endpoints = {
             summary: "/v1/admin/analytics/summary",
             runRollup: "/v1/admin/analytics/rollups/run",
         },
+        assistantAnalytics: {
+            overview: "/v1/admin/assistant/analytics/overview",
+            timeseries: "/v1/admin/assistant/analytics/timeseries",
+            breakdown: "/v1/admin/assistant/analytics/breakdown",
+            tenants: "/v1/admin/assistant/analytics/tenants",
+            tenantStaff: "/v1/admin/assistant/analytics/tenants/:tenantId/staff",
+            tools: "/v1/admin/assistant/analytics/tools",
+            events: "/v1/admin/assistant/analytics/events",
+        },
         notifications: {
             preferences: "/v1/admin/notification-preferences",
             preferenceDetail: "/v1/admin/notification-preferences/:notifiableType/:notifiableId",

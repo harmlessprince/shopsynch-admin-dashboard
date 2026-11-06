@@ -90,10 +90,17 @@ function getMoneyNumber(value) {
   return digits ? Number(digits) : null
 }
 
+const isFocused = ref(false)
+// Raw text while typing, so "12." and "12.0" survive re-rendering
+const typed = ref(null)
+
+// Two decimals at rest (₦245,000.00); grouped text, up to 2 decimals, while typing
 const displayValue = computed(() => {
+  if (isFocused.value && typed.value !== null) return typed.value
   const parsed = getMoneyNumber(props.modelValue)
   if (parsed === null) return ''
-  return parsed.toLocaleString('en-US')
+  if (isFocused.value) return parsed.toLocaleString('en-US', { maximumFractionDigits: 2 })
+  return parsed.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 })
 
 function handleInput(event, handleChange) {
@@ -101,45 +108,55 @@ function handleInput(event, handleChange) {
   const cursorPosition = input.selectionStart || 0
   const originalValue = input.value
 
-  // Count how many digits existed before the cursor
-  const digitsBeforeCursor = (originalValue.slice(0, cursorPosition).match(/\d/g) || []).length
-  const digits = originalValue.replace(/\D/g, '')
+  // Count digits and the decimal point before the cursor
+  const charsBeforeCursor = (originalValue.slice(0, cursorPosition).match(/[\d.]/g) || []).length
+  const [intPart = '', ...rest] = originalValue.replace(/[^\d.]/g, '').split('.')
+  const hasDot = rest.length > 0
+  const decimals = rest.join('').slice(0, 2)
+  const intDigits = intPart.replace(/^0+(?=\d)/, '')
 
-  if (!digits) {
+  if (!intDigits && !decimals && !hasDot) {
     input.value = ''
+    typed.value = null
     handleChange(null)
     emit('update:modelValue', null)
     return
   }
 
-  const numValue = Number(digits)
-  const formatted = numValue.toLocaleString('en-US')
+  const groupedInt = Number(intDigits || '0').toLocaleString('en-US')
+  const formatted = groupedInt + (hasDot ? '.' + decimals : '')
   input.value = formatted
+  typed.value = formatted
 
+  const numValue = Number((intDigits || '0') + (decimals ? '.' + decimals : ''))
   handleChange(numValue)
   emit('update:modelValue', numValue)
 
   // Calculate new cursor position
-  let newCursorPos = 0
-  let digitCount = 0
+  let newCursorPos = formatted.length
+  let charCount = 0
   for (let i = 0; i < formatted.length; i++) {
-    if (/\d/.test(formatted[i])) {
-      digitCount++
-    }
-    if (digitCount === digitsBeforeCursor) {
+    if (/[\d.]/.test(formatted[i])) charCount++
+    if (charCount === charsBeforeCursor) {
       newCursorPos = i + 1
       break
     }
   }
-  if (digitCount < digitsBeforeCursor) {
-    newCursorPos = formatted.length
-  }
+  if (charsBeforeCursor === 0) newCursorPos = 0
 
   nextTick(() => {
     if (inputRef.value) {
       inputRef.value.setSelectionRange(newCursorPos, newCursorPos)
     }
   })
+}
+
+function handleFocus(event) {
+  const input = event.target
+  isFocused.value = true
+  emit('focus', event)
+  // Focusing drops the trailing ".00", which rewrites the text and clears any selection, so reselect it
+  nextTick(() => input.select())
 }
 
 function handleKeydown(event) {
@@ -150,10 +167,11 @@ function handleKeydown(event) {
   ]
 
   const isDigit = /^\d$/.test(event.key)
+  const isDot = event.key === '.' && !event.target.value.includes('.')
   const isAllowed = allowedKeys.includes(event.key)
   const isCtrlCmd = event.ctrlKey || event.metaKey
 
-  if (!isDigit && !isAllowed && !isCtrlCmd) {
+  if (!isDigit && !isDot && !isAllowed && !isCtrlCmd) {
     event.preventDefault()
   }
 }
@@ -161,58 +179,57 @@ function handleKeydown(event) {
 
 <template>
   <div class="w-full">
-    <div v-if="label || tooltip" class="flex items-center justify-between min-h-[2.4rem] mb-[0.8rem]">
-      <label v-if="label" :for="inputId" class="block text-[1.8rem] font-[400] leading-[2.4rem] text-[#1B1B19]">
+    <div v-if="label || tooltip" class="flex items-center justify-between mb-[6px]">
+      <label v-if="label" :for="inputId" class="ds-label">
         {{ label }}
       </label>
       <span
         v-if="tooltip"
-        class="material-symbols-outlined text-gray-400 cursor-help text-[1.8rem]"
-        :title="tooltip"
+        v-tooltip="{ text: tooltip, position: 'center' }"
+        class="material-symbols-outlined text-ink-muted cursor-help text-[18px]"
         aria-hidden="true"
       >
         info
       </span>
     </div>
-    <div class="relative">
-      <span v-if="prefix" class="material-symbols-outlined absolute left-[1.8rem] top-1/2 -translate-y-1/2 text-[1.8rem] font-bold text-[#1B1B19] pointer-events-none" aria-hidden="true">
-        {{ prefix }}
-      </span>
-      <Field
-        :name="name"
-        :modelValue="modelValue"
-        v-slot="{ errors, handleBlur, handleChange }"
-      >
+    <Field
+      v-slot="{ errors, handleBlur, handleChange }"
+      :name="name"
+      :model-value="modelValue"
+    >
+      <div class="relative">
+        <span class="absolute inset-y-[1px] left-[1px] flex items-center px-[12px] rounded-l-[5px] bg-canvas border-r border-hairline text-[14px] font-medium text-ink pointer-events-none" aria-hidden="true">
+          ₦
+        </span>
         <input
           ref="inputRef"
           :value="displayValue"
-          @input="handleInput($event, handleChange)"
-          @blur="handleBlur($event); emit('blur', $event)"
-          @focus="emit('focus', $event)"
-          @keydown="handleKeydown"
           type="text"
-          inputmode="numeric"
+          inputmode="decimal"
           :placeholder="placeholder"
           :maxlength="maxlength"
           :minlength="minlength"
           :name="name"
           :id="inputId"
+          @input="handleInput($event, handleChange)"
           :aria-invalid="!!(error || (errors && errors.length))"
+          @blur="isFocused = false; typed = null; handleBlur($event); emit('blur', $event)"
           :aria-describedby="(error || (errors && errors.length)) ? inputId + '-error' : hint ? inputId + '-hint' : undefined"
-          class="h-[5.6rem] w-full rounded-[10px] border border-[#D9D9D9] bg-white text-[1.6rem] text-[#1B1B19] outline-none transition placeholder:text-[#BDBDBD] focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:bg-gray-50 disabled:cursor-not-allowed"
+          @focus="handleFocus($event)"
+          class="ds-input pl-[52px] text-right font-medium tabular-nums"
+          @keydown="handleKeydown"
           :class="[
-            prefix ? 'pl-[4.6rem] pr-[1.8rem]' : 'px-[1.8rem]',
-            (error || (errors && errors.length)) ? 'border-rose-500 focus:ring-rose-500' : '',
+            (error || (errors && errors.length)) ? 'ds-input--error' : '',
             inputClass
           ]"
           :readonly="readonly"
           :disabled="disabled"
-        />
-        <p v-if="error || (errors && errors.length)" :id="inputId + '-error'" class="text-xs text-rose-500 mt-1.5 font-medium">
-          {{ error || (errors && errors[0]) }}
-        </p>
-        <p v-else-if="hint" :id="inputId + '-hint'" class="text-[10px] text-slate-400 mt-2 uppercase font-bold tracking-widest">{{ hint }}</p>
-      </Field>
-    </div>
+        >
+      </div>
+      <p v-if="error || (errors && errors.length)" :id="inputId + '-error'" class="ds-helper ds-helper--error">
+        {{ error || (errors && errors[0]) }}
+      </p>
+      <p v-else-if="hint" :id="inputId + '-hint'" class="ds-helper">{{ hint }}</p>
+    </Field>
   </div>
 </template>

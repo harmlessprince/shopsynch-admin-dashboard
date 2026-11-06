@@ -1,13 +1,60 @@
 @import "tailwindcss";
 
 @theme {
+  --font-sans: "Satoshi", "Poppins", system-ui, sans-serif;
+
+  /* ShopSynch design system tokens */
+  --color-ss-blue: #003366;
+  --color-ss-blue-soft: #0A4A85;
+  --color-ss-blue-strong: #002244;
+  --color-ss-green: #2ECC71;
+  --color-ss-green-primary: #2ECC71;
+  --color-ss-green-strong: #27B563;
+  --color-ss-green-tint: #EAFAF1;
+  --color-ss-teal: #00ABA8;
+  --color-ss-teal-strong: #00918F;
+  --color-ss-teal-tint: #E5F7F6;
+  --color-on-accent: #121212;
+  --color-on-primary: #ffffff;
+  --color-sidebar: #003366;
+  --color-on-sidebar: #ffffff;
+  --color-ink: #121212;
+  --color-ink-muted: #616161;
+  --color-hairline: #E0E0E0;
+  --color-canvas: #F7F8FA;
+  --color-surface: #FFFFFF;
+  --color-danger: #F43F5E;
+  --color-danger-strong: #E11D48;
+  --color-danger-tint: #FEECEF;
+  --color-warning: #F2B233;
+  --color-warning-ink: #8A5A00;
+  --color-warning-tint: #FEF6E4;
+  --radius-input: 6px;
+  --radius-btn: 10px;
+  --radius-card: 10px;
+  --radius-thumb: 12px;
+  --shadow-hover: 0 4px 12px color-mix(in srgb, #003366 8%, transparent);
+  --shadow-overlay: 0 8px 24px color-mix(in srgb, #003366 12%, transparent);
+  --sidebar-width: 320px;
+
+  /* Legacy tokens, still used by existing pages */
   --color-dashboard_text_color: #616161;
   --color-primary_color: #003366;
   --color-primary: #003366;
   --color-secondary: #525f75;
   --color-tertiary: #592300;
   --color-neutral: #F8F9FA;
-  --sidebar-width: 320px;
+
+  /* Font-size scale calibrated for html { font-size: 62.5% } (1rem = 10px) */
+  --text-xs: 1rem;
+  --text-sm: 1.2rem;
+  --text-base: 1.4rem;
+  --text-lg: 1.6rem;
+  --text-xl: 1.8rem;
+  --text-2xl: 2rem;
+  --text-3xl: 2.4rem;
+  --text-4xl: 3.2rem;
+  --text-5xl: 4rem;
 }
 
 *,
@@ -50,17 +97,12 @@ select:focus {
     border-color: none !important;
 }
 
-
 .invalid-feedback {
-    @apply flex items-center font-medium tracking-wide text-red-500 text-xl mt-1 ml-1;
+    @apply flex items-center font-medium tracking-wide text-red-500 text-sm mt-1 ml-1;
 }
 
 .form-control {
     @apply flex flex-col mb-5;
-}
-
-.invalid-feedback {
-    @apply flex items-center font-medium tracking-wide text-red-500 text-xl mt-1 ml-1;
 }
 
 .invalid-input {
@@ -69,6 +111,53 @@ select:focus {
 
 .disabled-button {
     @apply opacity-20 cursor-not-allowed;
+}
+
+/* Design system form field shell */
+@layer components {
+.ds-label {
+    @apply block text-[14px] font-medium leading-[1.4] text-ink;
+}
+
+.ds-input {
+    @apply block w-full min-h-[44px] px-[12px] py-[8px] rounded-input border border-hairline bg-surface text-[14px] leading-[1.5] text-ink outline-none transition-colors duration-[120ms] placeholder:text-ink-muted;
+}
+
+.ds-input:focus {
+    @apply border-ss-blue;
+    box-shadow: 0 0 0 3px color-mix(in srgb, #003366 15%, transparent) !important;
+}
+
+.ds-input.ds-input--error {
+    @apply border-danger;
+}
+
+.ds-input.ds-input--error:focus {
+    box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.15) !important;
+}
+
+.ds-input:disabled,
+.ds-input[readonly] {
+    @apply bg-[#F5F5F5] text-ink-muted cursor-not-allowed;
+}
+
+.ds-input:disabled:focus,
+.ds-input[readonly]:focus {
+    @apply border-hairline;
+    box-shadow: none !important;
+}
+
+.ds-helper {
+    @apply mt-[6px] text-[12px] leading-[1.4] text-ink-muted;
+}
+
+.ds-helper--error {
+    @apply text-danger-strong;
+}
+
+.ds-field-icon {
+    @apply text-[20px] text-ss-teal-strong;
+}
 }
 
 /*#00000033*/
@@ -94,12 +183,6 @@ select:focus {
     animation-delay: 0.4s;
 }
 
-
-/*.iziToast > .iziToast-body .iziToast-icon {*/
-/*    font-family: 'Material Icons Outlined';*/
-/*    font-size: 1.8rem;*/
-/*}*/
-
 .material-icons-outlined.md-18 {
     font-size: 1.8rem;
 }
@@ -116,10 +199,6 @@ select:focus {
     font-size: 48px;
 }
 
-/*.tooltip {*/
-/*    transition: opacity 0.2s ease-in-out;*/
-/*    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);*/
-/*}*/
 .tooltip {
     position: absolute;
     background-color: black;
@@ -129,27 +208,44 @@ select:focus {
     border-radius: 3px;
     z-index: 999;
     transition: opacity 0.2s ease-in-out;
-    pointer-events: none; /* Prevent tooltip from blocking interactions */
+    pointer-events: none;
 }
 
 .dt-action-item {
-  @apply flex items-center gap-3 px-4 py-2 w-full text-left transition-colors cursor-pointer;
-  @apply text-slate-700 font-medium text-base;
+  @apply flex items-center gap-[12px] px-[16px] py-[8px] w-full text-left transition-colors cursor-pointer;
+  @apply border-none bg-transparent text-ink font-medium text-[14px];
 }
 
-.dt-action-item:hover {
-  @apply bg-slate-50 text-primary cursor-pointer;
+.dt-action-item:hover, .dt-action-item:focus {
+  @apply bg-canvas cursor-pointer outline-none;
+}
+
+.dt-action-item:focus-visible {
+  @apply ring-2 ring-ss-blue ring-inset;
 }
 
 .dt-action-item .material-symbols-outlined {
-  @apply text-slate-400 text-[20px];
+  @apply text-ink-muted text-[20px];
 }
 
-.dt-action-item:hover .material-symbols-outlined {
-  @apply text-primary;
+.dt-action-item--danger, .dt-action-item--danger .material-symbols-outlined {
+  @apply text-danger;
 }
 
 /* Ensure the absolute container is visible above table borders */
 .dt-action-menu-container {
-  @apply z-[9999] bg-white border border-slate-100 shadow-xl rounded-lg overflow-hidden;
+  @apply z-[9999] bg-surface border border-hairline shadow-overlay rounded-[10px] overflow-hidden;
+}
+
+/* Offset pagination prev/next arrows */
+.ds-page-arrow {
+  @apply flex size-[32px] cursor-pointer items-center justify-center rounded-[8px] border border-hairline bg-surface text-ss-teal-strong transition-colors;
+}
+
+.ds-page-arrow:hover:not(:disabled) {
+  @apply bg-canvas;
+}
+
+.ds-page-arrow:disabled {
+  @apply cursor-not-allowed opacity-40;
 }
