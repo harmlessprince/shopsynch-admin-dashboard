@@ -19,6 +19,7 @@ const valueTypes = ["STRING", "NUMBER", "BOOLEAN", "JSON"];
 const askAnalyticsLimitKey = "askAnalyticsDailyQuestionLimit";
 
 const category = ref("");
+const search = ref("");
 const drafts = ref({});
 const savingKey = ref("");
 const deletingKey = ref("");
@@ -33,8 +34,21 @@ const newSetting = ref({
   isPublic: false,
 });
 
+const searchTerms = computed(() => search.value.trim().toLowerCase().split(/\s+/).filter(Boolean));
+
+// Every word typed must appear in the setting's name (label), key or description, in any order.
+const matchingSettings = computed(() => {
+  if (!searchTerms.value.length) {
+    return adminSettingsStore.settings;
+  }
+  return adminSettingsStore.settings.filter((setting) => {
+    const text = `${setting.label || ""} ${setting.key || ""} ${setting.description || ""}`.toLowerCase();
+    return searchTerms.value.every((term) => text.includes(term));
+  });
+});
+
 const settingsByCategory = computed(() => {
-  return adminSettingsStore.settings.reduce((groups, setting) => {
+  return matchingSettings.value.reduce((groups, setting) => {
     const group = setting.category || "SYSTEM";
     groups[group] = groups[group] || [];
     groups[group].push(setting);
@@ -368,6 +382,13 @@ onMounted(fetchSettings);
           <p class="mt-[0.4rem]">Backend environment values that can be changed without redeploying.</p>
         </div>
         <div class="flex flex-col gap-[1rem] sm:flex-row">
+          <input
+            v-model="search"
+            type="search"
+            aria-label="Search settings by name or description"
+            placeholder="Search by name or description"
+            class="rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem] sm:w-[28rem]"
+          />
           <select
             v-model="category"
             class="rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem]"
@@ -761,6 +782,7 @@ onMounted(fetchSettings);
           </div>
         </div>
         <p v-if="adminSettingsStore.settings.length === 0">No settings found.</p>
+        <p v-else-if="searchTerms.length && matchingSettings.length === 0">No settings match "{{ search.trim() }}".</p>
       </div>
     </section>
   </div>
