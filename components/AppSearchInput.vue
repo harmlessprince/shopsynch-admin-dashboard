@@ -61,7 +61,7 @@ function handleKeydown(e) {
 
 <template>
   <div
-    class="flex items-center gap-x-[1.2rem] text-[#616161]"
+    class="flex items-center gap-x-[12px] text-ink-muted"
     :class="isOpen ? 'w-full sm:w-auto' : 'w-auto'"
   >
     <div
@@ -79,29 +79,30 @@ function handleKeydown(e) {
             type="text"
             :placeholder="placeholder"
             :aria-label="placeholder || 'Search'"
-            class="h-[5.6rem] w-full rounded-[10px] border border-[#D9D9D9] bg-white py-2 pl-[1.8rem] pr-[4.8rem] text-[1.6rem] text-[#1B1B19] outline-none transition placeholder:text-[#BDBDBD] focus:border-primary focus:ring-2 focus:ring-primary/10"
+            class="ds-input pr-[44px]"
             @keydown="handleKeydown"
           >
           <button
             type="button"
-            class="absolute right-[0.6rem] top-1/2 -translate-y-1/2 flex h-[4rem] w-[4rem] items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 focus:ring-2 focus:ring-primary focus:outline-none cursor-pointer"
+            class="absolute right-[6px] top-1/2 -translate-y-1/2 flex size-[32px] items-center justify-center rounded-[8px] text-ink-muted hover:bg-canvas focus-visible:outline-2 focus-visible:outline-ss-blue transition-colors duration-[120ms] cursor-pointer"
             :aria-label="searchText ? 'Clear search' : 'Close search'"
             @click="searchText ? clear() : toggle()"
           >
-            <span class="material-symbols-outlined text-[2rem]" aria-hidden="true">close</span>
+            <span class="material-symbols-outlined text-[20px]" aria-hidden="true">close</span>
           </button>
         </div>
       </div>
       <button
         type="button"
         :data-tour="dataTour || undefined"
-        class="flex min-h-[44px] min-w-[44px] items-center justify-center shrink-0 rounded-lg text-[#616161] hover:text-[#003366] focus:ring-2 focus:ring-primary focus:outline-none touch-manipulation transition-colors cursor-pointer"
-        :class="isOpen ? 'opacity-100' : 'opacity-70'"
+        class="flex size-[40px] items-center justify-center shrink-0 rounded-btn text-ss-teal-strong hover:bg-canvas focus-visible:outline-2 focus-visible:outline-ss-blue touch-manipulation transition-colors duration-[120ms] cursor-pointer"
         :aria-label="isOpen ? 'Close search' : 'Open search'"
         :aria-expanded="isOpen"
         @click="toggle"
       >
-        <span class="material-symbols-outlined text-[2.4rem]" aria-hidden="true">search</span>
+        <span class="material-symbols-outlined text-[22px]" aria-hidden="true">
+          search
+        </span>
       </button>
     </div>
   </div>

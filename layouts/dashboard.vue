@@ -59,6 +59,8 @@ watch(
       currentPageTitle.value = "Scheduler Operations";
     } else if (newPath.includes("/dashboard/payment-gateways")) {
       currentPageTitle.value = "Payment Gateways";
+    } else if (newPath.includes("/dashboard/ai-analytics")) {
+      currentPageTitle.value = "AI & Assistant Analytics";
     } else if (newPath.includes("/dashboard/analytics")) {
       currentPageTitle.value = "Analytics";
     }
@@ -217,6 +219,14 @@ const dashboardSidebarMenu = [
     icon: "monitoring",
     activeIcon: "monitoring",
     link: "/dashboard/analytics",
+    comingSoon: false,
+  },
+  {
+    key: "ai-analytics",
+    name: "AI & Assistant",
+    icon: "smart_toy",
+    activeIcon: "smart_toy",
+    link: "/dashboard/ai-analytics",
     comingSoon: false,
   },
 ];
