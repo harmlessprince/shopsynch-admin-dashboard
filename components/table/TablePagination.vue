@@ -1,99 +1,79 @@
 <template>
-  <!-- Cursor pagination -->
-  <div v-if="type === 'cursor'" class="bg-primary p-4 sm:p-6 md:p-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-    <div class="flex items-center gap-3 sm:gap-4 w-full sm:w-auto justify-between sm:justify-start">
-      <p class="text-white font-medium text-sm sm:text-base md:text-xl">Page {{ currentPage }}</p>
-      <select
-        :value="currentLimit"
-        aria-label="Results per page"
-        class="rounded-lg border border-white/30 bg-white/10 text-white text-sm sm:text-base md:text-xl px-3 py-1.5 focus:outline-none cursor-pointer min-h-[44px] touch-manipulation"
-        @change="$emit('changeLimit', Number($event.target.value))"
-      >
-        <option v-for="opt in LIMIT_OPTIONS" :key="opt" :value="opt">{{ opt }} / page</option>
-      </select>
-    </div>
-    <div class="flex items-center gap-3 sm:gap-5 w-full sm:w-auto justify-end">
-      <button
-        :disabled="!hasPrev"
-        class="text-white/80 hover:text-white hover:bg-white/10 font-medium text-sm sm:text-base md:text-xl px-3 py-2 rounded-lg transition-all duration-150 cursor-pointer border-none outline-none disabled:opacity-40 disabled:cursor-not-allowed min-h-[44px] touch-manipulation flex items-center justify-center"
-        aria-label="Go to previous page"
-        @click="$emit('prev')"
-      >
-        Previous
-      </button>
-      <button
-        :disabled="!hasNext"
-        class="text-white/80 hover:text-white hover:bg-white/10 font-medium text-sm sm:text-base md:text-xl px-3 py-2 rounded-lg transition-all duration-150 cursor-pointer border-none outline-none disabled:opacity-40 disabled:cursor-not-allowed min-h-[44px] touch-manipulation flex items-center justify-center"
-        aria-label="Go to next page"
-        @click="$emit('next')"
-      >
-        Next
-      </button>
-    </div>
-  </div>
-
-  <!-- Offset pagination -->
-  <div v-else class="bg-primary p-4 sm:p-6 md:p-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-    <div class="flex items-center gap-3 sm:gap-4 w-full sm:w-auto justify-between sm:justify-start" v-if="props.paginationProps?.totalPages > 1">
-      <p class="text-white font-medium text-sm sm:text-base md:text-xl">
-        Showing {{ paginationProps.from }}-{{ paginationProps.to }} out of
-        {{ paginationProps.totalPages }} pages
+  <div
+    class="flex flex-wrap items-center justify-between gap-[16px] border-t border-hairline bg-surface px-[24px] py-[12px] text-[14px] text-ink-muted"
+  >
+    <div class="flex flex-wrap items-center gap-[16px]">
+      <!-- Cursor mode: no row count, just the page -->
+      <p v-if="type === 'cursor'">Page <span class="font-medium tabular-nums text-ink">{{ currentPage }}</span></p>
+      <p v-else-if="total > 0">
+        Showing
+        <span class="font-medium tabular-nums text-ink">{{ paginationProps.from }}–{{ paginationProps.to }}</span>
+        of
+        <span class="font-medium tabular-nums text-ink">{{ total }}</span>
       </p>
-      <select
-        v-model="selectedLimit"
-        aria-label="Results per page"
-        class="rounded-lg border border-white/30 bg-white/10 text-white text-sm sm:text-base md:text-xl px-3 py-1.5 focus:outline-none cursor-pointer min-h-[44px] touch-manipulation"
-        @change="onLimitChange"
-      >
-        <option v-for="opt in LIMIT_OPTIONS" :key="opt" :value="opt">{{ opt }} / page</option>
-      </select>
+      <div class="relative">
+        <select
+          :value="type === 'cursor' ? currentLimit : selectedLimit"
+          aria-label="Rows per page"
+          class="h-[32px] cursor-pointer appearance-none rounded-input border border-hairline bg-surface pl-[10px] pr-[28px] text-[14px] text-ink"
+          @change="onLimitChange($event)"
+        >
+          <option v-for="opt in LIMIT_OPTIONS" :key="opt" :value="opt">{{ opt }} / page</option>
+        </select>
+        <span
+          class="material-symbols-outlined pointer-events-none absolute right-[6px] top-1/2 -translate-y-1/2 text-[18px] text-ink-muted"
+          aria-hidden="true"
+        >expand_more</span>
+      </div>
     </div>
-    <div class="flex items-center gap-2 sm:gap-3 md:gap-5 text-xs sm:text-sm md:text-base w-full sm:w-auto overflow-x-auto [-webkit-overflow-scrolling:touch] py-1 max-w-full" v-if="props.paginationProps?.totalPages > 1">
-      <button
-        v-bind:key="1"
-        :disabled="1 === props.paginationProps?.currentPage"
-        :class="isPageActive(1)
-          ? 'bg-[#DCEBFB] text-primary font-bold shadow-sm cursor-default'
-          : 'text-white/80 hover:text-white hover:bg-white/10 font-medium cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed'"
-        class="px-3 py-1.5 rounded-lg transition-all duration-150 border-none outline-none shrink-0 min-h-[44px] touch-manipulation flex items-center justify-center"
-        aria-label="Go to first page"
-        :aria-current="isPageActive(1) ? 'page' : undefined"
-        @click="$emit('setPage', 1)"
-      >
-        <span class="hidden sm:inline">Go to First Page</span>
-        <span class="sm:hidden">First</span>
-      </button>
-      <button
-        v-for="page in pages"
-        v-bind:key="page.name"
-        :disabled="page.isDisabled"
-        :class="isPageActive(page.name)
-          ? 'bg-[#DCEBFB] text-primary font-bold shadow-sm cursor-default'
-          : 'text-white/80 hover:text-white hover:bg-white/10 font-medium cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed'"
-        class="px-3 py-1.5 rounded-lg transition-all duration-150 border-none outline-none shrink-0 min-h-[44px] touch-manipulation flex items-center justify-center"
-        :aria-label="`Go to page ${page.name}`"
-        :aria-current="isPageActive(page.name) ? 'page' : undefined"
-        @click="$emit('setPage', page.name)"
-      >
-        {{ page.name }}
-      </button>
 
+    <!-- Cursor pagination -->
+    <div v-if="type === 'cursor'" class="flex items-center gap-[8px]">
+      <BaseButton variant="outline" size="sm" :disabled="!hasPrev" aria-label="Go to previous page" @click="$emit('prev')">
+        <span class="material-symbols-outlined text-[18px]" aria-hidden="true">chevron_left</span>
+        Previous
+      </BaseButton>
+      <BaseButton variant="outline" size="sm" :disabled="!hasNext" aria-label="Go to next page" @click="$emit('next')">
+        Next
+        <span class="material-symbols-outlined text-[18px]" aria-hidden="true">chevron_right</span>
+      </BaseButton>
+    </div>
+
+    <!-- Offset pagination -->
+    <div v-else-if="totalPages > 1" class="flex items-center gap-[4px]">
       <button
-        v-bind:key="props.paginationProps?.totalPages"
-        :disabled="
-          props.paginationProps?.totalPages ===
-          props.paginationProps?.currentPage
-        "
-        :class="isPageActive(props.paginationProps?.totalPages)
-          ? 'bg-[#DCEBFB] text-primary font-bold shadow-sm cursor-default'
-          : 'text-white/80 hover:text-white hover:bg-white/10 font-medium cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed'"
-        class="px-3 py-1.5 rounded-lg transition-all duration-150 border-none outline-none shrink-0 min-h-[44px] touch-manipulation flex items-center justify-center"
-        aria-label="Go to last page"
-        :aria-current="isPageActive(props.paginationProps?.totalPages) ? 'page' : undefined"
-        @click="$emit('setPage', props.paginationProps?.totalPages)"
+        type="button"
+        class="ds-page-arrow"
+        :disabled="!hasPreviousPage"
+        aria-label="Go to previous page"
+        @click="$emit('setPage', currentOffsetPage - 1)"
       >
-        <span class="hidden sm:inline">Go to Last Page</span>
-        <span class="sm:hidden">Last</span>
+        <span class="material-symbols-outlined text-[20px]" aria-hidden="true">chevron_left</span>
+      </button>
+      <template v-for="(item, i) in pageItems" :key="`${item}-${i}`">
+        <span v-if="item === '…'" class="min-w-[32px] text-center" aria-hidden="true">…</span>
+        <button
+          v-else
+          type="button"
+          class="h-[32px] min-w-[32px] cursor-pointer rounded-[8px] border-none px-[6px] text-[14px] tabular-nums transition-colors"
+          :class="item === currentOffsetPage
+            ? 'cursor-default bg-primary font-medium text-white'
+            : 'bg-transparent text-ink-muted hover:bg-canvas'"
+          :aria-label="`Go to page ${item}`"
+          :aria-current="item === currentOffsetPage ? 'page' : undefined"
+          @click="item !== currentOffsetPage && $emit('setPage', item)"
+        >
+          {{ item }}
+        </button>
+      </template>
+      <button
+        type="button"
+        class="ds-page-arrow"
+        :disabled="!hasNextPage"
+        aria-label="Go to next page"
+        @click="$emit('setPage', currentOffsetPage + 1)"
+      >
+        <span class="material-symbols-outlined text-[20px]" aria-hidden="true">chevron_right</span>
       </button>
     </div>
   </div>
@@ -101,6 +81,7 @@
 
 <script setup>
 import { computed, ref, watch } from "vue";
+import BaseButton from "../BaseButton.vue";
 
 const props = defineProps({
   type: {
@@ -132,6 +113,7 @@ const props = defineProps({
       hasNext: false,
       from: 1,
       to: 1,
+      total: 0,
       pageSize: 10,
       totalPages: 1,
       maxVisibleButtons: 10,
@@ -149,46 +131,31 @@ watch(() => props.paginationProps?.pageSize, (val) => {
   if (val) selectedLimit.value = val;
 });
 
-function onLimitChange() {
-  emit("changeLimit", selectedLimit.value);
+function onLimitChange(event) {
+  const value = Number(event.target.value);
+  selectedLimit.value = value;
+  emit("changeLimit", value);
 }
 
-const startPage = computed(() => {
-  if (props.paginationProps?.currentPage === 1) return 1;
-  if (props.paginationProps?.currentPage === props.paginationProps?.totalPages)
-    return Math.max(
-      1,
-      props.paginationProps?.totalPages -
-      props.paginationProps?.maxVisibleButtons +
-      1
-    );
+const total = computed(() => props.paginationProps?.total ?? 0);
+const totalPages = computed(() => props.paginationProps?.totalPages ?? 1);
+const currentOffsetPage = computed(() => props.paginationProps?.currentPage ?? 1);
+const hasPreviousPage = computed(() => currentOffsetPage.value > 1);
+const hasNextPage = computed(() => currentOffsetPage.value < totalPages.value);
 
-  return props.paginationProps?.currentPage - 1;
+// First, current ±1 and last, with "…" marking gaps
+const pageItems = computed(() => {
+  const last = totalPages.value;
+  const current = currentOffsetPage.value;
+  const wanted = [...new Set([1, current - 1, current, current + 1, last])]
+    .filter((n) => n >= 1 && n <= last)
+    .sort((a, b) => a - b);
+  const items = [];
+  wanted.forEach((n, i) => {
+    if (i > 0 && n - wanted[i - 1] === 2) items.push(n - 1);
+    else if (i > 0 && n - wanted[i - 1] > 2) items.push('…');
+    items.push(n);
+  });
+  return items;
 });
-
-const endPage = computed(() => {
-  return Math.min(
-    startPage.value + props.paginationProps?.maxVisibleButtons - 1,
-    props.paginationProps?.totalPages
-  );
-});
-
-const pages = computed(() => {
-  const range = [];
-
-  for (let i = startPage.value; i <= endPage.value; i += 1) {
-    if (i != 1 && i != props.paginationProps?.totalPages) {
-      range.push({
-        name: i,
-        isDisabled: i === props.paginationProps?.currentPage,
-      });
-    }
-  }
-
-  return range;
-});
-
-function isPageActive(page) {
-  return props.paginationProps?.currentPage === page;
-}
 </script>

@@ -23,6 +23,11 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  label: '',
+  placeholder: 'Select an option',
+  error: '',
+  hint: '',
+  prefix: '',
   inputClass: '',
   searchPlaceholder: 'Search...',
   disabled: false,
@@ -107,7 +112,7 @@ onUnmounted(() => {
 
 <template>
   <div class="w-full" ref="containerRef" :class="{ 'opacity-50 pointer-events-none': disabled }">
-    <label v-if="label" class="block text-md font-normal text-black mb-2">
+    <label v-if="label" class="ds-label mb-[6px]">
       {{ label }}
     </label>
 
@@ -115,7 +120,7 @@ onUnmounted(() => {
       <!-- Trigger button -->
       <span
         v-if="prefix"
-        class="absolute left-4 top-1/2 -translate-y-1/2 text-black font-bold z-10 pointer-events-none"
+        class="absolute left-[12px] top-1/2 -translate-y-1/2 text-ink-muted font-medium z-10 pointer-events-none"
       >
         {{ prefix }}
       </span>
@@ -127,52 +132,43 @@ onUnmounted(() => {
         role="combobox"
         aria-haspopup="listbox"
         :aria-expanded="isOpen"
+        :aria-invalid="!!error"
         :aria-controls="isOpen ? 'searchable-select-options' : undefined"
         :aria-describedby="error ? 'error-msg' : hint ? 'hint-msg' : undefined"
         :aria-label="selectedLabel || label || placeholder || 'Select an option'"
-        class="w-full h-14 rounded-xl border bg-white outline-none transition-all text-left text-[1.4rem] flex items-center pr-10"
+        class="ds-input flex items-center text-left pr-[64px]"
         :class="[
-          prefix ? 'pl-10' : 'px-4',
-          error
-            ? 'border-rose-500 focus:ring-2 focus:ring-rose-500'
-            : isOpen
-              ? 'border-transparent ring-2 ring-primary'
-              : 'border-slate-200',
-          disabled ? 'bg-slate-50 cursor-not-allowed' : 'cursor-pointer',
+          prefix ? 'pl-[40px]' : '',
+          error ? 'ds-input--error' : '',
+          disabled ? 'cursor-not-allowed' : 'cursor-pointer',
           inputClass
         ]"
       >
-        <span class="truncate pr-4 text-[1.4rem]" :class="selectedLabel ? 'text-slate-700' : 'text-black'">
+        <span class="truncate" :class="selectedLabel ? 'text-ink' : 'text-ink-muted'">
           {{ selectedLabel || (placeholder ?? 'Select an option') }}
         </span>
       </button>
 
       <!-- Action area (Clear or Chevron) -->
-      <div class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+      <div class="absolute right-[12px] top-1/2 -translate-y-1/2 flex items-center gap-[4px]">
          <!-- Clear button -->
          <button 
            v-if="selectedLabel && !disabled" 
            type="button" 
-           class="p-1 hover:bg-slate-100 rounded-full transition-colors text-black hover:text-slate-600 cursor-pointer"
+           class="p-[2px] hover:bg-primary/5 rounded-input transition-colors text-ink-muted hover:text-ink cursor-pointer"
            @click.stop="clearSelection"
            aria-label="Clear selection"
          >
-           <span class="material-symbols-outlined text-sm" aria-hidden="true">close</span>
+           <span class="material-symbols-outlined text-[20px]" aria-hidden="true">close</span>
          </button>
 
          <!-- Chevron -->
          <span
-           class="pointer-events-none text-black transition-transform duration-200"
+           class="material-symbols-outlined ds-field-icon pointer-events-none transition-transform duration-200"
            :class="isOpen ? 'rotate-180' : ''"
            aria-hidden="true"
          >
-           <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-             <path
-               fill-rule="evenodd"
-               d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
-               clip-rule="evenodd"
-             />
-           </svg>
+           expand_more
          </span>
       </div>
 
@@ -187,12 +183,12 @@ onUnmounted(() => {
       >
         <div
           v-if="isOpen"
-          class="absolute z-50 mt-2 w-full bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden"
+          class="absolute z-50 mt-[8px] w-full bg-surface border border-hairline rounded-input shadow-overlay overflow-hidden"
         >
           <!-- Search input -->
-          <div class="p-2 border-b border-slate-100">
+          <div class="p-[8px] border-b border-hairline">
             <div class="relative">
-              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-black" aria-hidden="true">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted" aria-hidden="true">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
                   <path
                     fill-rule="evenodd"
@@ -207,14 +203,14 @@ onUnmounted(() => {
                 :placeholder="searchPlaceholder"
                 :aria-label="searchPlaceholder"
                 type="text"
-                class="w-full h-10 pl-9 pr-3 rounded-lg bg-slate-50 border border-slate-200 text-[1.3rem] text-slate-700 placeholder:text-black outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                class="ds-input pl-[36px]"
               />
             </div>
           </div>
 
           <!-- Options list -->
-          <ul id="searchable-select-options" role="listbox" class="max-h-80 overflow-y-auto py-1">
-            <li v-if="filteredOptions.length === 0 && !canCreateOption" class="px-4 py-3 text-[1.3rem] text-black text-center" role="option" aria-selected="false">
+          <ul id="searchable-select-options" role="listbox" class="max-h-[240px] overflow-y-auto py-[4px]">
+            <li v-if="filteredOptions.length === 0 && !canCreateOption" class="px-[12px] py-[8px] text-[14px] text-ink-muted text-center" role="option" aria-selected="false">
               No results for "{{ searchQuery }}"
             </li>
             <li
@@ -223,11 +219,11 @@ onUnmounted(() => {
               @click="selectOption(option)"
               role="option"
               :aria-selected="option.value === modelValue"
-              class="flex items-center justify-between px-4 py-3 text-[1.4rem] cursor-pointer transition-colors"
+              class="flex items-center justify-between px-[12px] py-[8px] text-[14px] cursor-pointer transition-colors"
               :class="
                 option.value === modelValue
-                  ? 'bg-primary/10 text-primary font-semibold'
-                  : 'text-slate-700 hover:bg-slate-50'
+                  ? 'bg-primary/10 text-ink font-semibold'
+                  : 'text-ink hover:bg-primary/5'
               "
             >
               {{ option.label }}
@@ -236,7 +232,7 @@ onUnmounted(() => {
               <svg
                 v-if="option.value === modelValue"
                 xmlns="http://www.w3.org/2000/svg"
-                class="w-4 h-4 shrink-0"
+                class="w-4 h-4 shrink-0 text-primary"
                 viewBox="0 0 20 20"
                 fill="currentColor"
                 aria-hidden="true"
@@ -253,7 +249,7 @@ onUnmounted(() => {
               @click="createOption"
               role="option"
               aria-selected="false"
-              class="flex items-center gap-2 px-4 py-3 text-[1.4rem] cursor-pointer transition-colors text-primary hover:bg-primary/5 font-semibold border-t border-slate-100"
+              class="flex items-center gap-[8px] px-[12px] py-[8px] text-[14px] cursor-pointer transition-colors text-ink hover:bg-primary/5 font-semibold border-t border-hairline"
             >
               <span class="material-symbols-outlined text-base" aria-hidden="true">add</span>
               {{ createLabel }} "{{ trimmedSearchQuery }}"
@@ -263,7 +259,7 @@ onUnmounted(() => {
       </Transition>
     </div>
 
-    <p v-if="error" id="error-msg" class="text-xs text-rose-500 mt-1.5 font-medium">{{ error }}</p>
-    <p v-else-if="hint" id="hint-msg" class="text-[10px] text-black mt-2 uppercase font-bold tracking-widest">{{ hint }}</p>
+    <p v-if="error" id="error-msg" class="ds-helper ds-helper--error">{{ error }}</p>
+    <p v-else-if="hint" id="hint-msg" class="ds-helper">{{ hint }}</p>
   </div>
 </template>

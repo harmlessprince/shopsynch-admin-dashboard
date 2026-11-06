@@ -1,6 +1,10 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref, useAttrs } from 'vue'
 import { Field } from 'vee-validate'
+
+defineOptions({
+  inheritAttrs: false,
+})
 
 const props = defineProps({
   modelValue: {
@@ -50,10 +54,19 @@ const props = defineProps({
   name: {
     type: String,
     default: 'input'
+  },
+  tooltip: {
+    type: String,
+    default: ''
+  },
+  allowDecimal: {
+    type: Boolean,
+    default: false
   }
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'keyup'])
+const attrs = useAttrs()
 
 const inputRef = ref(null)
 
@@ -63,14 +76,21 @@ defineExpose({
   }
 })
 
+const defaultId = useId()
+const inputId = computed(() => {
+  return props.name && props.name !== 'input' ? props.name : defaultId
+})
+
 const numericTypes = ['tel', 'number']
 
 function handleInput(event) {
   const input = event.target
   let value = input.value
-  
+
   if (numericTypes.includes(props.type)) {
-    value = value.replace(/\D/g, '')
+    value = props.allowDecimal
+      ? value.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1')
+      : value.replace(/\D/g, '')
     input.value = value
   }
   emit('update:modelValue', value)
@@ -88,8 +108,9 @@ function handleKeydown(event) {
   const isDigit = /^\d$/.test(event.key)
   const isAllowed = allowedKeys.includes(event.key)
   const isCtrlCmd = event.ctrlKey || event.metaKey // allow copy/paste/select-all
+  const isDecimalPoint = props.allowDecimal && event.key === '.' && !event.target.value.includes('.')
 
-  if (!isDigit && !isAllowed && !isCtrlCmd) {
+  if (!isDigit && !isAllowed && !isCtrlCmd && !isDecimalPoint) {
     event.preventDefault()
   }
 }
@@ -97,51 +118,57 @@ function handleKeydown(event) {
 
 <template>
   <div class="w-full">
-    <label v-if="label" :for="name" class="mb-[0.8rem] block text-[1.8rem] font-[400] leading-[2.4rem] text-[#1B1B19]">
-      {{ label }}
-    </label>
+    <div v-if="label || tooltip" class="flex items-center justify-between mb-[6px]">
+      <label v-if="label" :for="inputId" class="ds-label">
+        {{ label }}
+      </label>
+      <span
+        v-if="tooltip"
+        v-tooltip="{ text: tooltip, position: 'center' }"
+        class="material-symbols-outlined text-ink-muted cursor-help text-[18px]"
+        aria-hidden="true"
+      >
+        info
+      </span>
+    </div>
+
     <div class="relative">
-      <span v-if="prefix" class="material-symbols-outlined absolute left-[1.8rem] top-1/2 -translate-y-1/2 text-[1.8rem] font-bold text-[#1B1B19] pointer-events-none">
+      <span v-if="prefix" class="material-symbols-outlined ds-field-icon absolute left-[12px] top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true">
         {{ prefix }}
       </span>
       <Field
-        :name="name"
-        :modelValue="modelValue"
         v-slot="{ field, errors }"
+        :name="name"
+        :model-value="modelValue"
       >
         <input
-          v-bind="field"
+          v-bind="{ ...field, ...attrs }"
           ref="inputRef"
           :value="modelValue"
-          @input="handleInput"
-          @keydown="handleKeydown"
-          :type="type === 'number' ? 'text' : type" 
+          :type="type === 'number' ? 'text' : type"
           :placeholder="placeholder"
           :maxlength="maxlength"
+          :id="inputId" 
           :minlength="minlength"
           :name="name"
-          :id="name"
-          class="h-[5.6rem] w-full rounded-[10px] border border-[#D9D9D9] bg-white text-[1.6rem] text-[#1B1B19] outline-none transition placeholder:text-[#BDBDBD] focus:border-primary focus:ring-2 focus:ring-primary/10"
+          :aria-invalid="!!(error || (errors && errors.length))"
+          :aria-describedby="(error || (errors && errors.length)) ? inputId + '-error' : hint ? inputId + '-hint' : undefined"
+          @input="handleInput"
+          class="ds-input"
+          @keydown="handleKeydown"
           :class="[
-            prefix ? 'pl-[4.6rem] pr-[1.8rem]' : 'px-[1.8rem]',
-            (error || (errors && errors.length)) ? 'border-rose-500 focus:ring-rose-500' : '',
+            prefix ? 'pl-[40px]' : '',
+            (error || (errors && errors.length)) ? 'ds-input--error' : '',
             inputClass
           ]"
+          @keyup="emit('keyup', $event)"
           :readonly="readonly"
-        />
-        <p v-if="error || (errors && errors.length)" class="text-xs text-rose-500 mt-1.5 font-medium">
+        >
+        <p v-if="error || (errors && errors.length)" :id="inputId + '-error'" class="ds-helper ds-helper--error">
           {{ error || (errors && errors[0]) }}
         </p>
-        <p v-else-if="hint" class="text-[10px] text-slate-400 mt-2 uppercase font-bold tracking-widest">{{ hint }}</p>
+        <p v-else-if="hint" :id="inputId + '-hint'" class="ds-helper">{{ hint }}</p>
       </Field>
     </div>
   </div>
 </template>
-
-<style scoped>
-.field-label {
-  font-size: 14px;
-  font-weight: 500;
-  color: #111;
-}
-</style>
