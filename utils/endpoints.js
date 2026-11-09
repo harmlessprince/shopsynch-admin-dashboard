@@ -258,6 +258,7 @@ export const endpoints = {
             invoices: {
                 tenant: "/v1/admin/billing/tenants/:tenantId/invoices",
                 confirm: "/v1/admin/billing/invoices/:invoiceId/confirm",
+                recordManualPayment: "/v1/admin/billing/tenants/:tenantId/manual-payments",
             },
             offers: {
                 list: "/v1/admin/billing/offers",

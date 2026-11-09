@@ -16,6 +16,7 @@ export const useAdminBillingOperationsStore = defineStore("adminBillingOperation
     const extendingSubscription = ref(false);
     const loadingInvoices = ref(false);
     const confirmingInvoice = ref(false);
+    const recordingManualPayment = ref(false);
     const loadingAuditLogs = ref(false);
     const auditLogs = ref([]);
     const resyncingToTest = ref(false);
@@ -320,6 +321,25 @@ export const useAdminBillingOperationsStore = defineStore("adminBillingOperation
         }
     }
 
+    async function recordManualPayment(tenantId, payload) {
+        if (!tenantId) return null;
+        recordingManualPayment.value = true;
+        actionError.value = "";
+        try {
+            const url = endpoints.admin.billing.invoices.recordManualPayment.replace(":tenantId", tenantId);
+            const response = await post(url, payload, { forceMode: "live" });
+            toastStore.success("Manual payment recorded and subscription activated", "");
+            await fetchTenantSnapshot(tenantId);
+            return normalizeData(response);
+        } catch (error) {
+            logger.error("Failed to record manual subscription payment", error);
+            actionError.value = error?.data?.message || error?.message || "Manual payment could not be recorded.";
+            return null;
+        } finally {
+            recordingManualPayment.value = false;
+        }
+    }
+
     async function fetchAuditLogs(params = {}) {
         loadingAuditLogs.value = true;
         try {
@@ -374,6 +394,7 @@ export const useAdminBillingOperationsStore = defineStore("adminBillingOperation
         extendingSubscription,
         loadingInvoices,
         confirmingInvoice,
+        recordingManualPayment,
         loadingAuditLogs,
         auditLogs,
         resyncingToTest,
@@ -408,6 +429,7 @@ export const useAdminBillingOperationsStore = defineStore("adminBillingOperation
         applyExtensionCode,
         extendSubscriptionDirectly,
         confirmInvoicePayment,
+        recordManualPayment,
         fetchAuditLogs,
         resyncSubscriptionsToTest,
         resetActionState,
