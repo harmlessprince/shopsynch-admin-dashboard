@@ -543,18 +543,14 @@ async function handleConfirmStatusChange() {
         </form>
       </section>
 
-      <!-- Super Admin Resync Subscriptions to Test (Issue 009) -->
+      <!-- Resync Subscriptions to Test (Issue 009) -->
       <section
-        v-if="isSuperAdmin"
         class="rounded-[10px] border border-blue-200 bg-blue-50/60 p-[2rem] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-[1.6rem]"
       >
         <div>
           <div class="flex items-center gap-[0.8rem]">
             <span class="material-symbols-outlined text-primary text-[2rem]">sync_alt</span>
             <h2 class="text-[1.7rem] font-[700] text-slate-900">Resync Subscriptions to Test Mode</h2>
-            <span class="rounded bg-blue-100 text-primary font-[700] text-[1.1rem] px-[0.8rem] py-[0.2rem]">
-              Super Admin Only
-            </span>
           </div>
           <p class="mt-[0.4rem] text-[1.3rem] text-slate-600 max-w-[65rem]">
             Copies every store's current live subscription and plan to test mode so test mode follows the same plan as live. It is safe to run again at any time, and is needed once after deploying replication.
@@ -674,7 +670,7 @@ async function handleConfirmStatusChange() {
         <EmptyState>
           <h2 class="text-[1.8rem] font-[700] text-[#000]">No billing snapshot found</h2>
           <p class="mt-[0.6rem] max-w-[42rem] text-center text-[1.4rem] text-[#616161]">
-            Check the tenant ID and try again.
+            This tenant has no subscription yet. If they paid offline, record the payment below. Otherwise check the tenant ID and try again.
           </p>
         </EmptyState>
       </section>
@@ -1214,6 +1210,11 @@ async function handleConfirmStatusChange() {
           </div>
         </section>
       </template>
+
+      <DashboardBillingManualPaymentCard
+        v-if="hasSearched && !billingOperationsStore.loadingSnapshot"
+        :tenant-id="searchedTenantId"
+      />
 
       <!-- Confirmation Modal for Resyncing to Test -->
       <div
