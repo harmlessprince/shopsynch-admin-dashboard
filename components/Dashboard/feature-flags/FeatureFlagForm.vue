@@ -1,4 +1,6 @@
 <script setup>
+import { logger } from "~/utils/helpers.js";
+
 const props = defineProps({
   isEdit: { type: Boolean, default: false },
   initialData: { type: Object, default: () => ({}) },
@@ -15,7 +17,13 @@ const defaultStatuses = [
   { value: "DEPRECATED", label: "Deprecated" }
 ];
 
-const categories = ["INSIGHTS", "PAYMENTS", "LOGISTICS", "COMPLIANCE", "GENERAL"];
+const featureFlagsStore = useAdminFeatureFlagsStore();
+const categories = computed(() => featureFlagsStore.categories);
+onMounted(() => {
+  if (!categories.value.length) {
+    featureFlagsStore.fetchCategories().catch((err) => logger.error("Failed to load feature flag categories", err));
+  }
+});
 
 const form = ref({
   code: "",
