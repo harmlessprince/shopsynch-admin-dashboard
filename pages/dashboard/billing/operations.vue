@@ -22,6 +22,32 @@ const isSuperAdmin = computed(() => {
   return normalized.includes("superadmin");
 });
 
+const platformJumpLinks = [
+  { label: "Resync to test", sectionId: "section-resync" },
+  { label: "Retired plan moves", sectionId: "section-retired-plans" },
+];
+
+// `requires` says what must be on screen before the section exists: a loaded tenant snapshot, or just a searched tenant.
+const tenantJumpLinks = [
+  { label: "Subscription", sectionId: "section-subscription", requires: "snapshot" },
+  { label: "Price lock", sectionId: "section-price-lock", requires: "snapshot" },
+  { label: "Change status", sectionId: "section-status", requires: "snapshot" },
+  { label: "Record manual payment", sectionId: "section-manual-payment", requires: "searched" },
+  { label: "Manual invoices", sectionId: "section-invoices", requires: "snapshot" },
+  { label: "Billing overrides", sectionId: "section-overrides", requires: "snapshot" },
+  { label: "Extension codes", sectionId: "section-extension-codes", requires: "snapshot" },
+  { label: "Direct extension", sectionId: "section-direct-extension", requires: "snapshot" },
+];
+
+function isJumpLinkAvailable(link) {
+  if (link.requires === "snapshot") return Boolean(snapshot.value);
+  return hasSearched.value && !billingOperationsStore.loadingSnapshot;
+}
+
+function jumpToSection(sectionId) {
+  document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 const showResyncModal = ref(false);
 const resyncedCount = ref(null);
 
@@ -541,11 +567,43 @@ async function handleConfirmStatusChange() {
             Load tenant
           </BaseButton>
         </form>
+
+        <nav class="mt-[2rem] space-y-[1.2rem] border-t border-slate-100 pt-[1.6rem]" aria-label="Jump to a section">
+          <div class="flex flex-wrap items-center gap-[0.8rem]">
+            <span class="w-[14rem] text-[1.2rem] font-[700] uppercase tracking-[0.08em] text-[#616161]">Platform tools</span>
+            <BaseButton
+              v-for="link in platformJumpLinks"
+              :key="link.sectionId"
+              size="sm"
+              radius="6px"
+              variant="outline"
+              @click="jumpToSection(link.sectionId)"
+            >
+              {{ link.label }}
+            </BaseButton>
+          </div>
+          <div class="flex flex-wrap items-center gap-[0.8rem]">
+            <span class="w-[14rem] text-[1.2rem] font-[700] uppercase tracking-[0.08em] text-[#616161]">Selected tenant</span>
+            <BaseButton
+              v-for="link in tenantJumpLinks"
+              :key="link.sectionId"
+              size="sm"
+              radius="6px"
+              variant="outline"
+              :disabled="!isJumpLinkAvailable(link)"
+              :title="isJumpLinkAvailable(link) ? '' : 'Load a tenant first'"
+              @click="jumpToSection(link.sectionId)"
+            >
+              {{ link.label }}
+            </BaseButton>
+          </div>
+        </nav>
       </section>
 
       <!-- Resync Subscriptions to Test (Issue 009) -->
       <section
-        class="rounded-[10px] border border-blue-200 bg-blue-50/60 p-[2rem] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-[1.6rem]"
+        id="section-resync"
+        class="scroll-mt-[9rem] rounded-[10px] border border-blue-200 bg-blue-50/60 p-[2rem] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-[1.6rem]"
       >
         <div>
           <div class="flex items-center gap-[0.8rem]">
@@ -571,7 +629,7 @@ async function handleConfirmStatusChange() {
       </section>
 
       <!-- Retired Plan Moves Report (Issue 008) -->
-      <section class="rounded-[10px] bg-white p-[2.4rem] shadow-sm border border-slate-100">
+      <section id="section-retired-plans" class="scroll-mt-[9rem] rounded-[10px] bg-white p-[2.4rem] shadow-sm border border-slate-100">
         <div class="flex flex-col gap-[1.2rem] sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-[1.6rem] mb-[1.6rem]">
           <div>
             <h2 class="text-[1.8rem] font-[700] text-slate-900">Subscriptions Moved off Retired Plans</h2>
@@ -676,7 +734,7 @@ async function handleConfirmStatusChange() {
       </section>
 
       <template v-else-if="snapshot">
-        <section class="grid gap-[1.6rem] lg:grid-cols-[1.1fr_0.9fr]">
+        <section id="section-subscription" class="scroll-mt-[9rem] grid gap-[1.6rem] lg:grid-cols-[1.1fr_0.9fr]">
           <div class="rounded-[10px] bg-white p-[2.4rem] shadow-sm">
             <div class="flex items-start justify-between gap-[1rem]">
               <div>
@@ -684,6 +742,9 @@ async function handleConfirmStatusChange() {
                 <div class="mt-[0.4rem]">
                   <TenantHoverCard :tenant-id="searchedTenantId" />
                 </div>
+                <p class="mt-[0.8rem] max-w-[48rem] text-[1.35rem] leading-[2rem] text-[#616161]">
+                  The tenant's plan, renewal mode, period end and grace end today. Read this first so you know what state they are in before changing anything.
+                </p>
               </div>
               <span
                 v-if="subscription?.status"
@@ -721,6 +782,9 @@ async function handleConfirmStatusChange() {
 
           <div class="rounded-[10px] bg-white p-[2.4rem] shadow-sm">
             <h2 class="text-[1.8rem] font-[800] text-[#000]">Recent billing events</h2>
+            <p class="mt-[0.4rem] max-w-[72rem] text-[1.35rem] leading-[2rem] text-[#616161]">
+              The latest billing audit entries for this tenant, such as payments, status changes and overrides, newest first. Use it to confirm an action took effect.
+            </p>
             <div v-if="recentEvents.length" class="mt-[1.6rem] space-y-[1rem]">
               <div v-for="event in recentEvents.slice(0, 5)" :key="event.id || event.timestamp || event.action" class="rounded-[8px] border border-[#EDEFF2] p-[1.2rem]">
                 <p class="text-[1.3rem] font-[800] text-[#000]">{{ billingEventLabel(event.action) }}</p>
@@ -735,7 +799,7 @@ async function handleConfirmStatusChange() {
         <!-- Price Lock and Subscription Status Section -->
         <section class="grid gap-[1.6rem] lg:grid-cols-2">
           <!-- Tenant Price Lock Card -->
-          <div class="rounded-[10px] bg-white p-[2.4rem] shadow-sm flex flex-col justify-between">
+          <div id="section-price-lock" class="scroll-mt-[9rem] rounded-[10px] bg-white p-[2.4rem] shadow-sm flex flex-col justify-between">
             <div>
               <div class="flex items-start justify-between gap-[1rem]">
                 <div>
@@ -875,7 +939,7 @@ async function handleConfirmStatusChange() {
           </div>
 
           <!-- Subscription Status Override Card (Super Admin Only) -->
-          <div class="rounded-[10px] bg-white p-[2.4rem] shadow-sm flex flex-col justify-between">
+          <div id="section-status" class="scroll-mt-[9rem] rounded-[10px] bg-white p-[2.4rem] shadow-sm flex flex-col justify-between">
             <div>
               <div class="flex items-start justify-between gap-[1rem]">
                 <div>
@@ -944,7 +1008,7 @@ async function handleConfirmStatusChange() {
         </section>
 
         <section class="grid gap-[1.6rem] xl:grid-cols-2">
-          <div class="rounded-[10px] bg-white p-[2.4rem] shadow-sm xl:col-span-2">
+          <div id="section-invoices" class="scroll-mt-[9rem] rounded-[10px] bg-white p-[2.4rem] shadow-sm xl:col-span-2">
             <div class="flex flex-col gap-[1.2rem] lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <h2 class="text-[1.8rem] font-[800] text-[#000]">Manual subscription invoices</h2>
@@ -1057,8 +1121,11 @@ async function handleConfirmStatusChange() {
             </EmptyState>
           </div>
 
-          <div class="rounded-[10px] bg-white p-[2.4rem] shadow-sm">
+          <div id="section-overrides" class="scroll-mt-[9rem] rounded-[10px] bg-white p-[2.4rem] shadow-sm">
             <h2 class="text-[1.8rem] font-[800] text-[#000]">Apply billing override</h2>
+            <p class="mt-[0.4rem] max-w-[72rem] text-[1.35rem] leading-[2rem] text-[#616161]">
+              Creates a time-boxed exception to one billing rule for this tenant, for example waiving the subscription requirement or lengthening the grace period. Pick the scope, set the dates and record why.
+            </p>
             <form class="mt-[1.6rem] space-y-[1.4rem]" @submit.prevent="applyOverride">
               <div>
                 <label class="mb-[0.8rem] block text-[1.8rem] text-[#1B1B19]">Scope</label>
@@ -1093,6 +1160,9 @@ async function handleConfirmStatusChange() {
 
           <div class="rounded-[10px] bg-white p-[2.4rem] shadow-sm">
             <h2 class="text-[1.8rem] font-[800] text-[#000]">Active overrides</h2>
+            <p class="mt-[0.4rem] max-w-[72rem] text-[1.35rem] leading-[2rem] text-[#616161]">
+              Overrides currently in force for this tenant. Revoke one, with a reason, as soon as it is no longer needed.
+            </p>
             <div v-if="activeOverrides.length" class="mt-[1.6rem] space-y-[1.2rem]">
               <div v-for="override in activeOverrides" :key="override.id" class="rounded-[8px] border border-[#EDEFF2] p-[1.4rem]">
                 <div class="flex flex-wrap items-center justify-between gap-[1rem]">
@@ -1132,8 +1202,11 @@ async function handleConfirmStatusChange() {
         </section>
 
         <section class="grid gap-[1.6rem] xl:grid-cols-3">
-          <div class="rounded-[10px] bg-white p-[2.4rem] shadow-sm">
+          <div id="section-extension-codes" class="scroll-mt-[9rem] rounded-[10px] bg-white p-[2.4rem] shadow-sm">
             <h2 class="text-[1.8rem] font-[800] text-[#000]">Generate extension code</h2>
+            <p class="mt-[0.4rem] max-w-[72rem] text-[1.35rem] leading-[2rem] text-[#616161]">
+              Creates a code that adds extra subscription days. It is not tied to a store until someone applies it, so you can hand it to a merchant.
+            </p>
             <form class="mt-[1.6rem] space-y-[1.4rem]" @submit.prevent="generateExtensionCode">
               <AppInput v-model="generateCodeForm.extensionDays" label="Extension days" name="codeExtensionDays" type="number" />
               <AppInput v-model="generateCodeForm.maxRedemptions" label="Max redemptions" name="codeMaxRedemptions" type="number" />
@@ -1162,6 +1235,9 @@ async function handleConfirmStatusChange() {
 
           <div class="rounded-[10px] bg-white p-[2.4rem] shadow-sm">
             <h2 class="text-[1.8rem] font-[800] text-[#000]">Apply extension code</h2>
+            <p class="mt-[0.4rem] max-w-[72rem] text-[1.35rem] leading-[2rem] text-[#616161]">
+              Redeems a code on the loaded tenant and adds its days to their subscription. Codes already applied to them are listed below.
+            </p>
             <form class="mt-[1.6rem] space-y-[1.4rem]" @submit.prevent="applyExtensionCode">
               <AppInput v-model="applyCodeForm.code" label="Extension code" name="applyExtensionCode" placeholder="EXT-..." />
               <BaseButton
@@ -1193,8 +1269,11 @@ async function handleConfirmStatusChange() {
             </div>
           </div>
 
-          <div class="rounded-[10px] bg-white p-[2.4rem] shadow-sm">
+          <div id="section-direct-extension" class="scroll-mt-[9rem] rounded-[10px] bg-white p-[2.4rem] shadow-sm">
             <h2 class="text-[1.8rem] font-[800] text-[#000]">Direct extension</h2>
+            <p class="mt-[0.4rem] max-w-[72rem] text-[1.35rem] leading-[2rem] text-[#616161]">
+              Adds days to the tenant's subscription straight away, without a code, for migration support or goodwill. It creates no invoice or receipt, so if they paid, use Record manual payment instead.
+            </p>
             <form class="mt-[1.6rem] space-y-[1.4rem]" @submit.prevent="extendSubscriptionDirectly">
               <AppInput v-model="directExtensionForm.extensionDays" label="Extension days" name="directExtensionDays" type="number" />
               <AppInput v-model="directExtensionForm.reason" label="Reason" name="directExtensionReason" placeholder="Offline payment, migration support, etc." />
@@ -1213,6 +1292,8 @@ async function handleConfirmStatusChange() {
 
       <DashboardBillingManualPaymentCard
         v-if="hasSearched && !billingOperationsStore.loadingSnapshot"
+        id="section-manual-payment"
+        class="scroll-mt-[9rem]"
         :tenant-id="searchedTenantId"
       />
 
