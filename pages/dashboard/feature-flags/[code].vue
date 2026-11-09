@@ -17,7 +17,6 @@ const showOverrideModal = ref(false);
 
 const defaultStatuses = ["ENABLED", "BETA", "COMING_SOON", "HIDDEN", "DEPRECATED"];
 const overrideStatuses = ["ENABLED", "BETA", "COMING_SOON", "HIDDEN", "DEPRECATED"];
-const categories = ["INSIGHTS", "PAYMENTS", "LOGISTICS", "COMPLIANCE", "GENERAL"];
 
 const statusBadgeClass = {
   ENABLED: "bg-[#B5F9B4] text-[#3CA745]",
