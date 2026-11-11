@@ -200,6 +200,7 @@ export const endpoints = {
         },
         featureFlags: {
             list: "/v1/admin/feature-flags",
+            categories: "/v1/admin/feature-flags/categories",
             detail: "/v1/admin/feature-flags/:code",
             create: "/v1/admin/feature-flags",
             update: "/v1/admin/feature-flags/:code",

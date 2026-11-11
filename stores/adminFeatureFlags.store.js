@@ -18,6 +18,9 @@ export const useAdminFeatureFlagsStore = defineStore("adminFeatureFlagsStore", (
 
     const selectedFlag = ref(null);
 
+    // The categories come from the backend, which owns them: they are whatever the feature flags use.
+    const categories = ref([]);
+
     async function fetchFlags(params = {}) {
         loading.value = true;
         try {
@@ -40,6 +43,11 @@ export const useAdminFeatureFlagsStore = defineStore("adminFeatureFlagsStore", (
         } finally {
             loading.value = false;
         }
+    }
+
+    async function fetchCategories() {
+        const response = await get(endpoints.admin.featureFlags.categories, {}, { forceMode: "live" });
+        categories.value = Array.isArray(response?.data) ? response.data : [];
     }
 
     async function fetchFlag(code) {
@@ -119,7 +127,9 @@ export const useAdminFeatureFlagsStore = defineStore("adminFeatureFlagsStore", (
         flagsTotal,
         flagsPaginatedData,
         selectedFlag,
+        categories,
         fetchFlags,
+        fetchCategories,
         fetchFlag,
         createFlag,
         updateFlag,

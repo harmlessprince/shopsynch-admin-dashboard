@@ -24,7 +24,7 @@ const showOverrideModal = ref(false);
 const selectedFlag = ref(null);
 
 const defaultStatuses = ["ENABLED", "BETA", "COMING_SOON", "HIDDEN", "DEPRECATED"];
-const categories = ["INSIGHTS", "PAYMENTS", "LOGISTICS", "COMPLIANCE", "GENERAL"];
+const categories = computed(() => featureFlagsStore.categories);
 
 const newFlag = ref({
   code: "",
@@ -170,7 +170,10 @@ async function submitCreate() {
   }
 }
 
-onMounted(fetchFlags);
+onMounted(() => {
+  fetchFlags();
+  featureFlagsStore.fetchCategories().catch((err) => logger.error("Failed to load feature flag categories", err));
+});
 </script>
 
 <template>
