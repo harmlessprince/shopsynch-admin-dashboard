@@ -83,6 +83,8 @@ All endpoint paths are centralized in `utils/endpoints.js`. Endpoints that inclu
 
 Forms use **vee-validate** with **zod** schemas (`@vee-validate/zod`). Validation errors from the API (422) are stored in `error.store.js` and surfaced via `AppErrorMessage` or field-level `AppInput` components.
 
+**Zod rule (mandatory):** every piece of data the frontend submits to the API must be built and validated through a Zod schema first, whether it comes from a form, a store action, a script or a background call. Put the schema in `schemas/` (`*.schema.ts`), parse the payload with it right before the request, and send the parsed result, not the raw object. The schema mirrors the backend limits (lengths, enums, required fields), so an over-limit value is cut or rejected on the client instead of failing the whole request. Forms use it through vee-validate (`toTypedSchema`); non-form submissions call `schema.parse(...)` directly. Do not add a new POST/PUT/PATCH body without a schema.
+
 ---
 
 ## Coding Guidelines
