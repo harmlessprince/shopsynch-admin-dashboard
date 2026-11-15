@@ -12,6 +12,17 @@ const optionalCount = (label: string) =>
             .optional()
     );
 
+/** A blank field means "use the platform default"; anything else must be a whole percentage from 1 to 100. */
+const optionalPercent = (label: string) =>
+    zod.preprocess(
+        (value) => (value === '' || value === null || value === undefined ? undefined : Number(value)),
+        zod.number({ invalid_type_error: `${label} must be a number` })
+            .int({ message: `${label} must be a whole number` })
+            .min(1, { message: `${label} must be between 1 and 100` })
+            .max(100, { message: `${label} must be between 1 and 100` })
+            .optional()
+    );
+
 /**
  * The API usage policy of a billing plan, as the plan editor submits it. Saving it on a plan publishes a new plan
  * version, so merchants already on the plan keep the policy of the version they were pinned to.
@@ -22,6 +33,9 @@ export const apiUsagePolicySchema = zod.object({
     testRateLimitPerMinute: optionalCount('Test rate limit'),
     testMonthlySafetyCap: optionalCount('Test monthly cap'),
     overageCalls: optionalCount('Overage calls'),
+    quotaWarningThresholdPercent: optionalPercent('Quota warning threshold'),
+    quotaLimitThresholdPercent: optionalPercent('Quota limit threshold'),
+    liveKeysAllowed: zod.boolean().default(true),
     enforcementMode: zod.enum(apiUsageEnforcementModes),
 });
 

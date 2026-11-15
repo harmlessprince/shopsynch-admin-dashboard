@@ -66,6 +66,8 @@ const apiUsageFields = [
   { key: "testRateLimitPerMinute", label: "Test requests per minute" },
   { key: "testMonthlySafetyCap", label: "Test calls per month cap" },
   { key: "overageCalls", label: "Overage calls" },
+  { key: "quotaWarningThresholdPercent", label: "Quota warning notice at (% of quota, blank for default)" },
+  { key: "quotaLimitThresholdPercent", label: "Quota limit notice at (% of quota, blank for default)" },
 ];
 
 const emptyApiUsageForm = () => ({
@@ -74,13 +76,18 @@ const emptyApiUsageForm = () => ({
   testRateLimitPerMinute: "",
   testMonthlySafetyCap: "",
   overageCalls: "",
+  quotaWarningThresholdPercent: "",
+  quotaLimitThresholdPercent: "",
+  liveKeysAllowed: true,
   enforcementMode: "ALERT_ONLY",
 });
 
 function mapPolicyToForm(policy) {
   const form = emptyApiUsageForm();
   for (const key of Object.keys(form)) {
-    if (policy && policy[key] !== null && policy[key] !== undefined) form[key] = String(policy[key]);
+    if (policy && policy[key] !== null && policy[key] !== undefined) {
+      form[key] = key === "liveKeysAllowed" ? policy[key] !== false : String(policy[key]);
+    }
   }
   return form;
 }
@@ -1045,6 +1052,10 @@ onMounted(async () => {
                   {{ fieldErrors[`apiUsage.${field.key}`] }}
                 </p>
               </div>
+              <label class="flex items-center gap-[0.8rem] text-[1.3rem] font-[600] text-slate-700">
+                <input v-model="planForm.apiUsage.liveKeysAllowed" type="checkbox" class="h-[1.6rem] w-[1.6rem]">
+                Live API keys allowed (turn off for test-key-only plans such as Sandbox)
+              </label>
               <BaseSelectInput
                 v-model="planForm.apiUsage.enforcementMode"
                 :options="enforcementModeOptions"
