@@ -5,7 +5,8 @@ This document guides developers working on billing plans, merchant plan access, 
 ## Core Concepts
 
 ### 1. Catalog vs Custom Plans
-- **Catalog Plans (`starter`, `pro`, `growth`, `developer`):**
+- **Catalog Plans (`starter`, `pro`, `growth`, `developer` (Build), `developer-launch`, `developer-scale`):**
+  - The developer tiers carry an `apiUsagePolicy` (live/test rate limit, included monthly calls, test cap, overage calls, enforcement mode), edited as fields in the plan editor (`schemas/apiUsagePolicy.schema.ts`). The seed writes it only when a plan has none, so an admin edit survives restarts, and each edit publishes a new plan version while subscribers stay on the version they are pinned to. `developer-scale` is created hidden (`publicVisible: false`).
   - Seeded into the database by `BillingPricingSeeder` on every backend startup.
   - Marked with `seeded: true`.
   - Any modifications made directly in the admin dashboard to a seeded plan's rules or prices will be overwritten on the next backend deployment/restart. Changes to catalog plans must be committed in backend seed code (`BillingPricingSeeder.java`).
