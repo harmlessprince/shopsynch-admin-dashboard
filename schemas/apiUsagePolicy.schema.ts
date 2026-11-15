@@ -33,10 +33,17 @@ export const apiUsagePolicySchema = zod.object({
     testRateLimitPerMinute: optionalCount('Test rate limit'),
     testMonthlySafetyCap: optionalCount('Test monthly cap'),
     overageCalls: optionalCount('Overage calls'),
+    overageBlockSizeCalls: optionalCount('Overage block size'),
+    overagePricePerBlock: optionalCount('Overage price per block'),
     quotaWarningThresholdPercent: optionalPercent('Quota warning threshold'),
     quotaLimitThresholdPercent: optionalPercent('Quota limit threshold'),
     liveKeysAllowed: zod.boolean().default(true),
     enforcementMode: zod.enum(apiUsageEnforcementModes),
+    /** A blank field means "use the main enforcement mode" for test calls past the monthly cap. */
+    testCapEnforcementMode: zod.preprocess(
+        (value) => (value === '' || value === null || value === undefined ? undefined : value),
+        zod.enum(apiUsageEnforcementModes).optional()
+    ),
 });
 
 export type ApiUsagePolicyPayload = zod.infer<typeof apiUsagePolicySchema>;

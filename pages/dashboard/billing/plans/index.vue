@@ -66,9 +66,13 @@ const apiUsageFields = [
   { key: "testRateLimitPerMinute", label: "Test requests per minute" },
   { key: "testMonthlySafetyCap", label: "Test calls per month cap" },
   { key: "overageCalls", label: "Overage calls" },
+  { key: "overageBlockSizeCalls", label: "Overage block size (calls per block, blank for no overage)" },
+  { key: "overagePricePerBlock", label: "Overage price per block (NGN, blank for no overage)" },
   { key: "quotaWarningThresholdPercent", label: "Quota warning notice at (% of quota, blank for default)" },
   { key: "quotaLimitThresholdPercent", label: "Quota limit notice at (% of quota, blank for default)" },
 ];
+
+const testCapModeOptions = [{ label: "Use the main mode", value: "" }, ...enforcementModeOptions];
 
 const emptyApiUsageForm = () => ({
   liveRateLimitPerMinute: "",
@@ -76,10 +80,13 @@ const emptyApiUsageForm = () => ({
   testRateLimitPerMinute: "",
   testMonthlySafetyCap: "",
   overageCalls: "",
+  overageBlockSizeCalls: "",
+  overagePricePerBlock: "",
   quotaWarningThresholdPercent: "",
   quotaLimitThresholdPercent: "",
   liveKeysAllowed: true,
   enforcementMode: "ALERT_ONLY",
+  testCapEnforcementMode: "",
 });
 
 function mapPolicyToForm(policy) {
@@ -1061,6 +1068,12 @@ onMounted(async () => {
                 :options="enforcementModeOptions"
                 label="Quota and test cap enforcement"
                 placeholder="Select mode"
+              />
+              <BaseSelectInput
+                v-model="planForm.apiUsage.testCapEnforcementMode"
+                :options="testCapModeOptions"
+                label="Test cap enforcement (blank uses the main mode)"
+                placeholder="Use the main mode"
               />
             </div>
           </fieldset>
