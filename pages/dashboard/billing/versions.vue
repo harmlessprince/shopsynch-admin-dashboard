@@ -150,7 +150,7 @@ onMounted(async () => {
 
       <section class="space-y-[1.2rem]">
         <h2 class="text-[1.6rem] font-[700] text-slate-900">Cohort moves</h2>
-        <p class="text-slate-500">Moves of merchants between versions of this plan. A move that raises a price waits out the notice period. Only the latest 50 moves across all plans are loaded, so older moves for this plan may not appear.</p>
+        <p class="text-slate-500">Moves of merchants between versions of this plan. A move that raises a price waits out the notice period. Scheduled moves are always shown. Finished moves older than the latest 50 across all plans may not appear.</p>
         <p v-if="movesStore.loadError" class="rounded-[8px] bg-[#FFBFBF] p-[1.2rem] font-[600] text-[#B42318]">{{ movesStore.loadError }}</p>
         <p v-else-if="!planMoves.length" class="rounded-[8px] bg-white p-[2.4rem] text-center italic text-slate-400 shadow-sm">No recent moves for this plan.</p>
         <button
