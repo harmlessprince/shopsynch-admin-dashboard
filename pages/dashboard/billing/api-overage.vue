@@ -195,7 +195,7 @@ onMounted(() => {
       <div class="p-[2rem] pb-0">
         <h2 class="text-[1.8rem] font-[700] text-[#000]">All overage invoices</h2>
         <p class="mt-[0.4rem] max-w-[80rem] text-[#616161]">Every store's overage invoices, newest first. Filter by usage month and status.</p>
-        <form class="mt-[1.2rem] grid gap-[1.2rem] md:grid-cols-[14rem_20rem_auto]" @submit.prevent="loadInvoices(0)">
+        <form class="mt-[1.2rem] grid gap-[1.2rem] md:grid-cols-[14rem_20rem_max-content]" @submit.prevent="loadInvoices(0)">
           <AppInput v-model="invoiceMonth" label="Usage month" name="overageInvoiceMonth" type="month" />
           <div>
             <label class="mb-[0.8rem] block text-[1.4rem] text-[#1B1B19]" for="overageInvoiceStatus">Status</label>
@@ -207,7 +207,7 @@ onMounted(() => {
               <option v-for="option in statusOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
             </select>
           </div>
-          <BaseButton type="submit" radius="8px" class="self-end" :loading="overageStore.loadingInvoices">Apply filters</BaseButton>
+          <BaseButton type="submit" radius="8px" class="self-end justify-self-start" :loading="overageStore.loadingInvoices">Apply filters</BaseButton>
         </form>
         <p v-if="overageStore.invoicesError" class="mt-[1.2rem] rounded-[8px] bg-[#FFBFBF] p-[1.2rem] font-[600] text-[#B42318]">
           {{ overageStore.invoicesError }}
