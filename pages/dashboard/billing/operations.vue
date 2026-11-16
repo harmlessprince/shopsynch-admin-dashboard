@@ -1145,6 +1145,13 @@ async function handleConfirmStatusChange() {
                   rows="5"
                   class="w-full rounded-[10px] border border-[#D9D9D9] p-[1.4rem] font-mono text-[1.3rem] outline-none focus:border-primary"
                 />
+                <p v-if="overrideForm.scope === 'API_LIMIT'" class="mt-[0.5rem] text-[1.2rem] text-[#616161]">
+                  An API limit override replaces the store's whole API usage policy, so any field you leave out means no limit
+                  for it. Include every field you want to keep: includedMonthlyCalls, overageBlockSizeCalls,
+                  overagePricePerBlock, liveRateLimitPerMinute, testRateLimitPerMinute, testMonthlySafetyCap,
+                  quotaWarningThresholdPercent, quotaLimitThresholdPercent and enforcementMode. A store whose plan has no
+                  live keys keeps that setting.
+                </p>
                 <p v-if="overrideJsonError" class="mt-[0.5rem] text-[1.2rem] text-[#B42318]">{{ overrideJsonError }}</p>
               </div>
               <BaseButton

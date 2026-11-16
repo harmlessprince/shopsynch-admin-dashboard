@@ -244,6 +244,10 @@ export const endpoints = {
             payments: {
                 list: "/v1/admin/billing/payments",
                 detail: "/v1/admin/billing/payments/:paymentId",
+                revenueSplit: "/v1/admin/billing/payments/revenue-split",
+            },
+            apiOverage: {
+                attention: "/v1/admin/billing/invoices/api-overage/attention",
             },
             overrides: {
                 apply: "/v1/admin/billing/overrides",
