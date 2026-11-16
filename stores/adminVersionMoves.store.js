@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { endpoints } from "~/utils/endpoints.js";
 import { useApiService } from "~/services/apiService.js";
-import { useToastStore } from "~/stores/toast.store.js";
+import { useBillingWriteState } from "~/utils/billingAdminWrite.js";
 import { logger } from "~/utils/helpers.js";
 import {
     versionMovePreviewSchema,
@@ -9,74 +9,14 @@ import {
     versionMoveCancelSchema,
 } from "~/schemas/versionMove.schema";
 
-function normalizeFieldErrors(errors) {
-    const result = {};
-    for (const [field, message] of Object.entries(errors || {})) {
-        result[field] = Array.isArray(message) ? message.join(" ") : String(message);
-    }
-    return result;
-}
-
 export const useAdminVersionMovesStore = defineStore("adminVersionMovesStore", () => {
     const { get, post } = useApiService();
-    const toastStore = useToastStore();
+    const { saving, fieldErrors, actionError, clearErrors, fieldError, parse, runWrite } = useBillingWriteState("Version move");
 
     const moves = ref([]);
     const loading = ref(false);
     const loadError = ref("");
-    const saving = ref(false);
     const preview = ref(null);
-    const fieldErrors = ref({});
-    const actionError = ref("");
-
-    function clearErrors() {
-        fieldErrors.value = {};
-        actionError.value = "";
-    }
-
-    function fieldError(name) {
-        const entries = Object.entries(fieldErrors.value);
-        const exact = entries.find(([key]) => key === name);
-        if (exact) return exact[1];
-        const nested = entries.find(([key]) => key.startsWith(`${name}.`) || key.startsWith(`${name}[`));
-        return nested ? nested[1] : "";
-    }
-
-    function parse(schema, raw) {
-        const result = schema.safeParse(raw);
-        if (result.success) return result.data;
-        const errors = {};
-        for (const issue of result.error.issues) {
-            const key = issue.path.join(".") || "form";
-            if (!errors[key]) errors[key] = issue.message;
-        }
-        fieldErrors.value = errors;
-        return null;
-    }
-
-    async function runWrite(task, successMessage) {
-        saving.value = true;
-        clearErrors();
-        try {
-            const response = await task();
-            if (successMessage) toastStore.success(successMessage, "");
-            return response?.data ?? null;
-        } catch (err) {
-            logger.error("Version move request failed", err);
-            const status = err?.response?.status || err?.statusCode;
-            const data = err?.data || err?.response?._data;
-            if (status === 422 && data?.errors) {
-                fieldErrors.value = normalizeFieldErrors(data.errors);
-                actionError.value = Object.keys(fieldErrors.value).length ? "" : data?.message || "";
-            } else {
-                actionError.value = data?.message || "This could not be completed. Please try again.";
-            }
-            return null;
-        } finally {
-            saving.value = false;
-        }
-    }
-
     const opts = { forceMode: "live", silent: true };
     const withId = (url, moveId) => url.replace(":moveId", encodeURIComponent(moveId));
 

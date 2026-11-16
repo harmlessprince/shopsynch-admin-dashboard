@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { endpoints } from "~/utils/endpoints.js";
 import { useApiService } from "~/services/apiService.js";
-import { useToastStore } from "~/stores/toast.store.js";
+import { useBillingWriteState } from "~/utils/billingAdminWrite.js";
 import { logger } from "~/utils/helpers.js";
 import {
     planVersionDraftSchema,
@@ -11,79 +11,15 @@ import {
 } from "~/schemas/planVersion.schema";
 import { versionPolicySchema, versionPolicyApproveSchema } from "~/schemas/versionMove.schema";
 
-// 422 bodies name errors by field; a value may be a string or a list of strings.
-function normalizeFieldErrors(errors) {
-    const result = {};
-    for (const [field, message] of Object.entries(errors || {})) {
-        result[field] = Array.isArray(message) ? message.join(" ") : String(message);
-    }
-    return result;
-}
-
 export const useAdminPlanVersionsStore = defineStore("adminPlanVersionsStore", () => {
     const { get, post, put } = useApiService();
-    const toastStore = useToastStore();
+    const { saving, fieldErrors, actionError, clearErrors, fieldError, parse, runWrite } = useBillingWriteState("Plan version");
 
     const versionsByPlan = ref({});
     const adoptionByPlan = ref({});
     const policiesByPlan = ref({});
     const loading = ref(false);
     const loadError = ref("");
-    const saving = ref(false);
-    // 422 field errors (or Zod issues) keyed by field name; 400 business refusals are plain text.
-    const fieldErrors = ref({});
-    const actionError = ref("");
-
-    function clearErrors() {
-        fieldErrors.value = {};
-        actionError.value = "";
-    }
-
-    // First error for a field; a name also matches nested keys such as prices.0.amount.
-    function fieldError(name) {
-        const entries = Object.entries(fieldErrors.value);
-        const exact = entries.find(([key]) => key === name);
-        if (exact) return exact[1];
-        const nested = entries.find(([key]) => key.startsWith(`${name}.`) || key.startsWith(`${name}[`));
-        return nested ? nested[1] : "";
-    }
-
-    // Parse right before sending; the parsed value is what gets sent.
-    function parse(schema, raw) {
-        const result = schema.safeParse(raw);
-        if (result.success) return result.data;
-        const errors = {};
-        for (const issue of result.error.issues) {
-            const key = issue.path.join(".") || "form";
-            if (!errors[key]) errors[key] = issue.message;
-        }
-        fieldErrors.value = errors;
-        return null;
-    }
-
-    // Runs a write with the global toast silenced so refusals show inline next to the action.
-    async function runWrite(task, successMessage) {
-        saving.value = true;
-        clearErrors();
-        try {
-            const response = await task();
-            if (successMessage) toastStore.success(successMessage, "");
-            return response?.data ?? null;
-        } catch (err) {
-            logger.error("Plan version request failed", err);
-            const status = err?.response?.status || err?.statusCode;
-            const data = err?.data || err?.response?._data;
-            if (status === 422 && data?.errors) {
-                fieldErrors.value = normalizeFieldErrors(data.errors);
-                actionError.value = Object.keys(fieldErrors.value).length ? "" : data?.message || "";
-            } else {
-                actionError.value = data?.message || "This could not be completed. Please try again.";
-            }
-            return null;
-        } finally {
-            saving.value = false;
-        }
-    }
 
     const opts = { forceMode: "live", silent: true };
     const withId = (url, versionId) => url.replace(":versionId", encodeURIComponent(versionId));
@@ -134,7 +70,8 @@ export const useAdminPlanVersionsStore = defineStore("adminPlanVersionsStore", (
                     : post(endpoints.admin.billing.planVersions.create, payload, opts),
             versionId ? "Draft updated" : "Draft created",
         );
-        if (saved) await fetchVersions(raw.planId || saved.planId);
+        // The save succeeded; a failed refresh must not turn it into an error.
+        if (saved) await fetchVersions(raw.planId || saved.planId).catch((err) => logger.error("Failed to refresh plan versions", err));
         return saved;
     }
 

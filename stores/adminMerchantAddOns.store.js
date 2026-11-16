@@ -3,6 +3,7 @@ import { endpoints } from "~/utils/endpoints.js";
 import { useApiService } from "~/services/apiService.js";
 import { useToastStore } from "~/stores/toast.store.js";
 import { logger } from "~/utils/helpers.js";
+import { normalizeFieldErrors, zodFieldErrors } from "~/utils/billingAdminWrite.js";
 import { grantCapacityAddOnSchema, revokeCapacityAddOnSchema } from "~/schemas/capacityAddOnAdmin.schema";
 
 const base = endpoints.admin.billing.capacityAddOns;
@@ -10,23 +11,13 @@ const live = { forceMode: "live", silent: true };
 
 const fill = (url, params) => Object.entries(params).reduce((acc, [k, v]) => acc.replace(`:${k}`, encodeURIComponent(v)), url);
 
-const flattenZod = (error) => {
-    const out = {};
-    for (const issue of error?.issues || []) {
-        const key = issue.path?.[0] ?? "form";
-        if (!out[key]) out[key] = issue.message;
-    }
-    return out;
-};
-
 // Silent requests skip the global toast, so 400 business refusals and 422 field errors are read here and shown inline.
+// Same shape as the other billing stores: 422 field errors per field, otherwise the API message.
 const readFailure = (err) => {
     const status = err?.response?.status || err?.statusCode;
     const data = err?.data || err?.response?._data || {};
-    const raw = data.errors || {};
-    const fieldErrors = {};
-    for (const [key, value] of Object.entries(raw)) fieldErrors[key] = Array.isArray(value) ? value.join(" ") : String(value);
-    const message = data.description || data.message || "The request could not be completed.";
+    const fieldErrors = normalizeFieldErrors(data.errors);
+    const message = data.message || data.description || "This could not be completed. Please try again.";
     return { status, fieldErrors, formError: status === 422 && Object.keys(fieldErrors).length ? "" : message };
 };
 
@@ -61,15 +52,17 @@ export const useAdminMerchantAddOnsStore = defineStore("adminMerchantAddOnsStore
         error.value = "";
         try {
             const response = await get(fill(base.merchantList, { tenantId: id }), {}, live);
+            if (tenantId.value !== id) return; // a newer merchant was selected meanwhile
             const data = response?.data || {};
             featureEnabled.value = data.featureEnabled !== false;
             addOns.value = data.addOns || [];
         } catch (err) {
             logger.error("Failed to load merchant add-ons", err);
+            if (tenantId.value !== id) return;
             addOns.value = [];
             error.value = readFailure(err).formError;
         } finally {
-            loading.value = false;
+            if (tenantId.value === id) loading.value = false;
         }
     }
 
@@ -78,13 +71,15 @@ export const useAdminMerchantAddOnsStore = defineStore("adminMerchantAddOnsStore
         explanationError.value = "";
         try {
             const response = await get(fill(base.limitExplanation, { tenantId: id }), {}, live);
+            if (tenantId.value !== id) return;
             explanation.value = response?.data || null;
         } catch (err) {
             logger.error("Failed to load limit explanation", err);
+            if (tenantId.value !== id) return;
             explanation.value = null;
             explanationError.value = readFailure(err).formError;
         } finally {
-            explanationLoading.value = false;
+            if (tenantId.value === id) explanationLoading.value = false;
         }
     }
 
@@ -93,17 +88,25 @@ export const useAdminMerchantAddOnsStore = defineStore("adminMerchantAddOnsStore
         signalsError.value = "";
         try {
             const response = await get(fill(base.abuseSignals, { tenantId: id }), {}, live);
+            if (tenantId.value !== id) return;
             signals.value = response?.data || null;
         } catch (err) {
             logger.error("Failed to load abuse signals", err);
+            if (tenantId.value !== id) return;
             signals.value = null;
             signalsError.value = readFailure(err).formError;
         } finally {
-            signalsLoading.value = false;
+            if (tenantId.value === id) signalsLoading.value = false;
         }
     }
 
     async function fetchAll(id) {
+        if (tenantId.value !== id) {
+            // Drop the previous merchant's data at once; late responses for it are ignored by the id checks above.
+            addOns.value = [];
+            explanation.value = null;
+            signals.value = null;
+        }
         tenantId.value = id;
         await Promise.all([fetchAddOns(id), fetchExplanation(id), fetchSignals(id)]);
     }
@@ -115,7 +118,7 @@ export const useAdminMerchantAddOnsStore = defineStore("adminMerchantAddOnsStore
         clearFormErrors();
         const parsed = grantCapacityAddOnSchema.safeParse({ tenantId: tenantId.value, ...form });
         if (!parsed.success) {
-            fieldErrors.value = flattenZod(parsed.error);
+            fieldErrors.value = zodFieldErrors(parsed.error);
             return false;
         }
         saving.value = true;
@@ -137,7 +140,7 @@ export const useAdminMerchantAddOnsStore = defineStore("adminMerchantAddOnsStore
         clearFormErrors();
         const parsed = revokeCapacityAddOnSchema.safeParse(form);
         if (!parsed.success) {
-            fieldErrors.value = flattenZod(parsed.error);
+            fieldErrors.value = zodFieldErrors(parsed.error);
             return false;
         }
         saving.value = true;
