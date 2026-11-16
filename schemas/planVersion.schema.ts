@@ -30,7 +30,11 @@ export const planVersionPriceSchema = z.object({
   active: z.boolean().optional(),
   publicVisible: z.boolean().optional(),
   adminOnly: z.boolean().optional(),
-  sortOrder: z.coerce.number().int().optional(),
+  // null/undefined stay absent; z.coerce alone would turn null into 0.
+  sortOrder: z.preprocess(
+    (v) => (v === '' || v === null || v === undefined ? undefined : v),
+    z.coerce.number().int().optional(),
+  ),
 });
 
 export const planVersionLimitsSchema = z.object({

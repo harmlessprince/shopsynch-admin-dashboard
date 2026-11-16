@@ -28,6 +28,8 @@ const form = reactive({
     publicVisible: p.publicVisible !== false,
     adminOnly: Boolean(p.adminOnly),
     sortOrder: p.sortOrder,
+    // A period already on the version cannot be deleted: leaving it out keeps its live setting. Untick Active to switch it off.
+    existing: true,
   })),
   features: (source?.limits?.featureEntitlements || []).join("\n"),
   usage: Object.entries(source?.limits?.usageLimits || {}).map(([key, value]) => ({ key, value: toText(value) })),
@@ -69,7 +71,7 @@ async function submit() {
   localErrors.value = {};
   const prices = form.prices
     .filter((row) => String(row.periodUnitCount).trim() !== "" || String(row.amount).trim() !== "")
-    .map((row) => ({ ...row }));
+    .map(({ existing, ...row }) => row);
   let limits;
   if (editLimits.value) {
     limits = {
@@ -120,7 +122,8 @@ const err = (name) => localErrors.value[name] || store.fieldError(name);
             <label class="flex items-center gap-[0.6rem]"><input v-model="row.publicVisible" type="checkbox" class="h-[1.6rem] w-[1.6rem] accent-primary"> Shown publicly</label>
             <label class="flex items-center gap-[0.6rem]"><input v-model="row.adminOnly" type="checkbox" class="h-[1.6rem] w-[1.6rem] accent-primary"> Admin only</label>
           </div>
-          <BaseButton size="sm" radius="8px" variant="outline" @click="removePrice(index)">Remove</BaseButton>
+          <BaseButton v-if="!row.existing" size="sm" radius="8px" variant="outline" @click="removePrice(index)">Remove</BaseButton>
+          <span v-else class="text-[1.2rem] text-slate-500">To switch this period off, untick Active.</span>
         </div>
       </div>
       <p v-if="!form.prices.length" class="text-slate-500">No prices listed: the draft keeps the current prices.</p>
