@@ -1,4 +1,4 @@
-import { ref } from "vue";
+import { ref, nextTick } from "vue";
 import { useToastStore } from "~/stores/toast.store.js";
 import { logger } from "~/utils/helpers.js";
 
@@ -79,4 +79,37 @@ export function useBillingWriteState(logLabel) {
     }
 
     return { saving, fieldErrors, actionError, clearErrors, fieldError, parse, runWrite };
+}
+
+const matchesName = (key, name) => key === name || key.startsWith(`${name}.`) || key.startsWith(`${name}[`);
+
+// Errors whose key is one of `names` or nested under it, as [{ key, message }] in API order.
+export function errorsUnder(fieldErrors, names) {
+    return Object.entries(fieldErrors || {})
+        .filter(([key]) => names.some((name) => matchesName(key, name)))
+        .map(([key, message]) => ({ key, message }));
+}
+
+// Errors no visible field shows: nothing in `visibleNames` matches them. A submit must never fail without a message.
+export function unplacedErrors(fieldErrors, visibleNames) {
+    return Object.entries(fieldErrors || {})
+        .filter(([key]) => !visibleNames.some((name) => matchesName(key, name)))
+        .map(([key, message]) => ({ key, message }));
+}
+
+// "featureAccessRules.website_customization" + "'website_customization' is not a recognized plan rule."
+// -> "website_customization: is not a recognized plan rule"
+export function readableError({ key, message }) {
+    const leaf = key.replace(/^limits\./, "").split(".").slice(1).join(".") || key.replace(/^limits\./, "");
+    const text = String(message).replace(new RegExp(`^'?${leaf.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}'?\\s+`), "").replace(/\.$/, "");
+    return `${leaf}: ${text}`;
+}
+
+// After a failed submit, bring the first message (or invalid field) into view and focus it.
+export async function focusFirstError(formEl) {
+    await nextTick();
+    const target = formEl?.querySelector('[data-form-error], [aria-invalid="true"]');
+    if (!target) return;
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    target.focus?.({ preventScroll: true });
 }
