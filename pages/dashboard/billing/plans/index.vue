@@ -1,6 +1,7 @@
 <script setup>
 import { logger } from "~/utils/helpers.js";
 import DataTable from "~/components/table/DataTable.vue";
+import { apiUsagePolicySchema, apiUsageEnforcementModes } from "~/schemas/apiUsagePolicy.schema";
 
 definePageMeta({
   layout: "dashboard",
@@ -57,6 +58,45 @@ const planStatuses = ["ACTIVE", "INACTIVE", "ARCHIVED"];
 const statusOptions = planStatuses.map((status) => ({ label: status.replace(/_/g, " "), value: status }));
 const statusFilterOptions = [{ label: "All statuses", value: "" }, ...statusOptions];
 
+const enforcementModeOptions = apiUsageEnforcementModes.map((mode) => ({ label: mode.replace(/_/g, " "), value: mode }));
+
+const apiUsageFields = [
+  { key: "liveRateLimitPerMinute", label: "Live requests per minute" },
+  { key: "includedMonthlyCalls", label: "Included live calls per month" },
+  { key: "testRateLimitPerMinute", label: "Test requests per minute" },
+  { key: "testMonthlySafetyCap", label: "Test calls per month cap" },
+  { key: "overageBlockSizeCalls", label: "Overage block size (calls per block, blank for no overage)" },
+  { key: "overagePricePerBlock", label: "Overage price per block (NGN, blank for no overage)" },
+  { key: "quotaWarningThresholdPercent", label: "Quota warning notice at (% of quota, blank for default)" },
+  { key: "quotaLimitThresholdPercent", label: "Quota limit notice at (% of quota, blank for default)" },
+];
+
+const testCapModeOptions = [{ label: "Use the main mode", value: "" }, ...enforcementModeOptions];
+
+const emptyApiUsageForm = () => ({
+  liveRateLimitPerMinute: "",
+  includedMonthlyCalls: "",
+  testRateLimitPerMinute: "",
+  testMonthlySafetyCap: "",
+  overageBlockSizeCalls: "",
+  overagePricePerBlock: "",
+  quotaWarningThresholdPercent: "",
+  quotaLimitThresholdPercent: "",
+  liveKeysAllowed: true,
+  enforcementMode: "ALERT_ONLY",
+  testCapEnforcementMode: "",
+});
+
+function mapPolicyToForm(policy) {
+  const form = emptyApiUsageForm();
+  for (const key of Object.keys(form)) {
+    if (policy && policy[key] !== null && policy[key] !== undefined) {
+      form[key] = key === "liveKeysAllowed" ? policy[key] !== false : String(policy[key]);
+    }
+  }
+  return form;
+}
+
 const planTableHeader = [
   { title: "Plan", accessor: "name" },
   { title: "Code", accessor: "code" },
@@ -95,7 +135,7 @@ const emptyPlanForm = () => ({
   featureAccessRulesJson: "{}",
   usageLimitsJson: "{}",
   checkoutFeePolicyJson: "{}",
-  apiUsagePolicyJson: "{}",
+  apiUsage: emptyApiUsageForm(),
   trialPolicyJson: "{}",
   renewalPolicyJson: "{}",
 });
@@ -182,10 +222,23 @@ function mapPlanToForm(plan) {
     featureAccessRulesJson: JSON.stringify(plan.featureAccessRules || {}, null, 2),
     usageLimitsJson: JSON.stringify(plan.usageLimits || {}, null, 2),
     checkoutFeePolicyJson: JSON.stringify(plan.checkoutFeePolicy || {}, null, 2),
-    apiUsagePolicyJson: JSON.stringify(plan.apiUsagePolicy || {}, null, 2),
+    apiUsage: mapPolicyToForm(plan.apiUsagePolicy),
     trialPolicyJson: JSON.stringify(plan.trialPolicy || {}, null, 2),
     renewalPolicyJson: JSON.stringify(plan.renewalPolicy || {}, null, 2),
   };
+}
+
+function buildApiUsagePolicyPayload() {
+  const result = apiUsagePolicySchema.safeParse(planForm.value.apiUsage);
+  if (!result.success) {
+    const errors = {};
+    for (const issue of result.error.issues) {
+      errors[`apiUsage.${issue.path.join(".")}`] = issue.message;
+    }
+    fieldErrors.value = errors;
+    throw new Error(result.error.issues[0]?.message || "API usage policy is invalid.");
+  }
+  return result.data;
 }
 
 function buildPlanPayload() {
@@ -211,7 +264,7 @@ function buildPlanPayload() {
     featureAccessRules: currentRulesPayload.value,
     usageLimits: parseJsonObjectField(planForm.value.usageLimitsJson, "Usage limits"),
     checkoutFeePolicy: parseJsonObjectField(planForm.value.checkoutFeePolicyJson, "Checkout fee policy"),
-    apiUsagePolicy: parseJsonObjectField(planForm.value.apiUsagePolicyJson, "API usage policy"),
+    apiUsagePolicy: buildApiUsagePolicyPayload(),
     trialPolicy: parseJsonObjectField(planForm.value.trialPolicyJson, "Trial policy"),
     renewalPolicy: parseJsonObjectField(planForm.value.renewalPolicyJson, "Renewal policy"),
   };
@@ -980,10 +1033,48 @@ onMounted(async () => {
             <BaseTextArea v-model="planForm.featureEntitlementsJson" label="Feature entitlements JSON array" :rows="4" />
             <BaseTextArea v-model="planForm.usageLimitsJson" label="Usage limits JSON" :rows="4" />
             <BaseTextArea v-model="planForm.checkoutFeePolicyJson" label="Checkout fee policy JSON" :rows="4" />
-            <BaseTextArea v-model="planForm.apiUsagePolicyJson" label="API usage policy JSON" :rows="4" />
             <BaseTextArea v-model="planForm.trialPolicyJson" label="Trial policy JSON" :rows="4" />
             <BaseTextArea v-model="planForm.renewalPolicyJson" label="Renewal policy JSON" :rows="4" />
           </div>
+
+          <fieldset class="rounded-[8px] border border-slate-200 p-[1.4rem]">
+            <legend class="px-[0.6rem] text-[1.4rem] font-[700] text-slate-800">API usage policy</legend>
+            <p class="mb-[1rem] text-[1.2rem] text-slate-500">
+              Rate limits and monthly quotas for this plan's API keys. Leave a field blank for no limit. Saving a change
+              publishes a new plan version: stores already on the plan keep the policy they signed up under, and new
+              subscribers get this one.
+            </p>
+            <div class="grid grid-cols-1 gap-[1.2rem] md:grid-cols-2">
+              <div v-for="field in apiUsageFields" :key="field.key">
+                <AppInput
+                  v-model="planForm.apiUsage[field.key]"
+                  type="number"
+                  :label="field.label"
+                  :name="`apiUsage_${field.key}`"
+                  placeholder="No limit"
+                />
+                <p v-if="fieldErrors[`apiUsage.${field.key}`]" class="mt-[0.4rem] text-[1.2rem] font-[600] text-rose-600">
+                  {{ fieldErrors[`apiUsage.${field.key}`] }}
+                </p>
+              </div>
+              <label class="flex items-center gap-[0.8rem] text-[1.3rem] font-[600] text-slate-700">
+                <input v-model="planForm.apiUsage.liveKeysAllowed" type="checkbox" class="h-[1.6rem] w-[1.6rem]">
+                Live API keys allowed (turn off for test-key-only plans such as Sandbox)
+              </label>
+              <BaseSelectInput
+                v-model="planForm.apiUsage.enforcementMode"
+                :options="enforcementModeOptions"
+                label="Quota and test cap enforcement"
+                placeholder="Select mode"
+              />
+              <BaseSelectInput
+                v-model="planForm.apiUsage.testCapEnforcementMode"
+                :options="testCapModeOptions"
+                label="Test cap enforcement (blank uses the main mode)"
+                placeholder="Use the main mode"
+              />
+            </div>
+          </fieldset>
 
           <p v-if="planJsonError" class="rounded-[8px] bg-red-50 p-[1rem] text-red-600">
             {{ planJsonError }}
