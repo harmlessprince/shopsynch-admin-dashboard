@@ -19,6 +19,8 @@ const panel = ref("list");
 const selectedId = ref(null);
 
 const versions = computed(() => store.versionsByType[props.type] || []);
+// The version new purchases use now; a new draft starts from it.
+const latestForNewPurchases = computed(() => versions.value.find((version) => version.latestForNewPurchases) || null);
 // Re-read from the store so the detail reflects the latest save.
 const selected = computed(() => versions.value.find((version) => version.id === selectedId.value) || null);
 
@@ -108,6 +110,7 @@ function afterSave(saved) {
         :key="selectedId || 'new'"
         :type="type"
         :version="selected"
+        :base-version="latestForNewPurchases"
         :plans="plansStore.plans"
         @saved="afterSave"
         @cancel="backToDetail"

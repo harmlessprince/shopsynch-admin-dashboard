@@ -32,7 +32,7 @@ const hasPolicy = computed(() => props.version.status === "PUBLISHED" || props.v
 
     <dl class="grid grid-cols-1 gap-[1.4rem] sm:grid-cols-2">
       <div>
-        <dt class="text-[1.2rem] text-slate-500">Starts</dt>
+        <dt class="text-[1.2rem] text-slate-500">{{ version.status === "RETIRED" && version.effectiveFrom && new Date(version.effectiveFrom) > new Date() ? "Was due to start" : "Starts" }}</dt>
         <dd class="font-[600]">{{ formatEffectiveFrom(version.effectiveFrom, "Not published yet") }}</dd>
       </div>
       <div>
@@ -61,9 +61,9 @@ const hasPolicy = computed(() => props.version.status === "PUBLISHED" || props.v
       <h4 class="mb-[0.6rem] font-[700] text-slate-900">Merchants on this version</h4>
       <p class="text-slate-600">
         {{ version.merchantCount }} merchant{{ version.merchantCount === 1 ? "" : "s" }} holding
-        {{ version.unitsHeld }} unit{{ version.unitsHeld === 1 ? "" : "s" }}. What they pay each period:
+        {{ version.unitsHeld }} unit{{ version.unitsHeld === 1 ? "" : "s" }}.<template v-if="version.merchantCount"> What they pay each period:</template>
       </p>
-      <div class="mt-[0.6rem]">
+      <div v-if="version.merchantCount" class="mt-[0.6rem]">
         <DashboardAddOnVersionPrices :amounts="version.recurringValueByPeriodUnit" :currency="version.currency" empty="Nothing is billed on this version" />
       </div>
     </section>

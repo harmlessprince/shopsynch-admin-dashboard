@@ -8,6 +8,8 @@ const props = defineProps({
   type: { type: String, required: true },
   // The draft being edited, or null to create one.
   version: { type: Object, default: null },
+  // The version a new draft starts from (the one new purchases use), so nothing has to be retyped and no plan limit is dropped by accident.
+  baseVersion: { type: Object, default: null },
   plans: { type: Array, default: () => [] },
 });
 
@@ -17,13 +19,15 @@ const store = useAdminCapacityAddOnsStore();
 
 const isEdit = computed(() => Boolean(props.version));
 
+const seed = props.version || props.baseVersion;
+
 const form = reactive({
-  prices: Object.entries(props.version?.amountsByPeriodUnit || { 3: "" }).map(([period, amount]) => ({
+  prices: Object.entries(seed?.amountsByPeriodUnit || { 3: "" }).map(([period, amount]) => ({
     period: String(period),
     amount: amount === "" ? "" : String(amount),
   })),
   max: {},
-  onSale: props.version?.onSale ?? true,
+  onSale: seed?.onSale ?? true,
   changeNote: props.version?.changeNote ?? "",
   reason: "",
 });
@@ -31,13 +35,13 @@ const form = reactive({
 // One row per known plan, plus any plan code already on the draft that is no longer listed.
 const planRows = computed(() => {
   const rows = props.plans.map((plan) => ({ code: plan.code, name: plan.name || plan.code }));
-  for (const code of Object.keys(props.version?.maxQuantityByPlanCode || {})) {
+  for (const code of Object.keys(seed?.maxQuantityByPlanCode || {})) {
     if (!rows.some((row) => row.code === code)) rows.push({ code, name: code });
   }
   return rows;
 });
 
-for (const [code, value] of Object.entries(props.version?.maxQuantityByPlanCode || {})) {
+for (const [code, value] of Object.entries(seed?.maxQuantityByPlanCode || {})) {
   form.max[code] = String(value);
 }
 
@@ -88,6 +92,9 @@ async function submit() {
       <p class="mt-[0.4rem] text-[1.3rem] text-slate-500">
         A draft changes nothing. Nobody is charged this price until you publish it, and then it applies to new
         purchases only.
+      </p>
+      <p v-if="!isEdit && baseVersion" class="mt-[0.4rem] text-[1.3rem] text-slate-500">
+        Started from version {{ baseVersion.versionNumber }}. Change only what is different.
       </p>
     </div>
 

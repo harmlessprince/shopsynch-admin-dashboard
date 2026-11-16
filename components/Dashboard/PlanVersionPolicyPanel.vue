@@ -33,7 +33,9 @@ const policyOptions = [
   { label: "Sunset: move to a newer version", value: "SUNSET" },
 ];
 
-const form = reactive({ policy: "CONTINUE", sunsetAt: "", targetVersionNumber: "", acknowledgeFewerFeatures: false, reason: "" });
+// Starts on the policy the version has today, so saving a reason alone never silently reverses a sunset.
+const currentPolicy = policyOptions.some((option) => option.value === adoption.value?.renewalPolicy) ? adoption.value.renewalPolicy : "CONTINUE";
+const form = reactive({ policy: currentPolicy, sunsetAt: "", targetVersionNumber: "", acknowledgeFewerFeatures: false, reason: "" });
 const approveForm = reactive({ reason: "" });
 // The store keeps one error bag, so remember which form was submitted last and show "reason" errors only there.
 const lastAction = ref("");

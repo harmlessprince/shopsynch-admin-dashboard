@@ -56,12 +56,14 @@ async function cancel() {
         <div><dt class="text-[1.2rem] text-slate-500">Cancelled</dt><dd class="font-[700]">{{ current.cancelledCount }}</dd></div>
       </dl>
       <p class="text-slate-600">
-        Created {{ current.createdAt ? formatDateTime(current.createdAt) : "" }}<span v-if="current.createdBy"> by {{ current.createdBy }}</span>.
+        Created {{ current.createdAt ? formatDateTime(current.createdAt) : "" }}<span v-if="current.createdBy"> by admin {{ current.createdBy }}</span>.
         Reason: {{ current.reason }}
-        <template v-if="current.noticeDays"> Price rises need {{ current.noticeDays }} days notice.</template>
+      </p>
+      <p v-if="current.noticeDays" class="text-slate-600">
+        Merchants whose price goes up are given {{ current.noticeDays }} days' notice first.
       </p>
       <p v-if="current.status === 'CANCELLED'" class="rounded-[8px] bg-slate-50 p-[1.2rem] text-slate-600">
-        Cancelled {{ current.cancelledAt ? formatDateTime(current.cancelledAt) : "" }}<span v-if="current.cancelledBy"> by {{ current.cancelledBy }}</span>: {{ current.cancelReason }}
+        Cancelled {{ current.cancelledAt ? formatDateTime(current.cancelledAt) : "" }}<span v-if="current.cancelledBy"> by admin {{ current.cancelledBy }}</span>: {{ current.cancelReason }}
       </p>
 
       <section v-if="canCancel" class="space-y-[1.2rem] rounded-[8px] border border-slate-200 p-[1.6rem]">

@@ -22,6 +22,9 @@ const when = (value) => (value ? formatDateTime(value) : "");
           <StatusBadge v-if="showStatus || row.status === 'SKIPPED'" v-bind="rowStatusMeta[row.status] || { label: row.status }" />
         </div>
       </div>
+      <div v-if="row.tenantId" class="mt-[0.4rem] text-[1.2rem] text-slate-500">
+        Merchant <TenantHoverCard :tenant-id="row.tenantId" />
+      </div>
       <p v-if="row.status === 'SKIPPED'" class="mt-[0.6rem] text-[1.3rem] font-[600] text-[#9A4A00]">
         Skipped: {{ row.skipReason || "no reason given" }}
       </p>
