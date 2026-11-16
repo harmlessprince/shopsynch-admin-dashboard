@@ -247,6 +247,7 @@ export const endpoints = {
                 revenueSplit: "/v1/admin/billing/payments/revenue-split",
             },
             apiOverage: {
+                list: "/v1/admin/billing/invoices/api-overage",
                 attention: "/v1/admin/billing/invoices/api-overage/attention",
             },
             overrides: {

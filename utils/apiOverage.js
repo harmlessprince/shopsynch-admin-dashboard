@@ -1,6 +1,7 @@
 // How an API overage invoice reads in the admin screens, from its status and collection state.
 export function overageStateMeta(invoice) {
   if (invoice.status === "PAID" || invoice.collectionState === "PAID") return { label: "Paid", tone: "success" };
+  if (invoice.collectionState === "WAIVED") return { label: "Waived", tone: "neutral" };
   if (invoice.status === "EXPIRED") return { label: "Expired", tone: "neutral" };
   if (invoice.status === "CANCELLED") return { label: "Cancelled", tone: "neutral" };
   if (invoice.collectionState === "CHARGE_RETRY_SCHEDULED") return { label: "Charge failed, retrying", tone: "danger" };

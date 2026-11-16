@@ -15,6 +15,26 @@ useHead({
 
 const overageStore = useAdminBillingApiOverageStore();
 
+const invoiceHeader = [
+  { title: "Store", accessor: "tenantId" },
+  { title: "Month", accessor: "usageMonth" },
+  { title: "Amount", accessor: "amount" },
+  { title: "Collection", accessor: "collectionState" },
+  { title: "Due", accessor: "dueDate" },
+];
+
+const statusOptions = [
+  { value: "", label: "Issued, paid and cancelled" },
+  { value: "ISSUED", label: "Issued (unpaid)" },
+  { value: "PAID", label: "Paid" },
+  { value: "CANCELLED", label: "Cancelled" },
+];
+const invoiceMonth = ref("");
+const invoiceStatus = ref("");
+
+const loadInvoices = (page = 0) =>
+  overageStore.fetchInvoices({ page, usageMonth: invoiceMonth.value, status: invoiceStatus.value });
+
 const attentionHeader = [
   { title: "Store", accessor: "tenantId" },
   { title: "Month", accessor: "usageMonth" },
@@ -48,6 +68,7 @@ function addsUp(row) {
 
 onMounted(() => {
   overageStore.fetchAttention();
+  loadInvoices();
   loadRevenue();
 });
 </script>
@@ -62,20 +83,21 @@ onMounted(() => {
           <h1 class="text-[2rem] font-[700] text-[#000]">API Overage</h1>
           <p class="mt-[0.4rem] max-w-[80rem] text-[#616161]">
             Live API calls past a plan's included amount are invoiced after each month closes. API calls are never cut
-            off because an invoice is unpaid. Resolving a flagged invoice is not available yet:
+            off because an invoice is unpaid. Resolving a flagged invoice is not available here yet; the backend
+            actions are in
             <a
-              href="https://github.com/harmlessprince/ecommerce-api-springboot/issues/1291"
+              href="https://github.com/harmlessprince/ecommerce-api-springboot/pull/1314"
               target="_blank"
               rel="noopener"
               class="font-[700] text-primary"
-            >backend ticket 1291</a>.
+            >backend PR 1314</a>.
           </p>
         </div>
         <BaseButton
           radius="8px"
           variant="outline"
-          :loading="overageStore.loadingAttention || overageStore.loadingRevenue"
-          @click="overageStore.fetchAttention(); loadRevenue()"
+          :loading="overageStore.loadingAttention || overageStore.loadingRevenue || overageStore.loadingInvoices"
+          @click="overageStore.fetchAttention(); loadRevenue(); loadInvoices(overageStore.invoicePage)"
         >
           Reload
         </BaseButton>
@@ -166,6 +188,59 @@ onMounted(() => {
         <template #cell(adminAttentionReason)="{ row }">
           <span class="block max-w-[34rem] whitespace-normal">{{ row.adminAttentionReason || "No reason recorded" }}</span>
         </template>
+      </DataTable>
+    </section>
+
+    <section class="overflow-hidden rounded-[8px] bg-white shadow-sm">
+      <div class="p-[2rem] pb-0">
+        <h2 class="text-[1.8rem] font-[700] text-[#000]">All overage invoices</h2>
+        <p class="mt-[0.4rem] max-w-[80rem] text-[#616161]">Every store's overage invoices, newest first. Filter by usage month and status.</p>
+        <form class="mt-[1.2rem] grid gap-[1.2rem] md:grid-cols-[14rem_20rem_auto]" @submit.prevent="loadInvoices(0)">
+          <AppInput v-model="invoiceMonth" label="Usage month" name="overageInvoiceMonth" type="month" />
+          <div>
+            <label class="mb-[0.8rem] block text-[1.4rem] text-[#1B1B19]" for="overageInvoiceStatus">Status</label>
+            <select
+              id="overageInvoiceStatus"
+              v-model="invoiceStatus"
+              class="w-full rounded-[10px] border border-[#D9D9D9] bg-white p-[1.4rem] outline-none focus:border-primary"
+            >
+              <option v-for="option in statusOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+            </select>
+          </div>
+          <BaseButton type="submit" radius="8px" class="self-end" :loading="overageStore.loadingInvoices">Apply filters</BaseButton>
+        </form>
+        <p v-if="overageStore.invoicesError" class="mt-[1.2rem] rounded-[8px] bg-[#FFBFBF] p-[1.2rem] font-[600] text-[#B42318]">
+          {{ overageStore.invoicesError }}
+        </p>
+      </div>
+      <DataTable
+        :table-header="invoiceHeader"
+        :table-data="overageStore.invoices"
+        :loading="overageStore.loadingInvoices"
+        pagination-type="cursor"
+        :has-prev="overageStore.invoicePage > 0"
+        :has-next="overageStore.invoicePage + 1 < overageStore.invoiceTotalPages"
+        :current-page="overageStore.invoicePage + 1"
+        :current-limit="overageStore.invoiceSize"
+        empty-state-title="No overage invoices"
+        empty-state-description="No overage invoice matches these filters."
+        @prev="loadInvoices(overageStore.invoicePage - 1)"
+        @next="loadInvoices(overageStore.invoicePage + 1)"
+        @change-limit="overageStore.fetchInvoices({ page: 0, size: $event, usageMonth: invoiceMonth, status: invoiceStatus })"
+      >
+        <template #cell(tenantId)="{ row }">
+          <TenantHoverCard v-if="row.tenantId" :tenant-id="row.tenantId" />
+          <span v-else class="text-slate-400">N/A</span>
+          <p class="font-mono text-[1.2rem] text-slate-500 mt-[0.2rem]">{{ row.invoiceNumber }}</p>
+        </template>
+        <template #cell(usageMonth)="{ row }">{{ usageMonthLabel(row.usageMonth) }}</template>
+        <template #cell(amount)="{ row }">{{ formatMoney(row.amount, row.currency) }}</template>
+        <template #cell(collectionState)="{ row }">
+          <StatusBadge :tone="overageStateMeta(row).tone" :label="overageStateMeta(row).label" />
+          <StatusBadge v-if="row.overdue" tone="danger" label="Overdue" class="ml-[0.4rem]" />
+          <StatusBadge v-if="row.adminAttentionRequired" tone="danger" label="Needs attention" class="ml-[0.4rem]" />
+        </template>
+        <template #cell(dueDate)="{ row }">{{ row.dueDate ? formatDate(row.dueDate, "short") : "N/A" }}</template>
       </DataTable>
     </section>
   </div>

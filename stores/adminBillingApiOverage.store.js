@@ -11,6 +11,14 @@ export const useAdminBillingApiOverageStore = defineStore("adminBillingApiOverag
     const loadingAttention = ref(false);
     const attentionError = ref("");
 
+    const invoices = ref([]);
+    const invoicePage = ref(0);
+    const invoiceSize = ref(20);
+    const invoiceTotal = ref(0);
+    const invoiceTotalPages = ref(0);
+    const loadingInvoices = ref(false);
+    const invoicesError = ref("");
+
     const revenueSplit = ref([]);
     const loadingRevenue = ref(false);
     const revenueError = ref("");
@@ -30,6 +38,32 @@ export const useAdminBillingApiOverageStore = defineStore("adminBillingApiOverag
         }
     }
 
+    // usageMonth (yyyy-MM) and status are optional filters; without a status the API returns issued, paid and cancelled.
+    async function fetchInvoices({ page = 0, size = invoiceSize.value, usageMonth = "", status = "" } = {}) {
+        loadingInvoices.value = true;
+        invoicesError.value = "";
+        try {
+            const params = { page, size };
+            if (usageMonth) params.usageMonth = usageMonth;
+            if (status) params.status = status;
+            const response = await get(endpoints.admin.billing.apiOverage.list, params, { forceMode: "live", silent: true });
+            const body = response?.data || {};
+            invoices.value = body.items || [];
+            invoicePage.value = body.page ?? page;
+            invoiceSize.value = body.size ?? size;
+            invoiceTotal.value = body.totalElements ?? invoices.value.length;
+            invoiceTotalPages.value = body.totalPages ?? 1;
+        } catch (err) {
+            logger.error("Failed to load API overage invoices", err);
+            invoices.value = [];
+            invoiceTotal.value = 0;
+            invoiceTotalPages.value = 0;
+            invoicesError.value = err?.data?.message || "API overage invoices could not be loaded.";
+        } finally {
+            loadingInvoices.value = false;
+        }
+    }
+
     // paidFrom and paidTo are ISO date-times, both optional; the period end is exclusive.
     async function fetchRevenueSplit(params = {}) {
         loadingRevenue.value = true;
@@ -46,5 +80,10 @@ export const useAdminBillingApiOverageStore = defineStore("adminBillingApiOverag
         }
     }
 
-    return { attention, loadingAttention, attentionError, revenueSplit, loadingRevenue, revenueError, fetchAttention, fetchRevenueSplit };
+    return {
+        attention, loadingAttention, attentionError,
+        invoices, invoicePage, invoiceSize, invoiceTotal, invoiceTotalPages, loadingInvoices, invoicesError,
+        revenueSplit, loadingRevenue, revenueError,
+        fetchAttention, fetchInvoices, fetchRevenueSplit,
+    };
 });
