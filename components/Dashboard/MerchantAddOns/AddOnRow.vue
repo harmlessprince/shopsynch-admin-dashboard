@@ -29,9 +29,9 @@ const scheduled = computed(() => {
       </div>
       <span :class="status.badge" class="rounded-full px-[1rem] py-[0.3rem] text-[1.2rem] font-[600]">{{ status.label }}</span>
       <span v-if="scheduled" class="text-[1.2rem] font-[600] text-[#9A4A00]">{{ scheduled }}</span>
-      <button type="button" class="cursor-pointer text-[1.2rem] font-[600] text-primary hover:underline" @click="open = !open">
+      <BaseButton size="sm" radius="8px" variant="link" @click="open = !open">
         {{ open ? "Hide details" : "Details" }}
-      </button>
+      </BaseButton>
       <BaseButton v-if="revocable" size="sm" radius="8px" variant="outline" @click="$emit('revoke', addOn)">Revoke</BaseButton>
     </div>
     <dl v-if="open" class="grid gap-x-[2rem] gap-y-[0.8rem] border-t border-slate-100 px-[1.6rem] py-[1.2rem] text-[1.3rem] sm:grid-cols-2">
