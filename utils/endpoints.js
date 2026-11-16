@@ -292,6 +292,15 @@ export const endpoints = {
                 abuseSignals: "/v1/admin/billing/capacity-addons/merchants/:tenantId/abuse-signals",
                 limitExplanation: "/v1/admin/billing/capacity-addons/merchants/:tenantId/limit-explanation",
             },
+            planVersions: {
+                list: "/v1/admin/billing/plan-versions",
+                create: "/v1/admin/billing/plan-versions",
+                one: "/v1/admin/billing/plan-versions/:versionId",
+                update: "/v1/admin/billing/plan-versions/:versionId",
+                impact: "/v1/admin/billing/plan-versions/:versionId/impact",
+                publish: "/v1/admin/billing/plan-versions/:versionId/publish",
+                retire: "/v1/admin/billing/plan-versions/:versionId/retire",
+            },
             versionPolicies: {
                 list: "/v1/admin/billing/version-policies",
                 put: "/v1/admin/billing/version-policies",
