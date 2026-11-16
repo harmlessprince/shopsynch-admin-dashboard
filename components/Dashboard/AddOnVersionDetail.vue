@@ -12,6 +12,8 @@ defineEmits(["edit", "publish", "retire", "policy"]);
 const badge = computed(() => versionStatusMeta[props.version.status] || { label: props.version.status, tone: "neutral" });
 const isDraft = computed(() => props.version.status === "DRAFT");
 const canRetire = computed(() => props.version.status === "PUBLISHED" || props.version.status === "SCHEDULED");
+// The backend refuses to retire the version new purchases use; publish a newer one first.
+const retireBlocked = computed(() => props.version.latestForNewPurchases && !isDraft.value);
 const hasPolicy = computed(() => props.version.status === "PUBLISHED" || props.version.status === "RETIRED");
 </script>
 
@@ -70,7 +72,10 @@ const hasPolicy = computed(() => props.version.status === "PUBLISHED" || props.v
       <BaseButton v-if="isDraft" radius="8px" variant="outline" @click="$emit('edit')">Edit draft</BaseButton>
       <BaseButton v-if="isDraft" radius="8px" bold @click="$emit('publish')">Publish or schedule</BaseButton>
       <BaseButton v-if="hasPolicy" radius="8px" variant="outline" @click="$emit('policy')">Renewal policy</BaseButton>
-      <BaseButton v-if="canRetire" radius="8px" variant="danger" @click="$emit('retire')">Retire</BaseButton>
+      <p v-if="canRetire && retireBlocked" class="w-full text-right text-[1.2rem] text-slate-500">
+        New purchases use this version, so it cannot be retired. Publish a newer version first.
+      </p>
+      <BaseButton v-if="canRetire" radius="8px" variant="danger" :disabled="retireBlocked" @click="$emit('retire')">Retire</BaseButton>
     </div>
   </div>
 </template>

@@ -5,7 +5,7 @@ import { useAdminPlanVersionsStore } from "~/stores/adminPlanVersions.store.js";
 import { useAdminVersionMovesStore } from "~/stores/adminVersionMoves.store.js";
 import { formatDateTime } from "~/utils/helpers.js";
 import { versionStatusMeta } from "~/utils/addOnCatalogue.js";
-import { moveStatusMeta } from "~/utils/planVersions.js";
+import { moveStatusMeta, renewalPolicyLabel } from "~/utils/planVersions.js";
 
 definePageMeta({
   layout: "dashboard",
@@ -142,7 +142,7 @@ onMounted(async () => {
           </p>
           <p class="mt-[0.4rem] text-[1.2rem] text-slate-500">
             {{ version.merchantCount }} merchant{{ version.merchantCount === 1 ? "" : "s" }}
-            <template v-if="adoptionFor(version)"> · {{ adoptionFor(version).switchedCount }} moved away · renewal: {{ adoptionFor(version).renewalPolicy || "continue" }}</template>
+            <template v-if="adoptionFor(version)"> · {{ adoptionFor(version).switchedCount }} moved away · renewal: {{ renewalPolicyLabel(adoptionFor(version).renewalPolicy).toLowerCase() }}</template>
             <template v-if="version.changeNote"> · {{ version.changeNote }}</template>
           </p>
         </button>
@@ -150,9 +150,9 @@ onMounted(async () => {
 
       <section class="space-y-[1.2rem]">
         <h2 class="text-[1.6rem] font-[700] text-slate-900">Cohort moves</h2>
-        <p class="text-slate-500">Moves of merchants between versions of this plan. A move that raises a price waits out the notice period.</p>
+        <p class="text-slate-500">Moves of merchants between versions of this plan. A move that raises a price waits out the notice period. Only the latest 50 moves across all plans are loaded, so older moves for this plan may not appear.</p>
         <p v-if="movesStore.loadError" class="rounded-[8px] bg-[#FFBFBF] p-[1.2rem] font-[600] text-[#B42318]">{{ movesStore.loadError }}</p>
-        <p v-else-if="!planMoves.length" class="rounded-[8px] bg-white p-[2.4rem] text-center italic text-slate-400 shadow-sm">No moves for this plan yet.</p>
+        <p v-else-if="!planMoves.length" class="rounded-[8px] bg-white p-[2.4rem] text-center italic text-slate-400 shadow-sm">No recent moves for this plan.</p>
         <button
           v-for="move in planMoves"
           :key="move.id"

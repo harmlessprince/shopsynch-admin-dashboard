@@ -20,8 +20,9 @@ defineProps({
           { key: 'refunds', label: 'Repeated refunds', data: signals.repeatedRefunds },
         ]"
         :key="item.key"
-        class="flex items-center justify-between rounded-[8px] border border-slate-200 px-[1.4rem] py-[1rem] text-[1.3rem]"
+        class="rounded-[8px] border border-slate-200 px-[1.4rem] py-[1rem] text-[1.3rem]"
       >
+        <div class="flex items-center justify-between">
         <span class="font-[600] text-slate-800">{{ item.label }}</span>
         <span class="flex items-center gap-[1rem]">
           <span class="text-slate-600">{{ item.data?.count ?? 0 }} {{ item.data?.count === 1 ? "event" : "events" }}</span>
@@ -32,6 +33,10 @@ defineProps({
             {{ item.data?.flagged ? "Flagged" : "Not flagged" }}
           </span>
         </span>
+        </div>
+        <p v-if="item.data?.addOnIds?.length" class="mt-[0.6rem] break-all text-[1.2rem] text-slate-500">
+          Add-ons involved: <span class="font-mono">{{ item.data.addOnIds.join(", ") }}</span>
+        </p>
       </li>
     </ul>
   </div>

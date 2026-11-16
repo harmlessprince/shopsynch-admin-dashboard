@@ -19,6 +19,10 @@ export const directionMeta = {
   SAME: { tone: "neutral", label: "No change" },
 };
 
+// Renewal policy enums read better as words.
+export const renewalPolicyLabel = (policy) =>
+  ({ CONTINUE: "Continue on this version", SUNSET: "Sunset: move to a newer version" })[policy] || "Continue on this version";
+
 export const formatPlanMoney = (amount, currency = "NGN") =>
   amount === null || amount === undefined ? "None" : `${currency || "NGN"} ${Number(amount).toLocaleString()}`;
 

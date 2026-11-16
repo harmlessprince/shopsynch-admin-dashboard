@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from "vue";
 import { formatDateTime } from "~/utils/helpers.js";
+import { renewalPolicyLabel } from "~/utils/planVersions.js";
 import { versionStatusMeta } from "~/utils/addOnCatalogue.js";
 
 const props = defineProps({
@@ -13,6 +14,8 @@ defineEmits(["edit", "publish", "retire", "policy", "move"]);
 const badge = computed(() => versionStatusMeta[props.version.status] || { label: props.version.status, tone: "neutral" });
 const isDraft = computed(() => props.version.status === "DRAFT");
 const canRetire = computed(() => ["DRAFT", "PUBLISHED", "SCHEDULED"].includes(props.version.status));
+// The backend refuses to retire the version new purchases use; publish a newer one first.
+const retireBlocked = computed(() => props.version.latestForNewPurchases && !isDraft.value);
 const hasPolicy = computed(() => props.version.status === "PUBLISHED" || props.version.status === "RETIRED");
 const canMove = computed(() => props.version.status === "PUBLISHED");
 </script>
@@ -55,7 +58,7 @@ const canMove = computed(() => props.version.status === "PUBLISHED");
       <h4 class="font-[700] text-slate-900">Adoption</h4>
       <p class="mt-[0.4rem] text-slate-600">
         {{ adoption.remainingCount }} still on this version, {{ adoption.switchedCount }} moved to a newer one.
-        Renewal policy: <span class="font-[600]">{{ adoption.renewalPolicy || "Continue" }}</span>
+        Renewal policy: <span class="font-[600]">{{ renewalPolicyLabel(adoption.renewalPolicy) }}</span>
         <template v-if="adoption.sunsetAt">, sunset {{ formatDateTime(adoption.sunsetAt) }}<template v-if="adoption.sunsetTargetVersionNumber"> to version {{ adoption.sunsetTargetVersionNumber }}</template></template>.
       </p>
     </section>
@@ -75,7 +78,10 @@ const canMove = computed(() => props.version.status === "PUBLISHED");
       <BaseButton v-if="isDraft" radius="8px" bold @click="$emit('publish')">Publish or schedule</BaseButton>
       <BaseButton v-if="canMove" radius="8px" variant="outline" @click="$emit('move')">Move merchants here</BaseButton>
       <BaseButton v-if="hasPolicy" radius="8px" variant="outline" @click="$emit('policy')">Renewal policy</BaseButton>
-      <BaseButton v-if="canRetire" radius="8px" variant="danger" @click="$emit('retire')">{{ isDraft ? "Discard" : "Retire" }}</BaseButton>
+      <p v-if="canRetire && retireBlocked" class="w-full text-right text-[1.2rem] text-slate-500">
+        New purchases use this version, so it cannot be retired. Publish a newer version first.
+      </p>
+      <BaseButton v-if="canRetire" radius="8px" variant="danger" :disabled="retireBlocked" @click="$emit('retire')">{{ isDraft ? "Discard" : "Retire" }}</BaseButton>
     </div>
   </div>
 </template>

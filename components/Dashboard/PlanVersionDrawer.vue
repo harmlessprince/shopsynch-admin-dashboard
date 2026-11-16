@@ -65,9 +65,9 @@ function afterRetire(saved) {
         </BaseButton>
         <h2 class="text-[1.8rem] font-[700] text-slate-900">{{ planName }} version</h2>
       </div>
-      <button type="button" class="flex h-[3.2rem] w-[3.2rem] items-center justify-center rounded-[6px] text-slate-500 hover:bg-slate-100" aria-label="Close" @click="emit('update:open', false)">
+      <BaseButton size="sm" radius="8px" variant="ghost" aria-label="Close" @click="emit('update:open', false)">
         <span class="material-symbols-outlined">close</span>
-      </button>
+      </BaseButton>
     </div>
 
     <div class="flex-1 overflow-y-auto px-[2.4rem] py-[2rem] text-[1.4rem] text-dashboard_text_color">

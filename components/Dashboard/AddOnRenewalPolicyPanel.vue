@@ -1,7 +1,8 @@
 <script setup>
-import { reactive, computed } from "vue";
+import { reactive, computed, ref } from "vue";
 import { useAdminCapacityAddOnsStore } from "~/stores/adminCapacityAddOns.store.js";
 import { formatDateTime } from "~/utils/helpers.js";
+import { renewalPolicyLabel } from "~/utils/planVersions.js";
 
 const props = defineProps({
   version: { type: Object, required: true },
@@ -34,8 +35,12 @@ const policyOptions = [
 
 const form = reactive({ policy: "CONTINUE", sunsetAt: "", targetVersionNumber: "", acknowledgeFewerFeatures: false, reason: "" });
 const approveForm = reactive({ reason: "" });
+// The store keeps one error bag, so remember which form was submitted last and show "reason" errors only there.
+const lastAction = ref("");
+const reasonError = (action) => (lastAction.value === action ? store.fieldError("reason") : "");
 
 async function submit() {
+  lastAction.value = "set";
   store.clearErrors();
   const raw = { versionNumber: props.version.versionNumber, policy: form.policy, reason: form.reason };
   if (form.policy === "SUNSET") {
@@ -52,6 +57,7 @@ async function submit() {
 }
 
 async function approve() {
+  lastAction.value = "approve";
   const saved = await store.approvePolicy(proposed.value.id, { reason: approveForm.reason }, props.version.type);
   if (saved) emit("done", saved);
 }
@@ -69,7 +75,7 @@ async function approve() {
     <section v-if="adoption" class="rounded-[8px] border border-slate-200 bg-slate-50 p-[1.6rem]">
       <h4 class="font-[700] text-slate-900">Today</h4>
       <p class="mt-[0.4rem] text-slate-600">
-        Policy: <span class="font-[600]">{{ adoption.renewalPolicy || "Continue" }}</span>
+        Policy: <span class="font-[600]">{{ renewalPolicyLabel(adoption.renewalPolicy) }}</span>
         <template v-if="adoption.sunsetAt">
           , sunset {{ formatDateTime(adoption.sunsetAt) }}
           <template v-if="adoption.sunsetTargetVersionNumber"> to version {{ adoption.sunsetTargetVersionNumber }}</template>
@@ -81,14 +87,14 @@ async function approve() {
     <section v-if="proposed" class="space-y-[1.2rem] rounded-[8px] border border-[#F5C26B] bg-[#FFF8EB] p-[1.6rem]">
       <h4 class="font-[700] text-slate-900">Waiting for approval</h4>
       <p class="text-slate-700">
-        {{ proposed.policy === "SUNSET" ? "Sunset" : "Continue" }}
+        {{ renewalPolicyLabel(proposed.policy) }}
         <template v-if="proposed.policy === 'SUNSET'">
           on {{ formatDateTime(proposed.sunsetAt) }}, moving merchants to version {{ proposed.targetVersionNumber }}.
         </template>
         Proposed by {{ proposed.proposedBy || "an admin" }}. Approving notifies the merchants on this version.
       </p>
       <p v-if="proposed.fewerFeaturesWarning" class="font-[600] text-[#9A4A00]">{{ proposed.fewerFeaturesWarning }}</p>
-      <BaseTextArea v-model="approveForm.reason" label="Reason for approving" :rows="2" :maxlength="500" :error="store.fieldError('reason')" />
+      <BaseTextArea v-model="approveForm.reason" label="Reason for approving" :rows="2" :maxlength="500" :error="reasonError('approve')" />
       <div class="flex justify-end">
         <BaseButton radius="8px" bold :loading="store.saving" @click="approve">Approve</BaseButton>
       </div>
@@ -106,7 +112,7 @@ async function approve() {
           I accept that the target version may have lower limits
         </label>
       </template>
-      <BaseTextArea v-model="form.reason" label="Reason" :rows="3" :maxlength="500" :error="store.fieldError('reason')" />
+      <BaseTextArea v-model="form.reason" label="Reason" :rows="3" :maxlength="500" :error="reasonError('set')" />
       <p v-if="store.actionError" class="rounded-[8px] bg-[#FFBFBF] p-[1.2rem] font-[600] text-[#B42318]">{{ store.actionError }}</p>
       <div class="flex justify-end gap-[1rem]">
         <BaseButton radius="8px" variant="outline" :disabled="store.saving" @click="emit('cancel')">Back</BaseButton>
