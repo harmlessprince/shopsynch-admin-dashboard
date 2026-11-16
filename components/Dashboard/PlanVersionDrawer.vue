@@ -49,6 +49,10 @@ function afterSave(saved) {
   selectedId.value = saved?.id || selectedId.value;
   go("detail");
 }
+// The policy panel hands back a policy, whose id is not a version id, so the selected version stays as it is.
+function afterPolicy() {
+  go("detail");
+}
 // A retired draft no longer exists as an option worth showing.
 function afterRetire(saved) {
   selectedId.value = saved?.id || selectedId.value;
@@ -93,7 +97,7 @@ function afterRetire(saved) {
       />
       <DashboardPlanVersionPublishPanel v-else-if="panel === 'publish' && selected" :version="selected" @done="afterSave" @cancel="back" />
       <DashboardPlanVersionRetirePanel v-else-if="panel === 'retire' && selected" :version="selected" @done="afterRetire" @cancel="back" />
-      <DashboardPlanVersionPolicyPanel v-else-if="panel === 'policy' && selected" :version="selected" @done="afterSave" @cancel="back" />
+      <DashboardPlanVersionPolicyPanel v-else-if="panel === 'policy' && selected" :version="selected" @done="afterPolicy" @cancel="back" />
     </div>
   </Drawer>
 </template>

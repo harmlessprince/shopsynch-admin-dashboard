@@ -58,7 +58,7 @@ const canMove = computed(() => props.version.status === "PUBLISHED");
       <h4 class="font-[700] text-slate-900">Adoption</h4>
       <p class="mt-[0.4rem] text-slate-600">
         {{ adoption.remainingCount }} still on this version, {{ adoption.switchedCount }} moved to a newer one.
-        Renewal policy: <span class="font-[600]">{{ renewalPolicyLabel(adoption.renewalPolicy) }}</span>
+        Renewal policy: <span class="font-[600]">{{ renewalPolicyLabel(adoption.renewalPolicy) }}</span><template v-if="adoption.policyStatus === 'PROPOSED'"> (waiting for approval)</template>
         <template v-if="adoption.sunsetAt">, sunset {{ formatDateTime(adoption.sunsetAt) }}<template v-if="adoption.sunsetTargetVersionNumber"> to version {{ adoption.sunsetTargetVersionNumber }}</template></template>.
       </p>
     </section>

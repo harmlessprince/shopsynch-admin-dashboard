@@ -77,7 +77,7 @@ async function approve() {
     <section v-if="adoption" class="rounded-[8px] border border-slate-200 bg-slate-50 p-[1.6rem]">
       <h4 class="font-[700] text-slate-900">Today</h4>
       <p class="mt-[0.4rem] text-slate-600">
-        Policy: <span class="font-[600]">{{ renewalPolicyLabel(adoption.renewalPolicy) }}</span>
+        Policy: <span class="font-[600]">{{ renewalPolicyLabel(adoption.renewalPolicy) }}</span><template v-if="adoption.policyStatus === 'PROPOSED'"> (waiting for approval, not in force yet)</template>
         <template v-if="adoption.sunsetAt">
           , sunset {{ formatDateTime(adoption.sunsetAt) }}
           <template v-if="adoption.sunsetTargetVersionNumber"> to version {{ adoption.sunsetTargetVersionNumber }}</template>

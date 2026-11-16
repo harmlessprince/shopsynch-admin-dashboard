@@ -142,7 +142,7 @@ onMounted(async () => {
           </p>
           <p class="mt-[0.4rem] text-[1.2rem] text-slate-500">
             {{ version.merchantCount }} merchant{{ version.merchantCount === 1 ? "" : "s" }}
-            <template v-if="adoptionFor(version)"> · {{ adoptionFor(version).switchedCount }} moved away · renewal: {{ renewalPolicyLabel(adoptionFor(version).renewalPolicy).toLowerCase() }}</template>
+            <template v-if="adoptionFor(version)"> · {{ adoptionFor(version).switchedCount }} moved away · renewal: {{ renewalPolicyLabel(adoptionFor(version).renewalPolicy).toLowerCase() }}<template v-if="adoptionFor(version).policyStatus === 'PROPOSED'"> (waiting for approval)</template></template>
             <template v-if="version.changeNote"> · {{ version.changeNote }}</template>
           </p>
         </button>
