@@ -1,7 +1,7 @@
 <script setup>
 import { reactive, computed, watch } from "vue";
 import { useAdminVersionMovesStore } from "~/stores/adminVersionMoves.store.js";
-import { formatDate } from "~/utils/helpers.js";
+import { formatDateTime } from "~/utils/helpers.js";
 import { moveStatusMeta } from "~/utils/planVersions.js";
 
 const props = defineProps({
@@ -56,12 +56,12 @@ async function cancel() {
         <div><dt class="text-[1.2rem] text-slate-500">Cancelled</dt><dd class="font-[700]">{{ current.cancelledCount }}</dd></div>
       </dl>
       <p class="text-slate-600">
-        Created {{ current.createdAt ? formatDate(current.createdAt) : "" }}<span v-if="current.createdBy"> by {{ current.createdBy }}</span>.
+        Created {{ current.createdAt ? formatDateTime(current.createdAt) : "" }}<span v-if="current.createdBy"> by {{ current.createdBy }}</span>.
         Reason: {{ current.reason }}
         <template v-if="current.noticeDays"> Price rises need {{ current.noticeDays }} days notice.</template>
       </p>
       <p v-if="current.status === 'CANCELLED'" class="rounded-[8px] bg-slate-50 p-[1.2rem] text-slate-600">
-        Cancelled {{ current.cancelledAt ? formatDate(current.cancelledAt) : "" }}<span v-if="current.cancelledBy"> by {{ current.cancelledBy }}</span>: {{ current.cancelReason }}
+        Cancelled {{ current.cancelledAt ? formatDateTime(current.cancelledAt) : "" }}<span v-if="current.cancelledBy"> by {{ current.cancelledBy }}</span>: {{ current.cancelReason }}
       </p>
 
       <section v-if="canCancel" class="space-y-[1.2rem] rounded-[8px] border border-slate-200 p-[1.6rem]">

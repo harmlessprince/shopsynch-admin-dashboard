@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from "vue";
-import { formatDate } from "~/utils/helpers.js";
+import { formatDateTime } from "~/utils/helpers.js";
 import { versionStatusMeta, sortedPlanEntries } from "~/utils/addOnCatalogue.js";
 
 const props = defineProps({
@@ -31,7 +31,7 @@ const hasPolicy = computed(() => props.version.status === "PUBLISHED" || props.v
     <dl class="grid grid-cols-1 gap-[1.4rem] sm:grid-cols-2">
       <div>
         <dt class="text-[1.2rem] text-slate-500">Starts</dt>
-        <dd class="font-[600]">{{ version.effectiveFrom ? formatDate(version.effectiveFrom) : "Not published yet" }}</dd>
+        <dd class="font-[600]">{{ version.effectiveFrom ? formatDateTime(version.effectiveFrom) : "Not published yet" }}</dd>
       </div>
       <div>
         <dt class="text-[1.2rem] text-slate-500">Change note</dt>

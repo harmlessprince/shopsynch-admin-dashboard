@@ -1,7 +1,7 @@
 <script setup>
 import { reactive, computed } from "vue";
 import { useAdminCapacityAddOnsStore } from "~/stores/adminCapacityAddOns.store.js";
-import { formatDate } from "~/utils/helpers.js";
+import { formatDateTime } from "~/utils/helpers.js";
 
 const props = defineProps({
   version: { type: Object, required: true },
@@ -71,7 +71,7 @@ async function approve() {
       <p class="mt-[0.4rem] text-slate-600">
         Policy: <span class="font-[600]">{{ adoption.renewalPolicy || "Continue" }}</span>
         <template v-if="adoption.sunsetAt">
-          , sunset {{ formatDate(adoption.sunsetAt) }}
+          , sunset {{ formatDateTime(adoption.sunsetAt) }}
           <template v-if="adoption.sunsetTargetVersionNumber"> to version {{ adoption.sunsetTargetVersionNumber }}</template>
         </template>
       </p>
@@ -83,7 +83,7 @@ async function approve() {
       <p class="text-slate-700">
         {{ proposed.policy === "SUNSET" ? "Sunset" : "Continue" }}
         <template v-if="proposed.policy === 'SUNSET'">
-          on {{ formatDate(proposed.sunsetAt) }}, moving merchants to version {{ proposed.targetVersionNumber }}.
+          on {{ formatDateTime(proposed.sunsetAt) }}, moving merchants to version {{ proposed.targetVersionNumber }}.
         </template>
         Proposed by {{ proposed.proposedBy || "an admin" }}. Approving notifies the merchants on this version.
       </p>

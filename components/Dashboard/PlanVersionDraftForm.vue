@@ -109,7 +109,7 @@ const err = (name) => localErrors.value[name] || store.fieldError(name);
       </div>
       <div v-for="(row, index) in form.prices" :key="index" class="space-y-[0.8rem] rounded-[8px] border border-slate-200 p-[1.2rem]">
         <div class="grid grid-cols-1 gap-[1rem] sm:grid-cols-3">
-          <AppInput v-model="row.periodUnitCount" type="number" label="Period (months)" placeholder="3" :error="store.fieldError(`prices[${index}].periodUnitCount`)" />
+          <AppInput v-model="row.periodUnitCount" type="number" label="Period (x 30 days)" placeholder="3" :error="store.fieldError(`prices[${index}].periodUnitCount`)" />
           <AppInput v-model="row.amount" type="number" allow-decimal label="Price" placeholder="15000" :error="store.fieldError(`prices[${index}].amount`)" />
           <AppInput v-model="row.baselineAmount" type="number" allow-decimal label="List price (optional)" hint="Shown struck through" />
         </div>

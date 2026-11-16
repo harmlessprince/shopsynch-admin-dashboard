@@ -19,11 +19,11 @@ export const directionMeta = {
   SAME: { tone: "neutral", label: "No change" },
 };
 
-export const formatMoney = (amount, currency = "NGN") =>
+export const formatPlanMoney = (amount, currency = "NGN") =>
   amount === null || amount === undefined ? "None" : `${currency || "NGN"} ${Number(amount).toLocaleString()}`;
 
-// Period counts are 30-day units; the API sends the number, the label is display only.
-export const unitsLabel = (count) => `${count} month${Number(count) === 1 ? "" : "s"}`;
+// Period counts are 30-day units (periodDays = count * 30); labelled "N mo (Dd)" like the admin plans screen (PlanLabel).
+export const unitsLabel = (count, days) => (days ? `${count} mo (${days}d)` : `${count} mo`);
 
 export const displayValue = (value) => {
   if (value === null || value === undefined || value === "") return "None";

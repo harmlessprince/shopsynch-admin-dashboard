@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from "vue";
-import { formatDate } from "~/utils/helpers.js";
+import { formatDateTime } from "~/utils/helpers.js";
 import { versionStatusMeta } from "~/utils/addOnCatalogue.js";
 
 const props = defineProps({
@@ -35,7 +35,7 @@ const canMove = computed(() => props.version.status === "PUBLISHED");
     <dl class="grid grid-cols-1 gap-[1.4rem] sm:grid-cols-2">
       <div>
         <dt class="text-[1.2rem] text-slate-500">{{ version.status === "SCHEDULED" ? "Starts" : "Effective from" }}</dt>
-        <dd class="font-[600]">{{ version.effectiveFrom ? formatDate(version.effectiveFrom) : "Not published yet" }}</dd>
+        <dd class="font-[600]">{{ version.effectiveFrom ? formatDateTime(version.effectiveFrom) : "Not published yet" }}</dd>
       </div>
       <div>
         <dt class="text-[1.2rem] text-slate-500">Change note</dt>
@@ -43,7 +43,7 @@ const canMove = computed(() => props.version.status === "PUBLISHED");
       </div>
       <div>
         <dt class="text-[1.2rem] text-slate-500">Created</dt>
-        <dd class="font-[600]">{{ version.createdAt ? formatDate(version.createdAt) : "Unknown" }}<span v-if="version.createdBy" class="font-[400] text-slate-500"> by {{ version.createdBy }}</span></dd>
+        <dd class="font-[600]">{{ version.createdAt ? formatDateTime(version.createdAt) : "Unknown" }}<span v-if="version.createdBy" class="font-[400] text-slate-500"> by {{ version.createdBy }}</span></dd>
       </div>
       <div>
         <dt class="text-[1.2rem] text-slate-500">Merchants on this version</dt>
@@ -56,7 +56,7 @@ const canMove = computed(() => props.version.status === "PUBLISHED");
       <p class="mt-[0.4rem] text-slate-600">
         {{ adoption.remainingCount }} still on this version, {{ adoption.switchedCount }} moved to a newer one.
         Renewal policy: <span class="font-[600]">{{ adoption.renewalPolicy || "Continue" }}</span>
-        <template v-if="adoption.sunsetAt">, sunset {{ formatDate(adoption.sunsetAt) }}<template v-if="adoption.sunsetTargetVersionNumber"> to version {{ adoption.sunsetTargetVersionNumber }}</template></template>.
+        <template v-if="adoption.sunsetAt">, sunset {{ formatDateTime(adoption.sunsetAt) }}<template v-if="adoption.sunsetTargetVersionNumber"> to version {{ adoption.sunsetTargetVersionNumber }}</template></template>.
       </p>
     </section>
 

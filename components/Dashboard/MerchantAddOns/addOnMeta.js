@@ -14,9 +14,9 @@ export const originLabel = (origin) => (origin === "GRANT" ? "Granted by admin" 
 
 export const money = (amount, currency = "NGN") => `${currency || "NGN"} ${Number(amount || 0).toLocaleString()}`;
 
-// Keys are period lengths in months, as strings.
+// Keys are counts of 30-day units, as strings; labelled "N mo" like the admin plans screen.
 export const lockedRateText = (amounts, currency) => {
   const entries = Object.entries(amounts || {});
   if (!entries.length) return "No locked rate";
-  return entries.map(([months, amount]) => `${money(amount, currency)} per ${months} ${Number(months) === 1 ? "month" : "months"}`).join(", ");
+  return entries.map(([months, amount]) => `${money(amount, currency)} per ${months} mo`).join(", ");
 };

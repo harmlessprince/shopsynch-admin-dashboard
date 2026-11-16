@@ -27,7 +27,7 @@ export const revokeCapacityAddOnSchema = z.object({
   reason: reasonField,
 });
 
-// Keys of amountsByPeriodUnit are period lengths in months, as strings.
+// Keys of amountsByPeriodUnit are counts of 30-day units, as strings.
 export const catalogueDraftSchema = z.object({
   type: addOnTypeSchema,
   amountsByPeriodUnit: z

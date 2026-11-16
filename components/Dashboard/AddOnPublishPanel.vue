@@ -1,7 +1,6 @@
 <script setup>
 import { reactive, ref, computed, onMounted } from "vue";
 import { useAdminCapacityAddOnsStore } from "~/stores/adminCapacityAddOns.store.js";
-import { formatDate } from "~/utils/helpers.js";
 
 const props = defineProps({
   version: { type: Object, required: true },

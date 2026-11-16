@@ -48,7 +48,7 @@ async function submit() {
   for (const row of form.prices) {
     if (row.period.trim() === "" && row.amount === "") continue;
     if (!/^[1-9]\d*$/.test(row.period.trim()) || row.amount === "") {
-      store.fieldErrors = { amountsByPeriodUnit: "Each price needs a whole number of months and an amount." };
+      store.fieldErrors = { amountsByPeriodUnit: "Each price needs a whole number of 30-day periods and an amount." };
       return;
     }
     amountsByPeriodUnit[row.period.trim()] = row.amount;
@@ -91,7 +91,7 @@ async function submit() {
         <BaseButton size="sm" radius="8px" variant="outline" @click="addPrice">Add period</BaseButton>
       </div>
       <div v-for="(row, index) in form.prices" :key="index" class="grid grid-cols-[1fr_1fr_auto] items-end gap-[1rem]">
-        <AppInput v-model="row.period" type="number" label="Period (months)" placeholder="3" />
+        <AppInput v-model="row.period" type="number" label="Period (x 30 days)" placeholder="3" />
         <AppInput v-model="row.amount" type="number" allow-decimal label="Price per unit" placeholder="4500" />
         <BaseButton size="sm" radius="8px" variant="outline" :disabled="form.prices.length === 1" @click="removePrice(index)">
           Remove

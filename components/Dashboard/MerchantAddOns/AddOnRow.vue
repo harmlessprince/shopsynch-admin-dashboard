@@ -1,5 +1,5 @@
 <script setup>
-import { formatDate } from "~/utils/helpers.js";
+import { formatDateTime } from "~/utils/helpers.js";
 import { addOnTypeLabel, addOnStatusMeta, originLabel, money, lockedRateText } from "./addOnMeta.js";
 
 // Status first; everything else on demand.
@@ -15,8 +15,8 @@ const scheduled = computed(() => {
   const s = props.addOn.scheduledChange;
   if (!s) return "";
   return s.kind === "REMOVAL"
-    ? `Removal on ${formatDate(s.effectiveAt)}`
-    : `Reduction to ${s.quantity} on ${formatDate(s.effectiveAt)}`;
+    ? `Removal on ${formatDateTime(s.effectiveAt)}`
+    : `Reduction to ${s.quantity} on ${formatDateTime(s.effectiveAt)}`;
 });
 </script>
 
@@ -39,13 +39,13 @@ const scheduled = computed(() => {
         <dt class="text-slate-500">Locked rate</dt>
         <dd>{{ lockedRateText(addOn.lockedAmountsByPeriodUnit, addOn.currency) }}, version {{ addOn.versionNumber ?? "n/a" }}<template v-if="addOn.versionStatus"> ({{ addOn.versionStatus.toLowerCase() }})</template></dd>
       </div>
-      <div><dt class="text-slate-500">Started</dt><dd>{{ formatDate(addOn.startDate) }}</dd></div>
-      <div><dt class="text-slate-500">Ends</dt><dd>{{ addOn.endDate ? formatDate(addOn.endDate) : "No end date" }}</dd></div>
-      <div v-if="addOn.cancelledAt"><dt class="text-slate-500">Cancelled</dt><dd>{{ formatDate(addOn.cancelledAt) }}</dd></div>
+      <div><dt class="text-slate-500">Started</dt><dd>{{ formatDateTime(addOn.startDate) }}</dd></div>
+      <div><dt class="text-slate-500">Ends</dt><dd>{{ addOn.endDate ? formatDateTime(addOn.endDate) : "No end date" }}</dd></div>
+      <div v-if="addOn.cancelledAt"><dt class="text-slate-500">Cancelled</dt><dd>{{ formatDateTime(addOn.cancelledAt) }}</dd></div>
       <div>
         <dt class="text-slate-500">Payment</dt>
         <dd v-if="addOn.payment">
-          {{ money(addOn.payment.amountPaid, addOn.payment.currency) }} paid {{ formatDate(addOn.payment.paidAt) }}
+          {{ money(addOn.payment.amountPaid, addOn.payment.currency) }} paid {{ formatDateTime(addOn.payment.paidAt) }}
           <span class="block text-[1.2rem] text-slate-500">Ref {{ addOn.payment.providerReference }}<template v-if="addOn.payment.refundId">, refunded</template></span>
         </dd>
         <dd v-else>No payment</dd>

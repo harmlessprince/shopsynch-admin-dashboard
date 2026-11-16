@@ -1,6 +1,6 @@
 <script setup>
-import { formatDate } from "~/utils/helpers.js";
-import { directionMeta, rowStatusMeta, formatMoney } from "~/utils/planVersions.js";
+import { formatDateTime } from "~/utils/helpers.js";
+import { directionMeta, rowStatusMeta, formatPlanMoney } from "~/utils/planVersions.js";
 
 defineProps({
   rows: { type: Array, default: () => [] },
@@ -8,7 +8,7 @@ defineProps({
   showStatus: { type: Boolean, default: true },
 });
 
-const when = (value) => (value ? formatDate(value) : "");
+const when = (value) => (value ? formatDateTime(value) : "");
 </script>
 
 <template>
@@ -26,7 +26,7 @@ const when = (value) => (value ? formatDate(value) : "");
         Skipped: {{ row.skipReason || "no reason given" }}
       </p>
       <p v-else class="mt-[0.6rem] text-slate-700">
-        {{ formatMoney(row.currentAmount, row.currency) }} now, {{ formatMoney(row.newAmount, row.currency) }} after the move
+        {{ formatPlanMoney(row.currentAmount, row.currency) }} now, {{ formatPlanMoney(row.newAmount, row.currency) }} after the move
       </p>
       <dl v-if="row.status !== 'SKIPPED' && (row.noticeEndsAt || row.firstRenewalAt || row.applyAt)" class="mt-[0.8rem] grid grid-cols-1 gap-[0.6rem] text-[1.2rem] sm:grid-cols-3">
         <div v-if="row.noticeEndsAt"><dt class="text-slate-500">Notice ends</dt><dd class="font-[600]">{{ when(row.noticeEndsAt) }}</dd></div>

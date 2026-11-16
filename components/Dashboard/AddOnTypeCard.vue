@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from "vue";
-import { formatDate } from "~/utils/helpers.js";
+import { formatDateTime } from "~/utils/helpers.js";
 import { addOnTypeMeta } from "~/utils/addOnCatalogue.js";
 
 const props = defineProps({
@@ -39,7 +39,7 @@ const units = computed(() => props.versions.reduce((sum, version) => sum + Numbe
       <template v-else-if="live">
         <p class="text-[1.2rem] text-slate-500">
           New purchases use version {{ live.versionNumber }}
-          <span v-if="live.effectiveFrom">since {{ formatDate(live.effectiveFrom) }}</span>
+          <span v-if="live.effectiveFrom">since {{ formatDateTime(live.effectiveFrom) }}</span>
         </p>
         <div class="mt-[0.8rem]"><DashboardAddOnVersionPrices :amounts="live.amountsByPeriodUnit" :currency="live.currency" /></div>
       </template>

@@ -16,8 +16,8 @@ export const versionStatusMeta = {
 export const formatAddOnMoney = (amount, currency = "NGN") =>
   `${currency || "NGN"} ${Number(amount ?? 0).toLocaleString()}`;
 
-// Keys of the per-period maps are period lengths in months, as text.
-export const periodLabel = (key) => `${key} month${Number(key) === 1 ? "" : "s"}`;
+// Keys of the per-period maps are counts of 30-day units, as text. Labelled "N mo" like the admin plans screen (PlanLabel).
+export const periodLabel = (key) => `${key} mo`;
 
 export const sortedPeriodEntries = (map) =>
   Object.entries(map || {}).sort(([a], [b]) => Number(a) - Number(b));
