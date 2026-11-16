@@ -43,7 +43,11 @@ export const catalogueDraftSchema = z.object({
 export const catalogueDraftUpdateSchema = catalogueDraftSchema.omit({ type: true });
 
 export const publishCatalogueVersionSchema = z.object({
-  effectiveFrom: z.string().optional().or(z.literal('')),
+  // Empty means now; a future ISO timestamp schedules the version.
+  effectiveFrom: z
+    .string()
+    .optional()
+    .transform((v) => v?.trim() || undefined),
   reason: reasonField,
 });
 

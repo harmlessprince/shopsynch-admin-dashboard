@@ -1,4 +1,8 @@
 <script setup>
+import { ref, onMounted } from "vue";
+import { capacityAddOnTypes } from "~/schemas/capacityAddOnAdmin.schema";
+import { useAdminCapacityAddOnsStore } from "~/stores/adminCapacityAddOns.store.js";
+
 definePageMeta({
   layout: "dashboard",
   middleware: "auth-middleware",
@@ -8,6 +12,17 @@ definePageMeta({
 useHead({
   title: "Add-on Catalogue - ShopSynch Admin",
 });
+
+const store = useAdminCapacityAddOnsStore();
+const drawerOpen = ref(false);
+const activeType = ref("");
+
+function manage(type) {
+  activeType.value = type;
+  drawerOpen.value = true;
+}
+
+onMounted(() => store.fetchAll());
 </script>
 
 <template>
@@ -15,9 +30,31 @@ useHead({
     <DashboardBillingTabs />
 
     <section class="rounded-[8px] bg-white p-[2rem] shadow-sm">
-      <h1 class="text-[2rem] font-[700] text-[#000]">Add-on Catalogue</h1>
-      <p class="mt-[0.4rem] text-slate-500">Capacity add-on prices and versions.</p>
-      <p class="mt-[2.4rem] py-[3.2rem] text-center italic text-slate-400">Nothing to show yet.</p>
+      <div class="flex flex-col gap-[1.6rem] lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h1 class="text-[2rem] font-[700] text-[#000]">Add-on Catalogue</h1>
+          <p class="mt-[0.4rem] max-w-[80rem] text-[#616161]">
+            Prices and per-plan limits for each capacity add-on, kept as versions. Publishing a new version changes the
+            price for new purchases only; merchants who already hold the add-on keep the version they bought.
+          </p>
+        </div>
+        <BaseButton radius="8px" variant="outline" :loading="store.loading" @click="store.fetchAll()">Reload</BaseButton>
+      </div>
     </section>
+
+    <p v-if="store.loadError" class="rounded-[8px] bg-[#FFBFBF] p-[1.2rem] font-[600] text-[#B42318]">{{ store.loadError }}</p>
+
+    <div class="grid grid-cols-1 gap-[1.6rem] lg:grid-cols-3">
+      <DashboardAddOnTypeCard
+        v-for="type in capacityAddOnTypes"
+        :key="type"
+        :type="type"
+        :versions="store.versionsByType[type]"
+        :loading="store.loading"
+        @manage="manage"
+      />
+    </div>
+
+    <DashboardAddOnVersionsDrawer v-model:open="drawerOpen" :type="activeType" />
   </div>
 </template>
