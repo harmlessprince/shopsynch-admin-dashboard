@@ -1,6 +1,7 @@
 <script setup>
-import { reactive, ref, computed, onMounted } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { useAdminPlanVersionsStore } from "~/stores/adminPlanVersions.store.js";
+import { unplacedErrors, focusFirstError } from "~/utils/billingAdminWrite.js";
 import { displayValue, humanizeKey } from "~/utils/planVersions.js";
 
 const props = defineProps({
@@ -8,6 +9,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["done", "cancel"]);
+const formEl = ref(null);
 const store = useAdminPlanVersionsStore();
 
 const impact = ref(null);
@@ -28,6 +30,8 @@ const baseOutdated = computed(() => impact.value?.baseOutdated === true);
 
 const keptVersions = computed(() => impact.value?.versionsMerchantsKeep || []);
 
+const summaryErrors = computed(() => unplacedErrors(store.fieldErrors, ["reason", ...(form.mode === 'LATER' ? ["effectiveFrom"] : [])]));
+
 async function submit() {
   if (baseOutdated.value) return;
   store.clearErrors();
@@ -42,11 +46,13 @@ async function submit() {
   }
   const saved = await store.publishVersion(props.version.id, { effectiveFrom, reason: form.reason }, props.version.planId);
   if (saved) emit("done", saved);
+  else focusFirstError(formEl.value);
 }
 </script>
 
 <template>
-  <form class="space-y-[2rem]" @submit.prevent="submit">
+  <form ref="formEl" class="space-y-[2rem]" @submit.prevent="submit">
+    <BillingErrorSummary :errors="summaryErrors" />
     <div>
       <h3 class="text-[1.6rem] font-[700] text-slate-900">Publish version {{ version.versionNumber }}</h3>
       <p class="mt-[0.4rem] text-[1.3rem] text-slate-500">

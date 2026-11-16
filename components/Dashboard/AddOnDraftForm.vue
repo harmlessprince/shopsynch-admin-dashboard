@@ -1,6 +1,7 @@
 <script setup>
-import { reactive, computed } from "vue";
+import { computed, reactive, ref } from "vue";
 import { useAdminCapacityAddOnsStore } from "~/stores/adminCapacityAddOns.store.js";
+import { unplacedErrors, focusFirstError } from "~/utils/billingAdminWrite.js";
 import { addOnTypeMeta } from "~/utils/addOnCatalogue.js";
 
 const props = defineProps({
@@ -11,6 +12,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["saved", "cancel"]);
+const formEl = ref(null);
 const store = useAdminCapacityAddOnsStore();
 
 const isEdit = computed(() => Boolean(props.version));
@@ -42,6 +44,8 @@ for (const [code, value] of Object.entries(props.version?.maxQuantityByPlanCode 
 const addPrice = () => form.prices.push({ period: "", amount: "" });
 const removePrice = (index) => form.prices.splice(index, 1);
 
+const summaryErrors = computed(() => unplacedErrors(store.fieldErrors, ["amountsByPeriodUnit", "maxQuantityByPlanCode", "changeNote", "reason"]));
+
 async function submit() {
   store.clearErrors();
   const amountsByPeriodUnit = {};
@@ -70,11 +74,13 @@ async function submit() {
     props.version?.id || null,
   );
   if (saved) emit("saved", saved);
+  else focusFirstError(formEl.value);
 }
 </script>
 
 <template>
-  <form class="space-y-[2rem]" @submit.prevent="submit">
+  <form ref="formEl" class="space-y-[2rem]" @submit.prevent="submit">
+    <BillingErrorSummary :errors="summaryErrors" />
     <div>
       <h3 class="text-[1.6rem] font-[700] text-slate-900">
         {{ isEdit ? `Edit draft v${version.versionNumber}` : `New draft for ${addOnTypeMeta[type]?.label}` }}

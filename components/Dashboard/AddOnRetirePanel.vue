@@ -1,23 +1,29 @@
 <script setup>
-import { reactive } from "vue";
+import { computed, reactive, ref } from "vue";
 import { useAdminCapacityAddOnsStore } from "~/stores/adminCapacityAddOns.store.js";
+import { unplacedErrors, focusFirstError } from "~/utils/billingAdminWrite.js";
 
 const props = defineProps({
   version: { type: Object, required: true },
 });
 
 const emit = defineEmits(["done", "cancel"]);
+const formEl = ref(null);
 const store = useAdminCapacityAddOnsStore();
 const form = reactive({ reason: "" });
+
+const summaryErrors = computed(() => unplacedErrors(store.fieldErrors, ["reason"]));
 
 async function submit() {
   const saved = await store.retireVersion(props.version.id, { reason: form.reason }, props.version.type);
   if (saved) emit("done", saved);
+  else focusFirstError(formEl.value);
 }
 </script>
 
 <template>
-  <form class="space-y-[2rem]" @submit.prevent="submit">
+  <form ref="formEl" class="space-y-[2rem]" @submit.prevent="submit">
+    <BillingErrorSummary :errors="summaryErrors" />
     <div>
       <h3 class="text-[1.6rem] font-[700] text-slate-900">Retire version {{ version.versionNumber }}</h3>
       <p class="mt-[0.4rem] text-[1.3rem] text-slate-500">

@@ -1,12 +1,14 @@
 <script setup>
-import { reactive, ref, computed, onMounted } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { useAdminCapacityAddOnsStore } from "~/stores/adminCapacityAddOns.store.js";
+import { unplacedErrors, focusFirstError } from "~/utils/billingAdminWrite.js";
 
 const props = defineProps({
   version: { type: Object, required: true },
 });
 
 const emit = defineEmits(["done", "cancel"]);
+const formEl = ref(null);
 const store = useAdminCapacityAddOnsStore();
 
 const impact = ref(null);
@@ -25,6 +27,8 @@ onMounted(async () => {
 
 const keptVersions = computed(() => impact.value?.versionsMerchantsKeep || []);
 
+const summaryErrors = computed(() => unplacedErrors(store.fieldErrors, ["reason", ...(form.mode === 'LATER' ? ["effectiveFrom"] : [])]));
+
 async function submit() {
   store.clearErrors();
   let effectiveFrom = "";
@@ -38,11 +42,13 @@ async function submit() {
   }
   const saved = await store.publishVersion(props.version.id, { effectiveFrom, reason: form.reason }, props.version.type);
   if (saved) emit("done", saved);
+  else focusFirstError(formEl.value);
 }
 </script>
 
 <template>
-  <form class="space-y-[2rem]" @submit.prevent="submit">
+  <form ref="formEl" class="space-y-[2rem]" @submit.prevent="submit">
+    <BillingErrorSummary :errors="summaryErrors" />
     <div>
       <h3 class="text-[1.6rem] font-[700] text-slate-900">Publish version {{ version.versionNumber }}</h3>
       <p class="mt-[0.4rem] text-[1.3rem] text-slate-500">
