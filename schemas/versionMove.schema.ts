@@ -47,7 +47,10 @@ export const versionPolicySchema = z
     addOnType: addOnTypeSchema.optional(),
     versionNumber: versionNumber('Version'),
     policy: z.enum(['CONTINUE', 'SUNSET']),
-    sunsetAt: z.string().optional().or(z.literal('')),
+    sunsetAt: z
+      .string()
+      .optional()
+      .transform((v) => v?.trim() || undefined),
     targetVersionNumber: versionNumber('Target version').optional(),
     acknowledgeFewerFeatures: z.boolean().optional(),
     reason: reasonField,
