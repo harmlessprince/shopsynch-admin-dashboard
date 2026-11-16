@@ -34,6 +34,8 @@ const route = useRoute();
 
 const tabs = [
   { name: "Plans", link: "/dashboard/billing/plans" },
+  { name: "Add-on catalogue", link: "/dashboard/billing/addons" },
+  { name: "Plan versions", link: "/dashboard/billing/versions" },
   { name: "Operations & Overrides", link: "/dashboard/billing/operations" },
   { name: "Payment Attempts", link: "/dashboard/billing/payment-attempts" },
   { name: "Payments", link: "/dashboard/billing/payments" },
