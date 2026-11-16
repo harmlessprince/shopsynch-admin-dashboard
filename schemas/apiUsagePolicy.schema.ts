@@ -32,7 +32,6 @@ export const apiUsagePolicySchema = zod.object({
     includedMonthlyCalls: optionalCount('Included monthly calls'),
     testRateLimitPerMinute: optionalCount('Test rate limit'),
     testMonthlySafetyCap: optionalCount('Test monthly cap'),
-    overageCalls: optionalCount('Overage calls'),
     overageBlockSizeCalls: optionalCount('Overage block size'),
     overagePricePerBlock: optionalCount('Overage price per block'),
     quotaWarningThresholdPercent: optionalPercent('Quota warning threshold'),
