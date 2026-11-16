@@ -1287,6 +1287,8 @@ async function checkRetiredPlanEvent() {
           <p v-else class="italic text-slate-400">No plan access information available for this store.</p>
         </div>
       </div>
+
+      <DashboardMerchantCapacityAddOns :tenant-id="route.params.tenantId" />
     </template>
 
     <p v-else-if="!store.detailLoading">No merchant found.</p>
