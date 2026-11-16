@@ -24,9 +24,12 @@ onMounted(async () => {
   impactLoading.value = false;
 });
 
+const baseOutdated = computed(() => impact.value?.baseOutdated === true);
+
 const keptVersions = computed(() => impact.value?.versionsMerchantsKeep || []);
 
 async function submit() {
+  if (baseOutdated.value) return;
   store.clearErrors();
   let effectiveFrom = "";
   if (form.mode === "LATER") {
@@ -48,6 +51,17 @@ async function submit() {
       <h3 class="text-[1.6rem] font-[700] text-slate-900">Publish version {{ version.versionNumber }}</h3>
       <p class="mt-[0.4rem] text-[1.3rem] text-slate-500">
         New purchases will use this version's prices and limits. Existing merchants keep their version and price unless you move them.
+      </p>
+    </div>
+
+    <div v-if="baseOutdated" class="rounded-[8px] border border-[#B42318] bg-[#FFBFBF] p-[1.4rem] text-[#B42318]" role="alert">
+      <p class="font-[700]">This draft is based on an older version</p>
+      <p class="mt-[0.4rem] font-[600]">
+        {{ impact.baseOutdatedWarning || "This draft's base is no longer the latest published version." }}
+      </p>
+      <p class="mt-[0.4rem]">
+        <template v-if="impact.baseVersionNumber != null">It was copied from version {{ impact.baseVersionNumber }}. </template>
+        Create a new draft from the latest version, then publish that one.
       </p>
     </div>
 
@@ -96,7 +110,7 @@ async function submit() {
       <p v-if="store.actionError && !impact" class="mt-[0.8rem] font-[600] text-[#B42318]">{{ store.actionError }}</p>
     </section>
 
-    <BaseSelectInput v-model="form.mode" :options="modeOptions" label="When" />
+    <BaseSelectInput v-model="form.mode" :options="modeOptions" label="When" :disabled="baseOutdated" />
     <AppInput
       v-if="form.mode === 'LATER'"
       v-model="form.effectiveFrom"
@@ -111,7 +125,7 @@ async function submit() {
 
     <div class="flex justify-end gap-[1rem]">
       <BaseButton radius="8px" variant="outline" :disabled="store.saving" @click="emit('cancel')">Cancel</BaseButton>
-      <BaseButton type="submit" radius="8px" bold :loading="store.saving">
+      <BaseButton type="submit" radius="8px" bold :loading="store.saving" :disabled="baseOutdated">
         {{ form.mode === "LATER" ? "Schedule version" : "Publish now" }}
       </BaseButton>
     </div>
