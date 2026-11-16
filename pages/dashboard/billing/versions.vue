@@ -3,7 +3,7 @@ import { ref, computed, watch, onMounted } from "vue";
 import { useAdminBillingPlansStore } from "~/stores/adminBillingPlans.store.js";
 import { useAdminPlanVersionsStore } from "~/stores/adminPlanVersions.store.js";
 import { useAdminVersionMovesStore } from "~/stores/adminVersionMoves.store.js";
-import { formatDateTime } from "~/utils/helpers.js";
+import { formatDateTime, formatEffectiveFrom } from "~/utils/helpers.js";
 import { versionStatusMeta } from "~/utils/addOnCatalogue.js";
 import { moveStatusMeta, renewalPolicyLabel } from "~/utils/planVersions.js";
 
@@ -96,7 +96,7 @@ onMounted(async () => {
           <div>
             <h2 class="text-[1.8rem] font-[700] text-slate-900">{{ planName }}</h2>
             <p v-if="live" class="mt-[0.4rem] text-slate-500">
-              New purchases use version {{ live.versionNumber }}<span v-if="live.effectiveFrom"> since {{ formatDateTime(live.effectiveFrom) }}</span>.
+              New purchases use version {{ live.versionNumber }}<span v-if="live.effectiveFrom"> since {{ formatEffectiveFrom(live.effectiveFrom) }}</span>.
             </p>
             <p v-else-if="store.loading" class="mt-[0.4rem] italic text-slate-400">Loading...</p>
             <p v-else class="mt-[0.4rem] italic text-slate-400">No version is published for this plan.</p>
@@ -132,7 +132,7 @@ onMounted(async () => {
               <StatusBadge v-bind="versionStatusMeta[version.status] || { label: version.status }" />
               <StatusBadge v-if="version.latestForNewPurchases" tone="info" label="New purchases" />
             </div>
-            <span class="text-[1.2rem] text-slate-500">{{ version.effectiveFrom ? formatDateTime(version.effectiveFrom) : "Not published" }}</span>
+            <span class="text-[1.2rem] text-slate-500">{{ formatEffectiveFrom(version.effectiveFrom, "Not published") }}</span>
           </div>
           <p class="mt-[0.8rem] text-slate-700">
             <template v-for="(price, index) in version.prices" :key="price.periodUnitCount">

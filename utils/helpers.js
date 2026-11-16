@@ -57,6 +57,18 @@ export const formatToMoney = (value, currency = '₦') => {
     })}`;
 }
 
+// The first seeded version carries an epoch effective date; treat anything at or before 1970-01-02 as "since launch".
+export const isLaunchEffectiveDate = (val) => {
+  if (!val) return false;
+  const t = new Date(val).getTime();
+  return !Number.isNaN(t) && t <= Date.UTC(1970, 0, 2);
+};
+
+export const formatEffectiveFrom = (val, emptyText = '') => {
+  if (!val) return emptyText;
+  return isLaunchEffectiveDate(val) ? 'launch' : formatDateTime(val);
+};
+
 export const handleFileUpload = async (eventOrFile, explicitTenantId = null) => {
   let file;
   

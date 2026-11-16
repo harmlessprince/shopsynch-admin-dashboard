@@ -1,4 +1,5 @@
 // Display helpers for the add-on catalogue. They only format what the API returns; they never compute a price.
+import { formatToMoney } from "~/utils/helpers.js";
 
 export const addOnTypeMeta = {
   STAFF: { label: "Staff", description: "Extra staff accounts", icon: "group" },
@@ -14,7 +15,7 @@ export const versionStatusMeta = {
 };
 
 export const formatAddOnMoney = (amount, currency = "NGN") =>
-  `${currency || "NGN"} ${Number(amount ?? 0).toLocaleString()}`;
+  formatToMoney(amount ?? 0, !currency || currency === "NGN" ? "₦" : `${currency} `);
 
 // Keys of the per-period maps are counts of 30-day units, as text. Labelled "N mo" like the admin plans screen (PlanLabel).
 export const periodLabel = (key) => `${key} mo`;

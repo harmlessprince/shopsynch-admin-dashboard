@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from "vue";
-import { formatDateTime } from "~/utils/helpers.js";
+import { formatDateTime, formatEffectiveFrom } from "~/utils/helpers.js";
 import { renewalPolicyLabel } from "~/utils/planVersions.js";
 import { versionStatusMeta } from "~/utils/addOnCatalogue.js";
 
@@ -38,7 +38,7 @@ const canMove = computed(() => props.version.status === "PUBLISHED");
     <dl class="grid grid-cols-1 gap-[1.4rem] sm:grid-cols-2">
       <div>
         <dt class="text-[1.2rem] text-slate-500">{{ version.status === "SCHEDULED" ? "Starts" : "Effective from" }}</dt>
-        <dd class="font-[600]">{{ version.effectiveFrom ? formatDateTime(version.effectiveFrom) : "Not published yet" }}</dd>
+        <dd class="font-[600]">{{ formatEffectiveFrom(version.effectiveFrom, "Not published yet") }}</dd>
       </div>
       <div>
         <dt class="text-[1.2rem] text-slate-500">Change note</dt>

@@ -2,7 +2,7 @@
 import { ref, computed, watch } from "vue";
 import { useAdminCapacityAddOnsStore } from "~/stores/adminCapacityAddOns.store.js";
 import { useAdminBillingPlansStore } from "~/stores/adminBillingPlans.store.js";
-import { formatDateTime } from "~/utils/helpers.js";
+import { formatEffectiveFrom } from "~/utils/helpers.js";
 import { addOnTypeMeta, versionStatusMeta, sortedPeriodEntries, formatAddOnMoney } from "~/utils/addOnCatalogue.js";
 
 const props = defineProps({
@@ -79,7 +79,7 @@ function afterSave(saved) {
                   <StatusBadge v-bind="versionStatusMeta[version.status] || { label: version.status }" />
                   <StatusBadge v-if="version.latestForNewPurchases" tone="info" label="New purchases" />
                 </div>
-                <span class="text-[1.2rem] text-slate-500">{{ version.effectiveFrom ? formatDateTime(version.effectiveFrom) : "Not published" }}</span>
+                <span class="text-[1.2rem] text-slate-500">{{ formatEffectiveFrom(version.effectiveFrom, "Not published") }}</span>
               </div>
               <p class="mt-[0.8rem] text-slate-700">
                 <template v-for="([period, amount], index) in sortedPeriodEntries(version.amountsByPeriodUnit)" :key="period">

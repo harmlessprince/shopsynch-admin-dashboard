@@ -1,3 +1,5 @@
+import { formatToMoney } from "~/utils/helpers.js";
+
 // Display metadata for capacity add-ons. Enums come from the backend DTOs (AdminCapacityAddOnView).
 export const addOnTypeLabel = (type) =>
   ({ STAFF: "Staff", BRANCH: "Branch", BOOKING_RESOURCE: "Booking resource" })[type] || type;
@@ -12,7 +14,8 @@ export const addOnStatusMeta = {
 
 export const originLabel = (origin) => (origin === "GRANT" ? "Granted by admin" : origin === "PURCHASE" ? "Purchased" : origin);
 
-export const money = (amount, currency = "NGN") => `${currency || "NGN"} ${Number(amount || 0).toLocaleString()}`;
+export const money = (amount, currency = "NGN") =>
+  formatToMoney(amount, !currency || currency === "NGN" ? "₦" : `${currency} `);
 
 // Keys are counts of 30-day units, as strings; labelled "N mo" like the admin plans screen.
 export const lockedRateText = (amounts, currency) => {
