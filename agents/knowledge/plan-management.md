@@ -6,10 +6,10 @@ This document guides developers working on billing plans, merchant plan access, 
 
 ### 1. Catalog vs Custom Plans
 - **Catalog Plans (`starter`, `pro`, `growth`, `developer` (Build), `developer-launch`, `developer-scale`):**
-  - The developer tiers carry an `apiUsagePolicy` (live/test rate limit, included monthly calls, test cap, overage calls, enforcement mode), edited as fields in the plan editor (`schemas/apiUsagePolicy.schema.ts`). The seed writes it only when a plan has none, so an admin edit survives restarts, and each edit publishes a new plan version while subscribers stay on the version they are pinned to. `developer-scale` is created hidden (`publicVisible: false`).
-  - Seeded into the database by `BillingPricingSeeder` on every backend startup.
+  - The developer tiers carry an `apiUsagePolicy` (live/test rate limit, included monthly calls, test cap, overage block size and price per block, quota thresholds, live keys allowed, enforcement modes), edited as fields in the plan editor (`schemas/apiUsagePolicy.schema.ts`). Overage is billed only when the block size and the price are both set, so the schema refuses one without the other, and the warning threshold must come before the limit threshold. Each edit publishes a new plan version while subscribers stay on the version they are pinned to; after saving, the plans page says which version was published (a plan with no version yet publishes none). Scale is shown or hidden in the public listing with the plan's "Public visible" checkbox. `developer-scale` is created hidden (`publicVisible: false`).
+  - Created by `BillingPricingSeeder` when missing. The seeder never rewrites a plan that has versions, so an admin edit or published version survives restarts (#1311).
   - Marked with `seeded: true`.
-  - Any modifications made directly in the admin dashboard to a seeded plan's rules or prices will be overwritten on the next backend deployment/restart. Changes to catalog plans must be committed in backend seed code (`BillingPricingSeeder.java`).
+  - A plan that has no version yet (the plan version backfill has not run) is left as it is, and only its missing price rows are added. Change the seed code (`BillingPricingSeeder.java`) only for new plans; change existing plans in the admin dashboard.
   - In `admin_dashboard/pages/dashboard/billing/plans/index.vue`, seeded plans display an explicit warning notice and require explicit user confirmation to unlock temporary editing.
 - **Custom / Hidden / Admin-Only Plans:**
   - Created by platform administrators through the dashboard.

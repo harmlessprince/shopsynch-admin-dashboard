@@ -2,6 +2,7 @@
 import { logger } from "~/utils/helpers.js";
 import DataTable from "~/components/table/DataTable.vue";
 import { apiUsagePolicySchema, apiUsageEnforcementModes } from "~/schemas/apiUsagePolicy.schema";
+import { useAdminPlanVersionsStore } from "~/stores/adminPlanVersions.store.js";
 
 definePageMeta({
   layout: "dashboard",
@@ -14,6 +15,21 @@ useHead({
 });
 
 const billingPlansStore = useAdminBillingPlansStore();
+const planVersionsStore = useAdminPlanVersionsStore();
+
+// Saving a plan can publish a new plan version; this says so after the save, with the version number.
+const savedVersionNotice = ref(null);
+
+async function latestVersionNumber(planId) {
+  try {
+    await planVersionsStore.fetchVersions(planId);
+    const numbers = (planVersionsStore.versionsByPlan[planId] || []).map((version) => version.versionNumber);
+    return numbers.length ? Math.max(...numbers) : 0;
+  } catch (err) {
+    logger.error("Failed to read plan versions", err);
+    return null;
+  }
+}
 
 const statusFilter = ref("");
 const showPlanModal = ref(false);
@@ -313,8 +329,11 @@ async function selectPlan(plan) {
 async function savePlan() {
   planJsonError.value = "";
   fieldErrors.value = {};
+  savedVersionNotice.value = null;
   try {
     const payload = buildPlanPayload();
+    const editedPlanId = editingPlan.value?.id || null;
+    const versionBefore = editedPlanId ? await latestVersionNumber(editedPlanId) : null;
     const response = editingPlan.value
       ? await billingPlansStore.updatePlan(editingPlan.value.id, payload)
       : await billingPlansStore.createPlan(payload);
@@ -322,6 +341,12 @@ async function savePlan() {
     if (response) {
       showPlanModal.value = false;
       await billingPlansStore.fetchPlans();
+      if (editedPlanId && versionBefore !== null) {
+        const versionAfter = await latestVersionNumber(editedPlanId);
+        if (versionAfter !== null && versionAfter > versionBefore) {
+          savedVersionNotice.value = { planId: editedPlanId, versionNumber: versionAfter };
+        }
+      }
       const savedPlan = response?.data;
       if (savedPlan?.id) {
         await selectPlan(savedPlan);
@@ -546,6 +571,14 @@ onMounted(async () => {
       <aside class="space-y-[1.6rem]">
         <section class="rounded-[8px] bg-white p-[2rem] shadow-sm">
           <div v-if="selectedPlan" class="space-y-[1.6rem]">
+            <p
+              v-if="savedVersionNotice && savedVersionNotice.planId === selectedPlan.id"
+              class="rounded-[8px] bg-[#F4FFF4] p-[1.2rem] text-[1.3rem] font-[600] text-[#1E6B25]"
+            >
+              Saved. A new plan version (version {{ savedVersionNotice.versionNumber }}) was published. Stores already on this
+              plan keep the version they are on; new subscribers get this one.
+              <NuxtLink to="/dashboard/billing/versions" class="underline">See plan versions</NuxtLink>
+            </p>
             <div class="flex items-start justify-between gap-[1rem]">
               <div>
                 <p class="text-[1.2rem] font-[700] uppercase tracking-[0.08em] text-[#616161]">
