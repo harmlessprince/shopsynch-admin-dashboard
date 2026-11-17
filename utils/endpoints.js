@@ -241,9 +241,17 @@ export const endpoints = {
                 verify: "/v1/admin/billing/payment-attempts/:attemptId/verify",
                 abandon: "/v1/admin/billing/payment-attempts/:attemptId/abandon",
             },
+            apiUsage: {
+                tenant: "/v1/admin/billing/api-usage/tenants/:tenantId",
+            },
             payments: {
                 list: "/v1/admin/billing/payments",
                 detail: "/v1/admin/billing/payments/:paymentId",
+                revenueSplit: "/v1/admin/billing/payments/revenue-split",
+            },
+            apiOverage: {
+                list: "/v1/admin/billing/invoices/api-overage",
+                attention: "/v1/admin/billing/invoices/api-overage/attention",
             },
             overrides: {
                 apply: "/v1/admin/billing/overrides",
