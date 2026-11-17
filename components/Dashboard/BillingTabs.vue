@@ -42,6 +42,7 @@ const tabs = [
   { name: "Pricing Offers", link: "/dashboard/billing/offers" },
   { name: "Refunds", link: "/dashboard/billing/refunds" },
   { name: "Duplicate Payments", link: "/dashboard/billing/duplicate-payments" },
+  { name: "API Overage", link: "/dashboard/billing/api-overage" },
 ];
 
 function isActive(link) {
