@@ -3,6 +3,7 @@ import { logger } from "~/utils/helpers.js";
 import { endpoints } from "~/utils/endpoints.js";
 import { useApiService } from "~/services/apiService.js";
 import { validateTelegramWebhookUrl, getTelegramModeWarning } from "~/utils/telegram.js";
+import { buildPlatformSettingPayload, platformSettingRules } from "~/schemas/platformSetting.schema";
 
 definePageMeta({
   layout: "dashboard",
@@ -14,7 +15,7 @@ const adminSettingsStore = useAdminSettingsStore();
 const toastStore = useToastStore();
 const displayModeCookie = useCookie("displayMode");
 
-const categories = ["PAYMENT", "URL", "EMAIL", "FEATURE_FLAG", "SYSTEM", "O_AUTH", "ASSISTANT"];
+const categories = ["PAYMENT", "URL", "EMAIL", "FEATURE_FLAG", "SYSTEM", "O_AUTH", "ASSISTANT", "PRICING"];
 const valueTypes = ["STRING", "NUMBER", "BOOLEAN", "JSON"];
 const askAnalyticsLimitKey = "askAnalyticsDailyQuestionLimit";
 
@@ -22,6 +23,7 @@ const category = ref("");
 const search = ref("");
 const drafts = ref({});
 const savingKey = ref("");
+const fieldErrors = ref({});
 const deletingKey = ref("");
 const creating = ref(false);
 const newSetting = ref({
@@ -303,13 +305,27 @@ async function fetchSettings() {
 }
 
 async function saveSettingValue(setting) {
+  fieldErrors.value = { ...fieldErrors.value, [setting.key]: "" };
+  let draftValue;
+  try {
+    draftValue = normalizeValue(drafts.value[setting.key], setting.valueType);
+  } catch {
+    fieldErrors.value = { ...fieldErrors.value, [setting.key]: "This is not valid JSON" };
+    return;
+  }
+  const checked = buildPlatformSettingPayload(setting.key, draftValue);
+  if (!checked.ok) {
+    fieldErrors.value = { ...fieldErrors.value, [setting.key]: checked.message };
+    return;
+  }
   try {
     savingKey.value = setting.key;
-    const value = normalizeValue(drafts.value[setting.key], setting.valueType);
-    await adminSettingsStore.updateSettingValue(setting.key, value);
+    await adminSettingsStore.updateSettingValue(setting.key, checked.payload.value);
     syncDrafts();
   } catch (err) {
     logger.error("Failed to update global setting", err);
+    const message = err?.data?.message || "Unable to update setting value";
+    fieldErrors.value = { ...fieldErrors.value, [setting.key]: message };
     toastStore.error("Unable to update setting value");
   } finally {
     savingKey.value = "";
@@ -755,6 +771,12 @@ onMounted(fetchSettings);
                   class="w-full rounded-[8px] border border-slate-200 px-[1.2rem] py-[0.9rem] disabled:bg-slate-50"
                   :disabled="!setting.editable"
                 />
+                <p v-if="platformSettingRules[setting.key]" class="mt-[0.6rem] text-[1.2rem] text-slate-500">
+                  {{ platformSettingRules[setting.key].hint }}
+                </p>
+                <p v-if="fieldErrors[setting.key]" class="mt-[0.6rem] text-[1.2rem] font-[600] text-red-700" role="alert">
+                  {{ fieldErrors[setting.key] }}
+                </p>
               </div>
 
               <div class="mt-[1.4rem] flex items-center justify-between gap-[1rem]">

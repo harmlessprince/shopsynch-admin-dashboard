@@ -34,12 +34,16 @@ const route = useRoute();
 
 const tabs = [
   { name: "Plans", link: "/dashboard/billing/plans" },
+  { name: "Add-on catalogue", link: "/dashboard/billing/addons" },
+  { name: "Plan versions", link: "/dashboard/billing/versions" },
   { name: "Operations & Overrides", link: "/dashboard/billing/operations" },
   { name: "Payment Attempts", link: "/dashboard/billing/payment-attempts" },
   { name: "Payments", link: "/dashboard/billing/payments" },
   { name: "Pricing Offers", link: "/dashboard/billing/offers" },
   { name: "Refunds", link: "/dashboard/billing/refunds" },
   { name: "Duplicate Payments", link: "/dashboard/billing/duplicate-payments" },
+  { name: "API Overage", link: "/dashboard/billing/api-overage" },
+  { name: "Store API usage", link: "/dashboard/billing/api-usage" },
 ];
 
 function isActive(link) {
