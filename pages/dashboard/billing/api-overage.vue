@@ -83,14 +83,7 @@ onMounted(() => {
           <h1 class="text-[2rem] font-[700] text-[#000]">API Overage</h1>
           <p class="mt-[0.4rem] max-w-[80rem] text-[#616161]">
             Live API calls past a plan's included amount are invoiced after each month closes. API calls are never cut
-            off because an invoice is unpaid. Resolving a flagged invoice is not available here yet; the backend
-            actions are in
-            <a
-              href="https://github.com/harmlessprince/ecommerce-api-springboot/pull/1314"
-              target="_blank"
-              rel="noopener"
-              class="font-[700] text-primary"
-            >backend PR 1314</a>.
+            off because an invoice is unpaid. Resolving a flagged invoice is not available in this dashboard yet.
           </p>
         </div>
         <BaseButton
