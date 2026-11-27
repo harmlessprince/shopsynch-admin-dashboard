@@ -88,6 +88,8 @@ export const endpoints = {
             funnel: "/v1/admin/merchants/funnel",
             runFunnel: "/v1/admin/merchants/funnel/run",
             exportStalledCsv: "/v1/admin/merchants/funnel/stalled/export",
+            outreachFlags: "/v1/admin/merchants/outreach-flags",
+            outreachFlag: "/v1/admin/merchants/outreach-flags/:id",
             paymentSecrets: "/v1/admin/merchants/:tenantId/payment-secrets",
             sendReminder: "/v1/admin/merchants/:tenantId/send-reminder",
             reminderTemplates: "/v1/admin/communication-templates/active",
