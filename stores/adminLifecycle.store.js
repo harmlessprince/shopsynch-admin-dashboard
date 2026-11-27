@@ -42,7 +42,8 @@ export const useAdminLifecycleStore = defineStore("adminLifecycleStore", () => {
             const response = await get(endpoints.admin.merchants.lifecycleStores, params, { forceMode: "live" });
             const data = response?.data;
 
-            stores.value = data?.items || [];
+            // DataTable passes row.id to its actions, and these rows are identified by tenantId.
+            stores.value = (data?.items || []).map((item) => ({ ...item, id: item.tenantId }));
             total.value = data?.total ?? stores.value.length;
 
             const page = Number(params.page ?? 0);
