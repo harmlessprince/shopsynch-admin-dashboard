@@ -1,6 +1,8 @@
 <script setup>
 import { logger, formatDate } from "~/utils/helpers.js";
+import { useVfm } from "vue-final-modal";
 import DataTable from "~/components/table/DataTable.vue";
+import LifecycleEmailPreviewModal from "~/components/Modals/LifecycleEmailPreviewModal.vue";
 import { useAdminLifecycleStore } from "~/stores/adminLifecycle.store.js";
 import { lifecycleStageLabels, outreachReasonLabels, outreachStatusBadge, humanizeMetricKey } from "~/utils/outreachFlags.js";
 import {
@@ -25,12 +27,16 @@ useHead({ title: "Lifecycle Messaging - ShopSynch" });
 
 const lifecycleStore = useAdminLifecycleStore();
 const router = useRouter();
+const vfm = useVfm();
 
 // One filter drives both the stage cards and the list, so their numbers stay in step. "" means every store.
 const stage = ref("");
 const classification = ref("");
 const page = ref(1);
 const limit = ref(50);
+// The modal reads the store from the list, so a change like switching test emails on shows up straight away.
+const selectedTenantId = ref("");
+const selectedStore = computed(() => lifecycleStore.stores.find((store) => store.tenantId === selectedTenantId.value) || null);
 
 const overview = computed(() => lifecycleStore.overview);
 const rolloutState = computed(() => resolveRolloutState(overview.value));
@@ -87,6 +93,11 @@ function selectClassification(nextClassification) {
   classification.value = nextClassification;
   loadOverview();
   loadStores(1);
+}
+
+function openPreview(store) {
+  selectedTenantId.value = store.tenantId;
+  vfm.open("lifecycleEmailPreviewModal");
 }
 
 function changeLimit(nextLimit) {
@@ -323,7 +334,18 @@ onMounted(() => {
             </span>
           </NuxtLink>
         </template>
+
+        <template #more-actions="{ data }">
+          <button type="button" role="menuitem" class="dt-action-item" @click="openPreview(data)">
+            <span class="material-symbols-outlined" aria-hidden="true">mark_email_read</span>
+            <p>Preview email</p>
+          </button>
+        </template>
       </DataTable>
     </section>
+
+    <ClientOnly>
+      <LifecycleEmailPreviewModal :store="selectedStore" @closed="selectedTenantId = ''" />
+    </ClientOnly>
   </div>
 </template>
