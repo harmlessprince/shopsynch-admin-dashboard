@@ -193,6 +193,13 @@ onMounted(fetchMerchants);
             <span class="material-symbols-outlined text-[1.8rem]">support_agent</span>
             <span>Outreach Queue</span>
           </NuxtLink>
+          <NuxtLink
+            to="/dashboard/merchants/lifecycle"
+            class="rounded-[8px] border border-primary bg-primary/5 px-[1.4rem] py-[0.9rem] font-[700] text-primary flex items-center gap-2 hover:bg-primary/10 transition-colors"
+          >
+            <span class="material-symbols-outlined text-[1.8rem]">mark_email_read</span>
+            <span>Lifecycle Messaging</span>
+          </NuxtLink>
           <button
             type="button"
             :disabled="exportingCsv"

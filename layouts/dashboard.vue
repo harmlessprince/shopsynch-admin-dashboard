@@ -35,6 +35,8 @@ watch(
       currentPageTitle.value = "Activation Funnel";
     } else if (newPath.includes("/dashboard/merchants/outreach")) {
       currentPageTitle.value = "Outreach Queue";
+    } else if (newPath.includes("/dashboard/merchants/lifecycle")) {
+      currentPageTitle.value = "Lifecycle Messaging";
     } else if (newPath.includes("/dashboard/merchants")) {
       currentPageTitle.value = "Merchants";
     } else if (newPath.includes("/dashboard/compliance")) {
