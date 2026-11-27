@@ -26,7 +26,7 @@ useHead({ title: "Lifecycle Messaging - ShopSynch" });
 const lifecycleStore = useAdminLifecycleStore();
 const router = useRouter();
 
-// The overview counts every active store, so the list starts on all classifications to keep the numbers matching.
+// One filter drives both the stage cards and the list, so their numbers stay in step. "" means every store.
 const stage = ref("");
 const classification = ref("");
 const page = ref(1);
@@ -36,6 +36,13 @@ const overview = computed(() => lifecycleStore.overview);
 const rolloutState = computed(() => resolveRolloutState(overview.value));
 const totalActiveStores = computed(() =>
   LIFECYCLE_STAGE_ORDER.reduce((sum, stageCode) => sum + (overview.value?.stageCounts?.[stageCode] || 0), 0),
+);
+const selectedClassificationLabel = computed(
+  () => CLASSIFICATION_OPTIONS.find((option) => option.value === classification.value)?.label || "",
+);
+// A backend that predates the filter ignores it and echoes nothing, so the cards would silently show every store.
+const overviewIgnoredFilter = computed(
+  () => Boolean(overview.value) && (overview.value.classification || "") !== classification.value,
 );
 
 const tableHeader = [
@@ -55,7 +62,7 @@ const params = computed(() => ({
 
 async function loadOverview() {
   try {
-    await lifecycleStore.fetchOverview();
+    await lifecycleStore.fetchOverview({ classification: classification.value || undefined });
   } catch (err) {
     logger.error("Failed to load the lifecycle overview", err);
   }
@@ -72,6 +79,13 @@ async function loadStores(nextPage = page.value) {
 
 function toggleStage(stageCode) {
   stage.value = stage.value === stageCode ? "" : stageCode;
+  loadStores(1);
+}
+
+function selectClassification(nextClassification) {
+  if (classification.value === nextClassification) return;
+  classification.value = nextClassification;
+  loadOverview();
   loadStores(1);
 }
 
@@ -149,8 +163,34 @@ onMounted(() => {
           </div>
         </div>
 
+        <!-- Which stores to look at -->
+        <div class="flex flex-wrap items-center gap-[0.8rem]">
+          <span class="text-[1.3rem] font-[700] text-slate-700">Show</span>
+          <button
+            v-for="option in CLASSIFICATION_OPTIONS"
+            :key="option.value || 'all'"
+            type="button"
+            :class="[
+              'rounded-full px-[1.4rem] py-[0.6rem] text-[1.3rem] font-[700] transition-colors',
+              classification === option.value ? 'bg-primary text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200',
+            ]"
+            @click="selectClassification(option.value)"
+          >
+            {{ option.label }}
+          </button>
+          <span v-if="lifecycleStore.overviewLoading" class="inline-flex items-center gap-[0.6rem] text-[1.25rem] text-slate-500">
+            <span class="animate-spin material-symbols-outlined text-[1.8rem] text-primary">progress_activity</span>
+            Updating the counts...
+          </span>
+        </div>
+
+        <div v-if="overviewIgnoredFilter && !lifecycleStore.overviewLoading" class="rounded-[8px] border border-amber-300 bg-amber-50 p-[1.2rem] text-[1.3rem] text-amber-900">
+          This backend cannot limit the stage counts to {{ selectedClassificationLabel.toLowerCase() }} stores yet, so the cards below show every active store.
+          The list is filtered.
+        </div>
+
         <!-- Stage distribution, doubles as the list filter -->
-        <div class="grid grid-cols-2 gap-[1rem] sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+        <div :class="['grid grid-cols-2 gap-[1rem] sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 transition-opacity', lifecycleStore.overviewLoading ? 'opacity-50' : '']">
           <button
             v-for="stageCode in LIFECYCLE_STAGE_ORDER"
             :key="stageCode"
@@ -167,7 +207,8 @@ onMounted(() => {
           </button>
         </div>
         <p class="text-[1.2rem] text-slate-500">
-          {{ totalActiveStores }} active stores in total, including internal and test stores.
+          {{ totalActiveStores }} active
+          {{ classification ? selectedClassificationLabel.toLowerCase() + " stores" : "stores in total, including internal and test stores" }}.
         </p>
       </template>
     </section>
@@ -183,15 +224,6 @@ onMounted(() => {
           <button v-if="stage" type="button" class="text-[1.25rem] font-[700] text-primary hover:underline" @click="toggleStage(stage)">
             Show every stage
           </button>
-        </div>
-        <div class="w-full sm:w-[22rem]">
-          <BaseSelectInput
-            v-model="classification"
-            name="classification"
-            label="Show"
-            :options="CLASSIFICATION_OPTIONS"
-            @update:model-value="loadStores(1)"
-          />
         </div>
       </div>
 

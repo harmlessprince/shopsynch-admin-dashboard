@@ -17,12 +17,13 @@ export const useAdminLifecycleStore = defineStore("adminLifecycleStore", () => {
     const paginatedData = ref(undefined);
 
     // The overview scans every active store, so it can take a few seconds on a large platform.
-    async function fetchOverview() {
+    // params.classification (REAL, INTERNAL or TEST) limits the stage counts to that kind of store.
+    async function fetchOverview(params = {}) {
         overviewLoading.value = true;
         overviewError.value = "";
 
         try {
-            const response = await get(endpoints.admin.merchants.lifecycleOverview, {}, { forceMode: "live" });
+            const response = await get(endpoints.admin.merchants.lifecycleOverview, params, { forceMode: "live" });
             overview.value = response?.data || null;
         } catch (err) {
             overviewError.value = "Unable to load the lifecycle overview.";
